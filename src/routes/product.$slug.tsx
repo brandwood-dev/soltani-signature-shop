@@ -232,3 +232,14 @@ function ProductPage() {
     </SiteLayout>
   );
 }
+
+function PromoCountdown() {
+  const target = useStableDeadline(1, 18);
+  return (
+    <div className="mb-6 flex items-center gap-2 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-sm text-sm">
+      <Flame className="h-4 w-4 text-destructive shrink-0" />
+      <CountdownInline target={target} className="text-foreground" />
+    </div>
+  );
+}
+
