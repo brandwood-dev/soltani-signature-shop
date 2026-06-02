@@ -1,6 +1,8 @@
 import { Heart, Eye, ShoppingBag, Star } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useCart } from "@/hooks/useCart";
+
 
 
 export type Product = {
@@ -17,8 +19,23 @@ export type Product = {
 
 export function ProductCard({ p }: { p: Product }) {
   const { has, toggle } = useWishlist();
+  const { add } = useCart();
+  const navigate = useNavigate();
   const fav = has(p.slug);
   const discount = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    add({ id: p.slug, name: p.name, brand: p.brand, price: p.price, image: p.image, variant: "Standard" });
+  };
+
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate({ to: "/product/$slug", params: { slug: p.slug } });
+  };
+
   return (
     <article className="group relative">
 
@@ -59,18 +76,18 @@ export function ProductCard({ p }: { p: Product }) {
           </button>
 
 
-          <div className="absolute inset-x-3 bottom-3 flex gap-2 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+          <div className="absolute inset-x-3 bottom-3 flex gap-2 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-500">
             <button
               type="button"
-              onClick={(e) => e.preventDefault()}
+              onClick={handleAdd}
               className="flex-1 inline-flex items-center justify-center gap-2 h-10 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm"
             >
               <ShoppingBag className="h-3.5 w-3.5" /> Ajouter
             </button>
             <button
               type="button"
-              aria-label="Quick view"
-              onClick={(e) => e.preventDefault()}
+              aria-label="Voir le produit"
+              onClick={handleQuickView}
               className="grid h-10 w-10 place-items-center bg-background/85 backdrop-blur text-foreground border border-gold/30 hover:text-gold rounded-sm"
             >
               <Eye className="h-4 w-4" />
