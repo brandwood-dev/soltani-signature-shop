@@ -12,7 +12,7 @@ export function Categories() {
               <span className="h-px w-10 bg-gold" />
               <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Univers</span>
             </div>
-            <h2 className="font-display text-4xl md:text-6xl font-bold max-w-2xl">
+            <h2 className="font-display text-4xl md:text-6xl font-medium max-w-2xl">
               Explorez nos <span className="italic font-light text-gold">collections</span>
             </h2>
           </div>

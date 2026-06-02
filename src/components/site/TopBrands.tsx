@@ -11,7 +11,7 @@ export function TopBrands() {
               <span className="h-px w-10 bg-gold" />
               <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Nos Maisons</span>
             </div>
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground">Top Marques</h2>
+            <h2 className="font-display text-4xl md:text-5xl font-medium text-foreground">Top Marques</h2>
             <p className="text-muted-foreground mt-3 max-w-md">
               Des maisons légendaires soigneusement sélectionnées pour leur excellence.
             </p>
