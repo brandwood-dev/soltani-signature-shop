@@ -5,6 +5,21 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";
 import { SearchBox } from "./SearchBox";
 import { NAV_LINKS } from "@/data/catalog";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useCart } from "@/hooks/useCart";
+
+function CountBadge({ count, tone = "gold" }: { count: number; tone?: "gold" | "destructive" }) {
+  if (!count) return null;
+  const cls = tone === "gold" ? "bg-gold text-ink" : "bg-destructive text-cream";
+  return (
+    <span
+      key={count}
+      className={`absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 grid place-items-center rounded-full text-[10px] font-bold tabular-nums ${cls} animate-in zoom-in-50 duration-200`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 
 export function Header() {
@@ -40,10 +55,13 @@ export function Header() {
         <div className="ml-auto flex items-center gap-1 text-foreground">
           <ThemeToggle />
           <Link to="/profile" className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
-          <Link to="/wishlist" className="p-2.5 hover:text-gold transition" aria-label="Wishlist"><Heart className="h-5 w-5" /></Link>
+          <Link to="/wishlist" className="relative p-2.5 hover:text-gold transition" aria-label="Wishlist">
+            <Heart className="h-5 w-5" />
+            <CountBadge count={wishlistCount} tone="destructive" />
+          </Link>
           <Link to="/cart" className="relative p-2.5 hover:text-gold transition" aria-label="Panier">
             <ShoppingBag className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-4 w-4 grid place-items-center rounded-full bg-gold text-[10px] font-bold text-ink">3</span>
+            <CountBadge count={cartCount} tone="gold" />
           </Link>
           <Link
             to="/promotions"
