@@ -32,6 +32,7 @@ function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar />
+      <CategoryNav />
       <Header />
       <main>
         <Hero />
