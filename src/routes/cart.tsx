@@ -1,0 +1,100 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
+import { Minus, Plus, X, Tag, ShieldCheck } from "lucide-react";
+import p1 from "@/assets/prod-1.jpg";
+import p3 from "@/assets/prod-3.jpg";
+import p5 from "@/assets/prod-5.jpg";
+
+export const Route = createFileRoute("/cart")({
+  head: () => ({ meta: [{ title: "Panier — Soltani Signature" }] }),
+  component: CartPage,
+});
+
+type Line = { id: string; name: string; brand: string; price: number; qty: number; image: string; variant: string };
+
+function CartPage() {
+  const [lines, setLines] = useState<Line[]>([
+    { id: "1", name: "Chronographe Acier Noir", brand: "Tissot", price: 2890, qty: 1, image: p1, variant: "Noir · 42mm" },
+    { id: "2", name: "Eau de Parfum Ambré 100ml", brand: "Tom Ford", price: 850, qty: 2, image: p3, variant: "100ml" },
+    { id: "3", name: "Pendentif Diamant Solitaire", brand: "Cartier", price: 6800, qty: 1, image: p5, variant: "Or 18k" },
+  ]);
+  const [code, setCode] = useState("");
+
+  const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
+  const shipping = subtotal >= 300 ? 0 : 15;
+  const total = subtotal + shipping;
+
+  const update = (id: string, qty: number) => setLines((l) => l.map((x) => x.id === id ? { ...x, qty: Math.max(1, qty) } : x));
+  const remove = (id: string) => setLines((l) => l.filter((x) => x.id !== id));
+
+  return (
+    <SiteLayout>
+      <PageHero eyebrow="Votre sélection" title="Panier" subtitle={`${lines.length} article${lines.length > 1 ? "s" : ""} dans votre panier`} />
+
+      <div className="container-luxe py-16 grid lg:grid-cols-[1fr_400px] gap-10">
+        <div>
+          {lines.length === 0 ? (
+            <div className="py-24 text-center">
+              <p className="text-muted-foreground mb-4">Votre panier est vide.</p>
+              <Link to="/" className="text-gold underline">Continuer mes achats</Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-border border-y border-border">
+              {lines.map((l) => (
+                <div key={l.id} className="py-6 grid grid-cols-[100px_1fr_auto] gap-5">
+                  <div className="aspect-square overflow-hidden rounded-sm bg-card">
+                    <img src={l.image} alt={l.name} className="h-full w-full object-cover" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-gold mb-1">{l.brand}</p>
+                    <h3 className="font-medium mb-1">{l.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-3">{l.variant}</p>
+                    <div className="flex items-center border border-border w-fit rounded-sm">
+                      <button onClick={() => update(l.id, l.qty - 1)} className="h-9 w-9 grid place-items-center hover:text-gold"><Minus className="h-3.5 w-3.5" /></button>
+                      <span className="w-9 text-center text-sm">{l.qty}</span>
+                      <button onClick={() => update(l.id, l.qty + 1)} className="h-9 w-9 grid place-items-center hover:text-gold"><Plus className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold tabular-nums">{l.price * l.qty} DT</p>
+                    <button onClick={() => remove(l.id)} className="mt-3 text-muted-foreground hover:text-destructive"><X className="h-4 w-4 ml-auto" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <aside className="bg-secondary/40 border border-border rounded-sm p-6 h-fit lg:sticky lg:top-28">
+          <h3 className="font-display text-xl font-bold mb-5">Récapitulatif</h3>
+          <div className="flex gap-2 mb-5">
+            <div className="relative flex-1">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code promo"
+                className="w-full h-10 pl-10 pr-3 bg-background border border-border text-sm rounded-sm" />
+            </div>
+            <button className="px-4 h-10 border border-gold text-gold text-xs uppercase tracking-widest hover:bg-gold hover:text-ink transition rounded-sm">Appliquer</button>
+          </div>
+          <dl className="space-y-2 text-sm pb-4 border-b border-border">
+            <div className="flex justify-between"><dt className="text-muted-foreground">Sous-total</dt><dd className="tabular-nums">{subtotal} DT</dd></div>
+            <div className="flex justify-between"><dt className="text-muted-foreground">Livraison</dt><dd className="tabular-nums">{shipping === 0 ? "Offerte" : `${shipping} DT`}</dd></div>
+          </dl>
+          <div className="flex justify-between items-end py-4">
+            <span className="font-display font-bold text-lg">Total</span>
+            <span className="font-display font-bold text-2xl text-gold tabular-nums">{total} DT</span>
+          </div>
+          <div className="p-3 bg-background border border-gold/30 rounded-sm mb-4">
+            <p className="text-xs text-foreground/80">Ou <span className="font-bold text-gold">3× {(total / 3).toFixed(0)} DT</span> sans frais</p>
+          </div>
+          <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
+            Passer commande
+          </Link>
+          <p className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-gold" /> Paiement 100% sécurisé
+          </p>
+        </aside>
+      </div>
+    </SiteLayout>
+  );
+}
