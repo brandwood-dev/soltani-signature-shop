@@ -1,4 +1,5 @@
 import { Instagram, Facebook, Twitter, Youtube } from "lucide-react";
+import { Logo } from "./Logo";
 
 const COLS = [
   {
@@ -21,10 +22,7 @@ export function Footer() {
       <div className="container-luxe py-20">
         <div className="grid lg:grid-cols-5 gap-12 mb-16">
           <div className="lg:col-span-2">
-            <div className="flex items-baseline gap-1.5 mb-5">
-              <span className="font-display text-3xl font-bold text-foreground">SOLTANI</span>
-              <span className="font-display text-3xl font-light italic text-gold">Signature</span>
-            </div>
+            <Logo footer height={52} className="mb-5" />
             <p className="text-foreground/70 max-w-sm leading-relaxed mb-6">
               Maison tunisienne de référence pour les montres, parfums et accessoires de luxe.
               Sélection authentique, service d'exception.

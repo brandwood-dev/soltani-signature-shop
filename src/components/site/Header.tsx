@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { ThemeToggle } from "./ThemeToggle";
+import { Logo } from "./Logo";
 
 const NAV = [
   "Homme", "Femme", "Montres", "Lunettes", "Parfums",
@@ -29,14 +29,7 @@ export function Header() {
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <Link to="/" className="flex items-baseline gap-1 shrink-0">
-          <span className="font-display text-2xl font-bold tracking-tight text-foreground">
-            SOLTANI
-          </span>
-          <span className="font-display text-2xl font-light italic text-gold">
-            Signature
-          </span>
-        </Link>
+        <Logo height={42} className="mx-auto lg:mx-0" />
 
         <div className="hidden md:flex flex-1 max-w-xl mx-auto">
           <div className="relative w-full group">
