@@ -95,7 +95,7 @@ function LegalPage() {
       <PageHero eyebrow={page.eyebrow} title={page.title} />
       <article className="container-luxe py-16 max-w-3xl">
         <div className="space-y-10">
-          {page.sections.map((s) => (
+          {page.sections.map((s: { h: string; p: string }) => (
             <section key={s.h}>
               <h2 className="font-display text-2xl font-bold mb-3 text-gold">{s.h}</h2>
               <p className="text-foreground/80 leading-relaxed">{s.p}</p>
