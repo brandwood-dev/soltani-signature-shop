@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";
 
