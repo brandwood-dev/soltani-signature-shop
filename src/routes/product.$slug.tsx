@@ -133,9 +133,9 @@ function ProductPage() {
               <span className="w-10 text-center font-semibold">{qty}</span>
               <button onClick={() => setQty(qty + 1)} className="h-12 w-12 grid place-items-center hover:text-gold"><Plus className="h-4 w-4" /></button>
             </div>
-            <Link to="/cart" className="flex-1 inline-flex items-center justify-center h-12 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
-              Ajouter au panier
-            </Link>
+            <button onClick={handleAddToCart} className="flex-1 inline-flex items-center justify-center gap-2 h-12 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
+              <ShoppingBag className="h-4 w-4" /> Ajouter au panier
+            </button>
             <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm"><Heart className="h-5 w-5" /></button>
             <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm"><Share2 className="h-5 w-5" /></button>
           </div>
