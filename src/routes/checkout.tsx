@@ -1,9 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useRef, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Check, CreditCard, Truck, User, Lock } from "lucide-react";
-import p1 from "@/assets/prod-1.jpg";
-import p3 from "@/assets/prod-3.jpg";
+import { useCart } from "@/hooks/useCart";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Commande — Soltani Signature" }] }),
@@ -16,11 +15,50 @@ const STEPS = [
   { n: 3, label: "Paiement", icon: CreditCard },
 ];
 
+const PAY_LABELS: Record<string, string> = {
+  card: "Carte bancaire",
+  "3x": "Paiement en 3× sans frais",
+  d17: "D17 / Mobile",
+  cod: "Paiement à la livraison",
+};
+
 function CheckoutPage() {
+  const navigate = useNavigate();
+  const { lines, subtotal, clear } = useCart();
   const [step, setStep] = useState(1);
   const [pay, setPay] = useState<"card" | "3x" | "cod" | "d17">("3x");
+  const formRef = useRef<HTMLDivElement>(null);
 
-  const total = 4590;
+  const shipping = subtotal >= 300 ? 0 : 15;
+  const total = subtotal + shipping + (pay === "cod" ? 5 : 0);
+
+  const placeOrder = () => {
+    const number = `LM-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const fields = formRef.current?.querySelectorAll("input") ?? [];
+    const v = (name: string) => (Array.from(fields).find((f) => f.placeholder?.toLowerCase().includes(name))?.value || "");
+    const order = {
+      number,
+      date: new Date().toISOString(),
+      lines,
+      subtotal,
+      shipping,
+      discount: 0,
+      total,
+      payment: PAY_LABELS[pay],
+      shippingMethod: "Standard (2-4 jours)",
+      address: {
+        name: "Client Soltani",
+        line: v("avenue") || "123 Avenue Habib Bourguiba",
+        city: "Tunis",
+        zip: "1000",
+        phone: v("+216") || "+216 00 000 000",
+      },
+    };
+    localStorage.setItem("soltani-last-order", JSON.stringify(order));
+    clear();
+    navigate({ to: "/order-confirmation" });
+  };
+
 
   return (
     <SiteLayout>
