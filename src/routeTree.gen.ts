@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -21,9 +23,19 @@ import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromotionsRoute = PromotionsRouteImport.update({
+  id: '/promotions',
+  path: '/promotions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -85,7 +97,9 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
+  '/wishlist': typeof WishlistRoute
   '/category/$slug': typeof CategorySlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -98,7 +112,9 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
+  '/wishlist': typeof WishlistRoute
   '/category/$slug': typeof CategorySlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -112,7 +128,9 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
+  '/wishlist': typeof WishlistRoute
   '/category/$slug': typeof CategorySlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -127,7 +145,9 @@ export interface FileRouteTypes {
     | '/contact'
     | '/login'
     | '/profile'
+    | '/promotions'
     | '/register'
+    | '/wishlist'
     | '/category/$slug'
     | '/legal/$slug'
     | '/product/$slug'
@@ -140,7 +160,9 @@ export interface FileRouteTypes {
     | '/contact'
     | '/login'
     | '/profile'
+    | '/promotions'
     | '/register'
+    | '/wishlist'
     | '/category/$slug'
     | '/legal/$slug'
     | '/product/$slug'
@@ -153,7 +175,9 @@ export interface FileRouteTypes {
     | '/contact'
     | '/login'
     | '/profile'
+    | '/promotions'
     | '/register'
+    | '/wishlist'
     | '/category/$slug'
     | '/legal/$slug'
     | '/product/$slug'
@@ -167,7 +191,9 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
+  PromotionsRoute: typeof PromotionsRoute
   RegisterRoute: typeof RegisterRoute
+  WishlistRoute: typeof WishlistRoute
   CategorySlugRoute: typeof CategorySlugRoute
   LegalSlugRoute: typeof LegalSlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
@@ -175,11 +201,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/promotions': {
+      id: '/promotions'
+      path: '/promotions'
+      fullPath: '/promotions'
+      preLoaderRoute: typeof PromotionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -263,7 +303,9 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
+  PromotionsRoute: PromotionsRoute,
   RegisterRoute: RegisterRoute,
+  WishlistRoute: WishlistRoute,
   CategorySlugRoute: CategorySlugRoute,
   LegalSlugRoute: LegalSlugRoute,
   ProductSlugRoute: ProductSlugRoute,
