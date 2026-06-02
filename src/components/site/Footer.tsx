@@ -1,4 +1,5 @@
 import { Instagram, Facebook, Twitter, Youtube } from "lucide-react";
+import { Logo } from "./Logo";
 
 const COLS = [
   {
