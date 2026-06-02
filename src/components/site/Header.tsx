@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
+import { Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";
+import { SearchBox } from "./SearchBox";
 import { NAV_LINKS } from "@/data/catalog";
+
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -31,15 +33,9 @@ export function Header() {
         </Link>
 
         <div className="hidden md:flex flex-1 max-w-xl mx-auto">
-          <div className="relative w-full group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
-            <input
-              type="search"
-              placeholder="Rechercher une marque, un produit…"
-              className="w-full h-11 pl-11 pr-4 bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold/60 transition rounded-sm"
-            />
-          </div>
+          <SearchBox />
         </div>
+
 
         <div className="ml-auto flex items-center gap-1 text-foreground">
           <ThemeToggle />
