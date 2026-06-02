@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { TopBar } from "./TopBar";
+import { CategoryNav } from "./CategoryNav";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { CartDrawer } from "./CartDrawer";
@@ -8,6 +9,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <TopBar />
+      <CategoryNav />
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
