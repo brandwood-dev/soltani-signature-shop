@@ -1,5 +1,7 @@
 import { Heart, Eye, ShoppingBag, Star } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useWishlist } from "@/hooks/useWishlist";
+
 
 export type Product = {
   slug: string;
@@ -14,9 +16,12 @@ export type Product = {
 };
 
 export function ProductCard({ p }: { p: Product }) {
+  const { has, toggle } = useWishlist();
+  const fav = has(p.slug);
   const discount = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
   return (
     <article className="group relative">
+
       <Link to="/product/$slug" params={{ slug: p.slug }} className="block">
         <div className="relative aspect-square overflow-hidden bg-card shadow-sm dark:shadow-none rounded-sm">
           <img
@@ -46,12 +51,13 @@ export function ProductCard({ p }: { p: Product }) {
 
           <button
             type="button"
-            aria-label="Ajouter à la wishlist"
-            onClick={(e) => e.preventDefault()}
-            className="absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-background/80 backdrop-blur text-foreground hover:text-destructive transition"
+            aria-label={fav ? "Retirer des favoris" : "Ajouter aux favoris"}
+            onClick={(e) => { e.preventDefault(); toggle(p.slug); }}
+            className={`absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-background/80 backdrop-blur transition ${fav ? "text-destructive" : "text-foreground hover:text-destructive"}`}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={`h-4 w-4 ${fav ? "fill-destructive" : ""}`} />
           </button>
+
 
           <div className="absolute inset-x-3 bottom-3 flex gap-2 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
             <button

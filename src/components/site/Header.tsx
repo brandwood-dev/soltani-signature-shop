@@ -44,18 +44,19 @@ export function Header() {
         <div className="ml-auto flex items-center gap-1 text-foreground">
           <ThemeToggle />
           <Link to="/profile" className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
-          <button className="p-2.5 hover:text-gold transition" aria-label="Wishlist"><Heart className="h-5 w-5" /></button>
+          <Link to="/wishlist" className="p-2.5 hover:text-gold transition" aria-label="Wishlist"><Heart className="h-5 w-5" /></Link>
           <Link to="/cart" className="relative p-2.5 hover:text-gold transition" aria-label="Panier">
             <ShoppingBag className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-4 w-4 grid place-items-center rounded-full bg-gold text-[10px] font-bold text-ink">3</span>
           </Link>
-          <a
-            href="#promos"
+          <Link
+            to="/promotions"
             className="hidden lg:inline-flex ml-2 px-4 py-2 text-[11px] uppercase tracking-[0.2em] font-semibold bg-destructive text-cream rounded-sm hover:opacity-90"
           >
             -30%
-          </a>
+          </Link>
         </div>
+
       </div>
 
       <nav className="hidden lg:block border-t border-border bg-secondary/40">
@@ -75,8 +76,9 @@ export function Header() {
               </li>
             ))}
             <li>
-              <a href="#promos" className="text-destructive hover:text-foreground transition font-semibold">Promotions</a>
+              <Link to="/promotions" className="text-destructive hover:text-foreground transition font-semibold">Promotions</Link>
             </li>
+
           </ul>
         </div>
       </nav>
@@ -106,8 +108,9 @@ export function Header() {
                 </li>
               ))}
               <li>
-                <a href="#promos" onClick={() => setOpen(false)} className="block py-2.5 text-sm uppercase tracking-widest text-destructive border-b border-border">Promotions</a>
+                <Link to="/promotions" onClick={() => setOpen(false)} className="block py-2.5 text-sm uppercase tracking-widest text-destructive border-b border-border">Promotions</Link>
               </li>
+
             </ul>
           </div>
         </nav>
