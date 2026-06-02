@@ -38,8 +38,6 @@ export const Route = createFileRoute("/brand/$slug")({
 
 function BrandPage() {
   const { brand } = Route.useLoaderData();
-  const all = useMemo(() => productsByBrand(Route.useParams().slug as never) /* placeholder */, []);
-  // Re-derive properly:
   const params = Route.useParams();
   const products = useMemo(() => productsByBrand(params.slug), [params.slug]);
   const cats = useMemo(
@@ -56,7 +54,6 @@ function BrandPage() {
     return list;
   }, [products, cat, sort]);
 
-  void all;
 
   return (
     <SiteLayout>
