@@ -2,15 +2,15 @@ const BRANDS = ["ROLEX", "CARTIER", "TISSOT", "RAY·BAN", "PORSCHE DESIGN", "TOM
 
 export function Brands() {
   return (
-    <section className="py-16 border-y border-gold/10 bg-ink/40 overflow-hidden">
+    <section className="py-16 border-y border-border bg-secondary/40 overflow-hidden">
       <div className="container-luxe mb-8 text-center">
         <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Marques Partenaires</span>
-        <h2 className="font-display text-3xl md:text-4xl font-semibold mt-3 text-cream">Les maisons d'exception</h2>
+        <h2 className="font-display text-3xl md:text-4xl font-semibold mt-3 text-foreground">Les maisons d'exception</h2>
       </div>
       <div className="relative">
         <div className="flex marquee gap-16 whitespace-nowrap w-max">
           {[...BRANDS, ...BRANDS].map((b, i) => (
-            <span key={i} className="font-display text-2xl md:text-3xl font-light tracking-[0.25em] text-cream/40 hover:text-gold transition cursor-pointer">
+            <span key={i} className="font-display text-2xl md:text-3xl font-light tracking-[0.25em] text-foreground/40 hover:text-gold transition cursor-pointer">
               {b}
             </span>
           ))}
