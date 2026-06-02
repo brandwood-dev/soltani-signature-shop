@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { ThemeToggle } from "./ThemeToggle";
 
 const NAV = [
   "Homme", "Femme", "Montres", "Lunettes", "Parfums",
@@ -21,15 +22,15 @@ export function Header() {
     <header
       className={`sticky top-0 z-50 transition-all duration-500 ${
         scrolled ? "bg-background/95 backdrop-blur-xl shadow-luxe" : "bg-background/70 backdrop-blur-md"
-      } border-b border-gold/10`}
+      } border-b border-border`}
     >
       <div className="container-luxe flex h-20 items-center gap-6">
-        <button onClick={() => setOpen(!open)} className="lg:hidden text-cream" aria-label="Menu">
+        <button onClick={() => setOpen(!open)} className="lg:hidden text-foreground" aria-label="Menu">
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
         <Link to="/" className="flex items-baseline gap-1 shrink-0">
-          <span className="font-display text-2xl font-bold tracking-tight text-cream">
+          <span className="font-display text-2xl font-bold tracking-tight text-foreground">
             SOLTANI
           </span>
           <span className="font-display text-2xl font-light italic text-gold">
@@ -43,12 +44,13 @@ export function Header() {
             <input
               type="search"
               placeholder="Rechercher une marque, un produit…"
-              className="w-full h-11 pl-11 pr-4 bg-secondary/60 border border-gold/15 text-sm text-cream placeholder:text-muted-foreground focus:outline-none focus:border-gold/60 transition rounded-sm"
+              className="w-full h-11 pl-11 pr-4 bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold/60 transition rounded-sm"
             />
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-1 text-cream">
+        <div className="ml-auto flex items-center gap-1 text-foreground">
+          <ThemeToggle />
           <button className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></button>
           <button className="p-2.5 hover:text-gold transition" aria-label="Wishlist"><Heart className="h-5 w-5" /></button>
           <button className="relative p-2.5 hover:text-gold transition" aria-label="Panier">
@@ -65,19 +67,19 @@ export function Header() {
       </div>
 
       {/* Mega menu (desktop) */}
-      <nav className="hidden lg:block border-t border-gold/10 bg-ink/60">
+      <nav className="hidden lg:block border-t border-border bg-secondary/40">
         <div className="container-luxe">
           <ul className="flex items-center justify-center gap-8 h-11 text-[12px] uppercase tracking-[0.22em]">
             {NAV.map((n) => (
               <li key={n}>
-                <a href="#" className="text-cream/80 hover:text-gold transition-colors relative group py-3">
+                <a href="#" className="text-foreground/80 hover:text-gold transition-colors relative group py-3">
                   {n}
                   <span className="absolute -bottom-0 left-0 h-px w-0 bg-gold group-hover:w-full transition-all duration-300" />
                 </a>
               </li>
             ))}
             <li>
-              <a href="#promos" className="text-destructive hover:text-cream transition font-semibold">Promotions</a>
+              <a href="#promos" className="text-destructive hover:text-foreground transition font-semibold">Promotions</a>
             </li>
           </ul>
         </div>
@@ -85,20 +87,20 @@ export function Header() {
 
       {/* Mobile menu */}
       {open && (
-        <nav className="lg:hidden border-t border-gold/15 bg-ink">
+        <nav className="lg:hidden border-t border-border bg-background">
           <div className="container-luxe py-4">
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
               <input
                 type="search"
                 placeholder="Rechercher…"
-                className="w-full h-10 pl-10 pr-3 bg-secondary border border-gold/15 text-sm rounded-sm"
+                className="w-full h-10 pl-10 pr-3 bg-secondary border border-border text-sm text-foreground rounded-sm"
               />
             </div>
             <ul className="flex flex-col gap-1">
               {[...NAV, "Promotions"].map((n) => (
                 <li key={n}>
-                  <a href="#" className="block py-2.5 text-sm uppercase tracking-widest text-cream/90 border-b border-gold/10">{n}</a>
+                  <a href="#" className="block py-2.5 text-sm uppercase tracking-widest text-foreground/90 border-b border-border">{n}</a>
                 </li>
               ))}
             </ul>
