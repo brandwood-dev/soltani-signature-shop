@@ -1,16 +1,16 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { ProductCard } from "@/components/site/ProductCard";
+import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { findProduct, productsByCategory, PRODUCTS, CATEGORIES } from "@/data/catalog";
 import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Check } from "lucide-react";
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
+  loader: ({ params }): { product: Product; related: Product[]; bundle: Product[] } => {
     const product = findProduct(params.slug);
     if (!product) throw notFound();
-    const related = productsByCategory(product.category).filter((p) => p.slug !== product.slug).slice(0, 4);
-    const bundle = PRODUCTS.filter((p) => p.slug !== product.slug).slice(0, 2);
+    const related = productsByCategory(product.category).filter((p: Product) => p.slug !== product.slug).slice(0, 4);
+    const bundle = PRODUCTS.filter((p: Product) => p.slug !== product.slug).slice(0, 2);
     return { product, related, bundle };
   },
   head: ({ params }) => {
