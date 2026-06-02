@@ -39,8 +39,8 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product, related, bundle } = Route.useLoaderData();
-  const gallery = [product.image, ...related.slice(0, 3).map((r) => r.image)];
+  const { product, related, bundle } = Route.useLoaderData() as { product: Product; related: Product[]; bundle: Product[] };
+  const gallery = [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
   const category = CATEGORIES.find((c) => c.slug === product.category)!;
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
