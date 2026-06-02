@@ -1,19 +1,6 @@
-import watches from "@/assets/cat-watches.jpg";
-import sunglasses from "@/assets/cat-sunglasses.jpg";
-import perfumes from "@/assets/cat-perfumes.jpg";
-import bags from "@/assets/cat-bags.jpg";
-import jewelry from "@/assets/cat-jewelry.jpg";
-import cosmetics from "@/assets/cat-cosmetics.jpg";
+import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
-
-const CATS = [
-  { name: "Montres", count: "240+ pièces", image: watches },
-  { name: "Lunettes", count: "180+ pièces", image: sunglasses },
-  { name: "Parfums", count: "320+ pièces", image: perfumes },
-  { name: "Sacs", count: "150+ pièces", image: bags },
-  { name: "Bijoux", count: "200+ pièces", image: jewelry },
-  { name: "Cosmétiques", count: "410+ pièces", image: cosmetics },
-];
+import { CATEGORIES } from "@/data/catalog";
 
 export function Categories() {
   return (
@@ -35,11 +22,12 @@ export function Categories() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-          {CATS.map((c) => (
-            <a
-              key={c.name}
-              href="#"
-              className="group relative aspect-[4/5] overflow-hidden rounded-sm bg-secondary"
+          {CATEGORIES.map((c) => (
+            <Link
+              key={c.slug}
+              to="/category/$slug"
+              params={{ slug: c.slug }}
+              className="group relative aspect-[4/5] overflow-hidden rounded-sm bg-secondary block"
             >
               <img
                 src={c.image}
@@ -58,7 +46,7 @@ export function Categories() {
                   <ArrowUpRight className="h-4 w-4" />
                 </span>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
