@@ -156,7 +156,7 @@ function CheckoutPage() {
               {step < 3 ? (
                 <button onClick={() => setStep(step + 1)} className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">Continuer →</button>
               ) : (
-                <button className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm inline-flex items-center gap-2"><Lock className="h-4 w-4" /> Payer {total} DT</button>
+                <button onClick={placeOrder} className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm inline-flex items-center gap-2"><Lock className="h-4 w-4" /> {pay === "cod" ? `Confirmer ${total} DT` : `Payer ${total} DT`}</button>
               )}
             </div>
           </div>
@@ -164,23 +164,24 @@ function CheckoutPage() {
           <aside className="bg-card border border-border rounded-sm p-6 h-fit">
             <h3 className="font-display text-lg font-bold mb-5">Votre commande</h3>
             <div className="space-y-4 pb-4 border-b border-border">
-              {[{ i: p1, n: "Chronographe Acier Noir", b: "Tissot", q: 1, p: 2890 }, { i: p3, n: "Eau de Parfum Ambré", b: "Tom Ford", q: 2, p: 850 }].map((it, i) => (
-                <div key={i} className="flex gap-3">
+              {lines.map((l) => (
+                <div key={l.id} className="flex gap-3">
                   <div className="relative h-16 w-16 overflow-hidden rounded-sm bg-background">
-                    <img src={it.i} alt="" className="h-full w-full object-cover" />
-                    <span className="absolute -top-1 -right-1 h-5 w-5 grid place-items-center rounded-full bg-gold text-ink text-[10px] font-bold">{it.q}</span>
+                    <img src={l.image} alt="" className="h-full w-full object-cover" />
+                    <span className="absolute -top-1 -right-1 h-5 w-5 grid place-items-center rounded-full bg-gold text-ink text-[10px] font-bold">{l.qty}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase tracking-widest text-gold">{it.b}</p>
-                    <p className="text-sm truncate">{it.n}</p>
+                    <p className="text-[10px] uppercase tracking-widest text-gold">{l.brand}</p>
+                    <p className="text-sm truncate">{l.name}</p>
                   </div>
-                  <p className="text-sm font-semibold tabular-nums">{it.p * it.q} DT</p>
+                  <p className="text-sm font-semibold tabular-nums">{l.price * l.qty} DT</p>
                 </div>
               ))}
             </div>
             <dl className="space-y-2 text-sm py-4 border-b border-border">
-              <div className="flex justify-between"><dt className="text-muted-foreground">Sous-total</dt><dd className="tabular-nums">{total} DT</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Livraison</dt><dd>Offerte</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Sous-total</dt><dd className="tabular-nums">{subtotal} DT</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Livraison</dt><dd>{shipping === 0 ? "Offerte" : `${shipping} DT`}</dd></div>
+              {pay === "cod" && <div className="flex justify-between"><dt className="text-muted-foreground">Frais paiement livraison</dt><dd className="tabular-nums">5 DT</dd></div>}
             </dl>
             <div className="flex justify-between items-end pt-4">
               <span className="font-display font-bold">Total</span>
