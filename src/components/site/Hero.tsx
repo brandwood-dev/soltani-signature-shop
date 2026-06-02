@@ -128,7 +128,7 @@ export function Hero() {
           <button
             key={idx}
             onClick={() => setI(idx)}
-            className={`h-[2px] transition-all duration-500 ${idx === i ? "w-14 bg-gold" : "w-7 bg-cream/30"}`}
+            className={`h-[2px] transition-all duration-500 ${idx === i ? "w-14 bg-gold" : "w-7 bg-foreground/25"}`}
             aria-label={`Slide ${idx + 1}`}
           />
         ))}
