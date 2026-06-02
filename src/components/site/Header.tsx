@@ -43,7 +43,7 @@ export function Header() {
 
         <div className="ml-auto flex items-center gap-1 text-foreground">
           <ThemeToggle />
-          <button className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></button>
+          <Link to="/profile" className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
           <button className="p-2.5 hover:text-gold transition" aria-label="Wishlist"><Heart className="h-5 w-5" /></button>
           <Link to="/cart" className="relative p-2.5 hover:text-gold transition" aria-label="Panier">
             <ShoppingBag className="h-5 w-5" />
