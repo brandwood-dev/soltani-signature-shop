@@ -105,17 +105,17 @@ export function Hero() {
       <div className="absolute bottom-8 right-8 z-10 flex items-center gap-3">
         <button
           onClick={() => setI((p) => (p - 1 + SLIDES.length) % SLIDES.length)}
-          className="grid h-11 w-11 place-items-center rounded-full border border-gold/40 text-gold hover:bg-gold hover:text-ink transition"
+          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 text-gold hover:bg-gold hover:text-ink transition bg-background/70 backdrop-blur"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <span className="text-cream/70 text-sm tabular-nums tracking-widest">
-          0{i + 1} <span className="text-gold/50">/ 0{SLIDES.length}</span>
+        <span className="text-foreground/70 text-sm tabular-nums tracking-widest">
+          0{i + 1} <span className="text-gold/70">/ 0{SLIDES.length}</span>
         </span>
         <button
           onClick={() => setI((p) => (p + 1) % SLIDES.length)}
-          className="grid h-11 w-11 place-items-center rounded-full border border-gold/40 text-gold hover:bg-gold hover:text-ink transition"
+          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 text-gold hover:bg-gold hover:text-ink transition bg-background/70 backdrop-blur"
           aria-label="Suivant"
         >
           <ChevronRight className="h-5 w-5" />
