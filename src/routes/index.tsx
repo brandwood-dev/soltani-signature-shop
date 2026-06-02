@@ -58,8 +58,8 @@ function Home() {
           image={bannerValentine}
           align="right"
         />
-        <Promo />
         <Testimonials />
+        <Promo />
         <Newsletter />
       </main>
       <Footer />
