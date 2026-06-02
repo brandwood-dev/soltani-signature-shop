@@ -32,7 +32,7 @@ export function PromoBanner({ eyebrow, title, subtitle, cta, to, image, align = 
                 {eyebrow}
               </span>
             )}
-            <h2 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-foreground">
+            <h2 className="font-display text-4xl md:text-6xl font-medium leading-[1.05] text-foreground">
               {title}
             </h2>
             <p className="mt-4 text-muted-foreground text-lg md:text-xl italic font-light">{subtitle}</p>

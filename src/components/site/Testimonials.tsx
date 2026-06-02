@@ -12,7 +12,7 @@ export function Testimonials() {
       <div className="container-luxe">
         <div className="text-center mb-14">
           <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Avis Clients</span>
-          <h2 className="font-display text-4xl md:text-5xl font-bold mt-3 text-foreground">
+          <h2 className="font-display text-4xl md:text-5xl font-medium mt-3 text-foreground">
             Ils nous font <span className="italic font-light text-gold">confiance</span>
           </h2>
         </div>

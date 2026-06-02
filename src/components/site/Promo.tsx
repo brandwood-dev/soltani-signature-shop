@@ -14,7 +14,7 @@ export function Promo() {
           <span className="inline-block px-3 py-1 text-[10px] uppercase tracking-[0.3em] font-bold bg-destructive text-cream rounded-sm mb-6">
             Offre limitée
           </span>
-          <h2 className="font-display text-5xl md:text-7xl font-bold leading-[0.95] text-foreground mb-6">
+          <h2 className="font-display text-5xl md:text-7xl font-medium leading-[0.95] text-foreground mb-6">
             Soldes <span className="italic font-light text-gold">privées</span><br />
             jusqu'à −50%
           </h2>

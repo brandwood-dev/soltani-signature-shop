@@ -13,7 +13,7 @@ export function ProductGrid({ title, eyebrow, items, kicker }: { title: string; 
               <span className="h-px w-10 bg-gold" />
               <span className="text-[11px] uppercase tracking-[0.4em] text-gold">{eyebrow}</span>
             </div>
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground">{title}</h2>
+            <h2 className="font-display text-4xl md:text-5xl font-medium text-foreground">{title}</h2>
             {kicker && <p className="text-muted-foreground mt-3 max-w-md">{kicker}</p>}
           </div>
           <Link to="/category/$slug" params={{ slug: "montres" }} className="text-[11px] uppercase tracking-[0.3em] text-gold hover:text-cream transition underline-offset-4 hover:underline">

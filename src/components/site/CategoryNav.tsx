@@ -20,7 +20,7 @@ export function CategoryNav() {
                 <Link
                   to="/category/$slug"
                   params={{ slug: cat.slug }}
-                  className="text-[13px] uppercase tracking-[0.22em] text-foreground/70 hover:text-foreground transition-colors relative group py-3.5 font-medium"
+                  className="text-[13px] tracking-[0.15em] text-foreground/70 hover:text-foreground transition-colors relative group py-3.5 font-medium"
                   activeProps={{ className: "text-foreground font-semibold" }}
                 >
                   {cat.label}
@@ -41,7 +41,7 @@ export function CategoryNav() {
                 <Link
                   to="/category/$slug"
                   params={{ slug: cat.slug }}
-                  className="text-[12px] uppercase tracking-[0.18em] text-foreground/70 hover:text-foreground transition-colors relative group py-3 font-medium whitespace-nowrap"
+                  className="text-[12px] tracking-[0.12em] text-foreground/70 hover:text-foreground transition-colors relative group py-3 font-medium whitespace-nowrap"
                   activeProps={{ className: "text-foreground font-semibold" }}
                 >
                   {cat.label}

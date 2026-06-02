@@ -19,8 +19,8 @@ export function TopBar() {
   }, []);
 
   return (
-    <div className="border-b border-border bg-secondary/60 text-[11px] uppercase tracking-[0.18em] text-foreground/80 overflow-hidden">
-      <div className="container-luxe relative h-9 flex items-center justify-center">
+    <div className="border-b border-border/20 bg-black text-[12px] uppercase tracking-[0.18em] text-white overflow-hidden">
+      <div className="container-luxe relative h-10 flex items-center justify-center">
         {MESSAGES.map((m, idx) => {
           const Icon = m.icon;
           const active = mounted ? idx === i : idx === 0;
