@@ -25,6 +25,8 @@ function CountBadge({ count, tone = "gold" }: { count: number; tone?: "gold" | "
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const { count: wishlistCount } = useWishlist();
+  const { count: cartCount } = useCart();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
