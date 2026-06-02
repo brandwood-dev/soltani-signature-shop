@@ -38,7 +38,7 @@ export function Hero() {
   const slide = SLIDES[i];
 
   return (
-    <section className="relative h-[88vh] min-h-[600px] w-full overflow-hidden bg-ink">
+    <section className="relative h-[88vh] min-h-[600px] w-full overflow-hidden bg-background">
       <AnimatePresence mode="sync">
         <motion.div
           key={i}
