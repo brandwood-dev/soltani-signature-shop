@@ -19,8 +19,23 @@ export type Product = {
 
 export function ProductCard({ p }: { p: Product }) {
   const { has, toggle } = useWishlist();
+  const { add } = useCart();
+  const navigate = useNavigate();
   const fav = has(p.slug);
   const discount = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    add({ id: p.slug, name: p.name, brand: p.brand, price: p.price, image: p.image, variant: "Standard" });
+  };
+
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate({ to: "/product/$slug", params: { slug: p.slug } });
+  };
+
   return (
     <article className="group relative">
 
