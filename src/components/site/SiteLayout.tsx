@@ -9,6 +9,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <TopBar />
+      <CategoryNav />
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
