@@ -75,10 +75,10 @@ export function Hero() {
                   {slide.eyebrow}
                 </span>
               </div>
-              <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-cream leading-[0.95] mb-6">
+              <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-foreground leading-[0.95] mb-6">
                 {slide.title}
               </h1>
-              <p className="text-base md:text-lg text-cream/80 max-w-lg mb-10 leading-relaxed">
+              <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed">
                 {slide.subtitle}
               </p>
               <div className="flex flex-wrap gap-4">
@@ -91,7 +91,7 @@ export function Hero() {
                 </a>
                 <a
                   href="#promos"
-                  className="inline-flex items-center gap-3 border border-cream/40 text-cream px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-cream hover:text-ink transition rounded-sm"
+                  className="inline-flex items-center gap-3 border border-foreground/30 text-foreground px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-foreground hover:text-background transition rounded-sm"
                 >
                   Voir les promos
                 </a>
