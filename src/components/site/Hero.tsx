@@ -38,7 +38,7 @@ export function Hero() {
   const slide = SLIDES[i];
 
   return (
-    <section className="relative h-[88vh] min-h-[600px] w-full overflow-hidden bg-ink">
+    <section className="relative h-[88vh] min-h-[600px] w-full overflow-hidden bg-background">
       <AnimatePresence mode="sync">
         <motion.div
           key={i}
@@ -75,10 +75,10 @@ export function Hero() {
                   {slide.eyebrow}
                 </span>
               </div>
-              <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-cream leading-[0.95] mb-6">
+              <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-foreground leading-[0.95] mb-6">
                 {slide.title}
               </h1>
-              <p className="text-base md:text-lg text-cream/80 max-w-lg mb-10 leading-relaxed">
+              <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed">
                 {slide.subtitle}
               </p>
               <div className="flex flex-wrap gap-4">
@@ -91,7 +91,7 @@ export function Hero() {
                 </a>
                 <a
                   href="#promos"
-                  className="inline-flex items-center gap-3 border border-cream/40 text-cream px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-cream hover:text-ink transition rounded-sm"
+                  className="inline-flex items-center gap-3 border border-foreground/30 text-foreground px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-foreground hover:text-background transition rounded-sm"
                 >
                   Voir les promos
                 </a>
@@ -105,17 +105,17 @@ export function Hero() {
       <div className="absolute bottom-8 right-8 z-10 flex items-center gap-3">
         <button
           onClick={() => setI((p) => (p - 1 + SLIDES.length) % SLIDES.length)}
-          className="grid h-11 w-11 place-items-center rounded-full border border-gold/40 text-gold hover:bg-gold hover:text-ink transition"
+          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 text-gold hover:bg-gold hover:text-ink transition bg-background/70 backdrop-blur"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <span className="text-cream/70 text-sm tabular-nums tracking-widest">
-          0{i + 1} <span className="text-gold/50">/ 0{SLIDES.length}</span>
+        <span className="text-foreground/70 text-sm tabular-nums tracking-widest">
+          0{i + 1} <span className="text-gold/70">/ 0{SLIDES.length}</span>
         </span>
         <button
           onClick={() => setI((p) => (p + 1) % SLIDES.length)}
-          className="grid h-11 w-11 place-items-center rounded-full border border-gold/40 text-gold hover:bg-gold hover:text-ink transition"
+          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 text-gold hover:bg-gold hover:text-ink transition bg-background/70 backdrop-blur"
           aria-label="Suivant"
         >
           <ChevronRight className="h-5 w-5" />
@@ -128,7 +128,7 @@ export function Hero() {
           <button
             key={idx}
             onClick={() => setI(idx)}
-            className={`h-[2px] transition-all duration-500 ${idx === i ? "w-14 bg-gold" : "w-7 bg-cream/30"}`}
+            className={`h-[2px] transition-all duration-500 ${idx === i ? "w-14 bg-gold" : "w-7 bg-foreground/25"}`}
             aria-label={`Slide ${idx + 1}`}
           />
         ))}

@@ -21,8 +21,8 @@ export function PromoBanner({ eyebrow, title, subtitle, cta, to, image, align = 
         <div
           className={`absolute inset-0 ${
             align === "left"
-              ? "bg-gradient-to-r from-ink/85 via-ink/60 to-ink/10"
-              : "bg-gradient-to-l from-ink/85 via-ink/60 to-ink/10"
+              ? "bg-gradient-to-r from-background/90 via-background/65 to-background/10"
+              : "bg-gradient-to-l from-background/90 via-background/65 to-background/10"
           }`}
         />
         <div className="container-luxe relative h-full flex items-center">
@@ -32,13 +32,13 @@ export function PromoBanner({ eyebrow, title, subtitle, cta, to, image, align = 
                 {eyebrow}
               </span>
             )}
-            <h2 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-cream">
+            <h2 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-foreground">
               {title}
             </h2>
-            <p className="mt-4 text-cream/80 text-lg md:text-xl italic font-light">{subtitle}</p>
+            <p className="mt-4 text-muted-foreground text-lg md:text-xl italic font-light">{subtitle}</p>
             <LinkAny
               to={to}
-              className="mt-8 inline-flex items-center gap-3 bg-cream text-ink px-8 py-4 text-[11px] uppercase tracking-[0.25em] font-semibold hover:bg-gold transition shadow-luxe rounded-sm"
+              className="mt-8 inline-flex items-center gap-3 bg-foreground text-background px-8 py-4 text-[11px] uppercase tracking-[0.25em] font-semibold hover:bg-gold hover:text-ink transition shadow-luxe rounded-sm"
             >
               {cta} <ArrowRight className="h-4 w-4" />
             </LinkAny>
