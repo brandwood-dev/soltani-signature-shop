@@ -1,29 +1,10 @@
-import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import heroBag from "@/assets/cat-bags.jpg";
-
-function useCountdown(target: number) {
-  const [t, setT] = useState(target - Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setT(target - Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [target]);
-  const clamp = Math.max(t, 0);
-  const d = Math.floor(clamp / 86400000);
-  const h = Math.floor((clamp / 3600000) % 24);
-  const m = Math.floor((clamp / 60000) % 60);
-  const s = Math.floor((clamp / 1000) % 60);
-  return { d, h, m, s };
-}
+import { CountdownCells, useStableDeadline } from "./Countdown";
 
 export function Promo() {
-  const { d, h, m, s } = useCountdown(Date.now() + 3 * 86400000 + 4 * 3600000);
-  const cells = [
-    { v: d, l: "Jours" },
-    { v: h, l: "Heures" },
-    { v: m, l: "Minutes" },
-    { v: s, l: "Secondes" },
-  ];
+  const target = useStableDeadline(3, 8);
   return (
     <section id="promos" className="relative py-24 md:py-32 overflow-hidden">
       <img src={heroBag} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-30" />
@@ -40,21 +21,12 @@ export function Promo() {
           <p className="text-cream/70 max-w-lg mb-8 text-lg">
             Une sélection exclusive de pièces signées, à prix exceptionnels. Pour une durée limitée seulement.
           </p>
-          <a href="#" className="inline-flex items-center gap-3 bg-gold text-ink px-8 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-gold-soft transition shadow-gold rounded-sm">
+          <Link to="/promotions" className="inline-flex items-center gap-3 bg-gold text-ink px-8 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-gold-soft transition shadow-gold rounded-sm">
             Profiter des offres <ArrowRight className="h-4 w-4" />
-          </a>
+          </Link>
         </div>
 
-        <div className="grid grid-cols-4 gap-3 md:gap-5">
-          {cells.map((c) => (
-            <div key={c.l} className="aspect-square bg-ink/80 border border-gold/30 backdrop-blur flex flex-col items-center justify-center rounded-sm">
-              <span className="font-display text-4xl md:text-6xl font-bold text-gold tabular-nums">
-                {String(c.v).padStart(2, "0")}
-              </span>
-              <span className="text-[10px] uppercase tracking-[0.25em] text-cream/70 mt-2">{c.l}</span>
-            </div>
-          ))}
-        </div>
+        <CountdownCells target={target} />
       </div>
     </section>
   );
