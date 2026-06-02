@@ -41,10 +41,11 @@ function Home() {
           title="Fête des Mères"
           subtitle="Offrez l'élégance"
           cta="Découvrir les cadeaux"
-          to="/category/$slug"
+          to="/category/bijoux"
           image={bannerMothers}
           align="left"
         />
+
         <TopBrands />
         <Brands />
         <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
