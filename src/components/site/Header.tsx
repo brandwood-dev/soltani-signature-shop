@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";
-
-const NAV = [
-  "Homme", "Femme", "Montres", "Lunettes", "Parfums",
-  "Sacs & Accessoires", "Maquillage", "Soin",
-];
+import { NAV_LINKS } from "@/data/catalog";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -29,7 +26,9 @@ export function Header() {
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <Logo height={42} className="mx-auto lg:mx-0" />
+        <Link to="/" className="mx-auto lg:mx-0">
+          <Logo height={42} />
+        </Link>
 
         <div className="hidden md:flex flex-1 max-w-xl mx-auto">
           <div className="relative w-full group">
@@ -46,10 +45,10 @@ export function Header() {
           <ThemeToggle />
           <button className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></button>
           <button className="p-2.5 hover:text-gold transition" aria-label="Wishlist"><Heart className="h-5 w-5" /></button>
-          <button className="relative p-2.5 hover:text-gold transition" aria-label="Panier">
+          <Link to="/cart" className="relative p-2.5 hover:text-gold transition" aria-label="Panier">
             <ShoppingBag className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-4 w-4 grid place-items-center rounded-full bg-gold text-[10px] font-bold text-ink">3</span>
-          </button>
+          </Link>
           <a
             href="#promos"
             className="hidden lg:inline-flex ml-2 px-4 py-2 text-[11px] uppercase tracking-[0.2em] font-semibold bg-destructive text-cream rounded-sm hover:opacity-90"
@@ -59,16 +58,20 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mega menu (desktop) */}
       <nav className="hidden lg:block border-t border-border bg-secondary/40">
         <div className="container-luxe">
           <ul className="flex items-center justify-center gap-8 h-11 text-[12px] uppercase tracking-[0.22em]">
-            {NAV.map((n) => (
-              <li key={n}>
-                <a href="#" className="text-foreground/80 hover:text-gold transition-colors relative group py-3">
-                  {n}
+            {NAV_LINKS.map((n) => (
+              <li key={n.slug}>
+                <Link
+                  to="/category/$slug"
+                  params={{ slug: n.slug }}
+                  className="text-foreground/80 hover:text-gold transition-colors relative group py-3"
+                  activeProps={{ className: "text-gold" }}
+                >
+                  {n.label}
                   <span className="absolute -bottom-0 left-0 h-px w-0 bg-gold group-hover:w-full transition-all duration-300" />
-                </a>
+                </Link>
               </li>
             ))}
             <li>
@@ -78,7 +81,6 @@ export function Header() {
         </div>
       </nav>
 
-      {/* Mobile menu */}
       {open && (
         <nav className="lg:hidden border-t border-border bg-background">
           <div className="container-luxe py-4">
@@ -91,11 +93,21 @@ export function Header() {
               />
             </div>
             <ul className="flex flex-col gap-1">
-              {[...NAV, "Promotions"].map((n) => (
-                <li key={n}>
-                  <a href="#" className="block py-2.5 text-sm uppercase tracking-widest text-foreground/90 border-b border-border">{n}</a>
+              {NAV_LINKS.map((n) => (
+                <li key={n.slug}>
+                  <Link
+                    to="/category/$slug"
+                    params={{ slug: n.slug }}
+                    onClick={() => setOpen(false)}
+                    className="block py-2.5 text-sm uppercase tracking-widest text-foreground/90 border-b border-border"
+                  >
+                    {n.label}
+                  </Link>
                 </li>
               ))}
+              <li>
+                <a href="#promos" onClick={() => setOpen(false)} className="block py-2.5 text-sm uppercase tracking-widest text-destructive border-b border-border">Promotions</a>
+              </li>
             </ul>
           </div>
         </nav>
