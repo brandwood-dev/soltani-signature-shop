@@ -82,14 +82,10 @@ export function Header() {
       {open && (
         <nav className="lg:hidden border-t border-border bg-background">
           <div className="container-luxe py-4">
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
-              <input
-                type="search"
-                placeholder="Rechercher…"
-                className="w-full h-10 pl-10 pr-3 bg-secondary border border-border text-sm text-foreground rounded-sm"
-              />
+            <div className="mb-4">
+              <SearchBox compact onNavigate={() => setOpen(false)} />
             </div>
+
             <ul className="flex flex-col gap-1">
               {NAV_LINKS.map((n) => (
                 <li key={n.slug}>
