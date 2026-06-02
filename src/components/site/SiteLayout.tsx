@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { TopBar } from "./TopBar";
+import { CategoryNav } from "./CategoryNav";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { CartDrawer } from "./CartDrawer";
