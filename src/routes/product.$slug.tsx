@@ -51,6 +51,11 @@ function ProductPage() {
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
   const [pick, setPick] = useState<Record<string, boolean>>({ main: true, b0: true, b1: false });
+  const { add } = useCart();
+
+  const handleAddToCart = () => {
+    add({ id: product.slug, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: "Standard", qty });
+  };
 
   const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
   const bundleTotal = (pick.main ? product.price : 0) + (pick.b0 ? bundle[0].price : 0) + (pick.b1 ? bundle[1].price : 0);
