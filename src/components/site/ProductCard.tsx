@@ -1,6 +1,8 @@
 import { Heart, Eye, ShoppingBag, Star } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useCart } from "@/hooks/useCart";
+
 
 
 export type Product = {
