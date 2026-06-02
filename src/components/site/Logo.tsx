@@ -37,9 +37,8 @@ export function Logo({ className = "", height = 42, footer = false }: LogoProps)
       <img
         src={src}
         alt="Soltani Signature"
-        height={height}
-        className={`h-auto object-contain transition-all duration-500 ease-in-out ${footer ? `w-[${height * 4}px]` : `max-w-[${height * 4}px]`}`}
-        style={{ height, maxHeight: height }}
+        className={`h-auto w-auto object-contain transition-all duration-500 ease-in-out`}
+        style={{ height, maxHeight: height, maxWidth: footer ? height * 5 : height * 5 }}
         loading="eager"
       />
     </Link>
