@@ -4,7 +4,10 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { findProduct, productsByCategory, PRODUCTS, CATEGORIES } from "@/data/catalog";
 import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
-import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Check, Flame } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
+import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Check, Flame, ShoppingBag } from "lucide-react";
+
+
 
 
 export const Route = createFileRoute("/product/$slug")({
