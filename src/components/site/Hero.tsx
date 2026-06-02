@@ -75,7 +75,7 @@ export function Hero() {
                   {slide.eyebrow}
                 </span>
               </div>
-              <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-medium text-foreground leading-[0.95] mb-6">
+              <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-medium text-foreground leading-[0.95] mb-6">
                 {slide.title}
               </h1>
               <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed">
