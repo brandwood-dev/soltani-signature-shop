@@ -40,7 +40,7 @@ export function ProductCard({ p }: { p: Product }) {
     <article className="group relative">
 
       <Link to="/product/$slug" params={{ slug: p.slug }} className="block">
-        <div className="relative aspect-square overflow-hidden bg-card shadow-sm dark:shadow-none rounded-sm">
+        <div className="relative aspect-square overflow-hidden bg-card shadow-sm rounded-sm">
           <img
             src={p.image}
             alt={p.name}

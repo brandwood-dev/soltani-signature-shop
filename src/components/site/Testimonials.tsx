@@ -18,7 +18,7 @@ export function Testimonials() {
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {TESTS.map((t) => (
-            <div key={t.name} className="p-8 bg-card border border-border hover:border-gold/40 shadow-sm dark:shadow-none transition rounded-sm relative">
+            <div key={t.name} className="p-8 bg-card border border-border hover:border-gold/40 shadow-sm transition rounded-sm relative">
               <Quote className="absolute top-6 right-6 h-8 w-8 text-gold/20" />
               <div className="flex gap-0.5 mb-5">
                 {Array.from({ length: 5 }).map((_, i) => (<Star key={i} className="h-4 w-4 fill-gold text-gold" />))}

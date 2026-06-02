@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { Heart, ShoppingBag, User, Menu, X } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";
 import { SearchBox } from "./SearchBox";
 import { NAV_LINKS } from "@/data/catalog";
@@ -55,7 +54,6 @@ export function Header() {
 
 
         <div className="ml-auto flex items-center gap-1 text-foreground">
-          <ThemeToggle />
           <Link to="/profile" className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
           <Link to="/wishlist" className="relative p-2.5 hover:text-gold transition" aria-label="Wishlist">
             <Heart className="h-5 w-5" />
