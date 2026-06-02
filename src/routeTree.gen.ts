@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
+import { Route as BrandSlugRouteImport } from './routes/brand.$slug'
 
 const WishlistRoute = WishlistRouteImport.update({
   id: '/wishlist',
@@ -88,6 +89,11 @@ const CategorySlugRoute = CategorySlugRouteImport.update({
   path: '/category/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BrandSlugRoute = BrandSlugRouteImport.update({
+  id: '/brand/$slug',
+  path: '/brand/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
   '/wishlist': typeof WishlistRoute
+  '/brand/$slug': typeof BrandSlugRoute
   '/category/$slug': typeof CategorySlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
   '/wishlist': typeof WishlistRoute
+  '/brand/$slug': typeof BrandSlugRoute
   '/category/$slug': typeof CategorySlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
   '/wishlist': typeof WishlistRoute
+  '/brand/$slug': typeof BrandSlugRoute
   '/category/$slug': typeof CategorySlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/promotions'
     | '/register'
     | '/wishlist'
+    | '/brand/$slug'
     | '/category/$slug'
     | '/legal/$slug'
     | '/product/$slug'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/promotions'
     | '/register'
     | '/wishlist'
+    | '/brand/$slug'
     | '/category/$slug'
     | '/legal/$slug'
     | '/product/$slug'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/promotions'
     | '/register'
     | '/wishlist'
+    | '/brand/$slug'
     | '/category/$slug'
     | '/legal/$slug'
     | '/product/$slug'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   PromotionsRoute: typeof PromotionsRoute
   RegisterRoute: typeof RegisterRoute
   WishlistRoute: typeof WishlistRoute
+  BrandSlugRoute: typeof BrandSlugRoute
   CategorySlugRoute: typeof CategorySlugRoute
   LegalSlugRoute: typeof LegalSlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/brand/$slug': {
+      id: '/brand/$slug'
+      path: '/brand/$slug'
+      fullPath: '/brand/$slug'
+      preLoaderRoute: typeof BrandSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -306,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   PromotionsRoute: PromotionsRoute,
   RegisterRoute: RegisterRoute,
   WishlistRoute: WishlistRoute,
+  BrandSlugRoute: BrandSlugRoute,
   CategorySlugRoute: CategorySlugRoute,
   LegalSlugRoute: LegalSlugRoute,
   ProductSlugRoute: ProductSlugRoute,
@@ -313,3 +334,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
