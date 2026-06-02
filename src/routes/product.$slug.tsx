@@ -139,7 +139,7 @@ function ProductPage() {
             <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm"><Heart className="h-5 w-5" /></button>
             <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm"><Share2 className="h-5 w-5" /></button>
           </div>
-          <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-ink text-cream dark:bg-cream dark:text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:opacity-90 rounded-sm">
+          <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-ink text-cream text-[12px] uppercase tracking-[0.2em] font-bold hover:opacity-90 rounded-sm">
             Acheter maintenant — Paiement 3×
           </Link>
 

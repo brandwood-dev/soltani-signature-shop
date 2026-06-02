@@ -25,7 +25,7 @@ export function TopBrands() {
                 <Link
                   to="/brand/$slug"
                   params={{ slug: b.slug }}
-                  className="group block relative aspect-[4/5] overflow-hidden rounded-sm bg-card shadow-sm dark:shadow-none border border-border hover:border-gold/60 transition-all duration-500 hover:-translate-y-1 hover:shadow-luxe"
+                  className="group block relative aspect-[4/5] overflow-hidden rounded-sm bg-card shadow-sm border border-border hover:border-gold/60 transition-all duration-500 hover:-translate-y-1 hover:shadow-luxe"
                 >
                   <img
                     src={b.image}
