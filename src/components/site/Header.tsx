@@ -65,7 +65,7 @@ export function Header() {
           </Link>
           <Link
             to="/promotions"
-            className="hidden lg:inline-flex ml-2 px-4 py-2 text-[11px] uppercase tracking-[0.2em] font-semibold bg-destructive text-cream rounded-sm hover:opacity-90"
+            className="hidden lg:inline-flex ml-2 px-4 py-2 text-[11px] tracking-[0.15em] font-medium bg-destructive text-cream rounded-sm hover:opacity-90"
           >
             -30%
           </Link>
@@ -75,7 +75,7 @@ export function Header() {
 
       <nav className="hidden lg:block border-t border-border bg-secondary/40">
         <div className="container-luxe">
-          <ul className="flex items-center justify-center gap-8 h-11 text-[12px] uppercase tracking-[0.22em]">
+          <ul className="flex items-center justify-center gap-8 h-11 text-[12px] tracking-[0.15em]">
             {NAV_LINKS.map((n) => (
               <li key={n.slug}>
                 <Link
@@ -90,7 +90,7 @@ export function Header() {
               </li>
             ))}
             <li>
-              <Link to="/promotions" className="text-destructive hover:text-foreground transition font-semibold">Promotions</Link>
+              <Link to="/promotions" className="text-destructive hover:text-foreground transition font-medium">Promotions</Link>
             </li>
 
           </ul>
@@ -111,14 +111,14 @@ export function Header() {
                     to="/category/$slug"
                     params={{ slug: n.slug }}
                     onClick={() => setOpen(false)}
-                    className="block py-2.5 text-sm uppercase tracking-widest text-foreground/90 border-b border-border"
+                    className="block py-2.5 text-sm tracking-widest text-foreground/90 border-b border-border"
                   >
                     {n.label}
                   </Link>
                 </li>
               ))}
               <li>
-                <Link to="/promotions" onClick={() => setOpen(false)} className="block py-2.5 text-sm uppercase tracking-widest text-destructive border-b border-border">Promotions</Link>
+                <Link to="/promotions" onClick={() => setOpen(false)} className="block py-2.5 text-sm tracking-widest text-destructive border-b border-border">Promotions</Link>
               </li>
 
             </ul>
