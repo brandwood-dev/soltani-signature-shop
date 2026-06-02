@@ -40,6 +40,10 @@ const write = (lines: CartLine[]) => {
   window.dispatchEvent(new Event("cart:change"));
 };
 
+export function openCartDrawer() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("cart:open"));
+}
+
 export function useCart() {
   const [lines, setLines] = useState<CartLine[]>([]);
 
@@ -68,8 +72,22 @@ export function useCart() {
     window.dispatchEvent(new Event("cart:change"));
   }, []);
 
+  const add = useCallback((item: Omit<CartLine, "qty"> & { qty?: number }) => {
+    const cur = read();
+    const qty = item.qty ?? 1;
+    const idx = cur.findIndex((l) => l.id === item.id);
+    let next: CartLine[];
+    if (idx >= 0) {
+      next = cur.map((l, i) => (i === idx ? { ...l, qty: l.qty + qty } : l));
+    } else {
+      next = [...cur, { ...item, qty }];
+    }
+    write(next);
+    openCartDrawer();
+  }, []);
+
   const count = lines.reduce((s, l) => s + l.qty, 0);
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
 
-  return { lines, update, remove, clear, count, subtotal };
+  return { lines, add, update, remove, clear, count, subtotal };
 }
