@@ -2,31 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Minus, Plus, X, Tag, ShieldCheck } from "lucide-react";
-import p1 from "@/assets/prod-1.jpg";
-import p3 from "@/assets/prod-3.jpg";
-import p5 from "@/assets/prod-5.jpg";
+import { useCart } from "@/hooks/useCart";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Panier — Soltani Signature" }] }),
   component: CartPage,
 });
 
-type Line = { id: string; name: string; brand: string; price: number; qty: number; image: string; variant: string };
-
 function CartPage() {
-  const [lines, setLines] = useState<Line[]>([
-    { id: "1", name: "Chronographe Acier Noir", brand: "Tissot", price: 2890, qty: 1, image: p1, variant: "Noir · 42mm" },
-    { id: "2", name: "Eau de Parfum Ambré 100ml", brand: "Tom Ford", price: 850, qty: 2, image: p3, variant: "100ml" },
-    { id: "3", name: "Pendentif Diamant Solitaire", brand: "Cartier", price: 6800, qty: 1, image: p5, variant: "Or 18k" },
-  ]);
+  const { lines, update, remove, subtotal } = useCart();
   const [code, setCode] = useState("");
 
-  const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
   const shipping = subtotal >= 300 ? 0 : 15;
   const total = subtotal + shipping;
-
-  const update = (id: string, qty: number) => setLines((l) => l.map((x) => x.id === id ? { ...x, qty: Math.max(1, qty) } : x));
-  const remove = (id: string) => setLines((l) => l.filter((x) => x.id !== id));
 
   return (
     <SiteLayout>
