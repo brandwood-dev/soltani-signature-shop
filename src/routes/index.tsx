@@ -5,10 +5,14 @@ import { Hero } from "@/components/site/Hero";
 import { Categories } from "@/components/site/Categories";
 import { ProductGrid, BESTSELLERS, NEWARRIVALS } from "@/components/site/ProductGrid";
 import { Brands } from "@/components/site/Brands";
+import { TopBrands } from "@/components/site/TopBrands";
+import { PromoBanner } from "@/components/site/PromoBanner";
 import { Promo } from "@/components/site/Promo";
 import { Testimonials } from "@/components/site/Testimonials";
 import { Newsletter } from "@/components/site/Newsletter";
 import { Footer } from "@/components/site/Footer";
+import bannerMothers from "@/assets/cat-jewelry.jpg";
+import bannerValentine from "@/assets/cat-bags.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,8 +36,28 @@ function Home() {
         <Hero />
         <Categories />
         <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={BESTSELLERS} kicker="Les pièces les plus convoitées par notre clientèle." />
+        <PromoBanner
+          eyebrow="Édition Spéciale"
+          title="Fête des Mères"
+          subtitle="Offrez l'élégance"
+          cta="Découvrir les cadeaux"
+          to="/category/bijoux"
+          image={bannerMothers}
+          align="left"
+        />
+
+        <TopBrands />
         <Brands />
         <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
+        <PromoBanner
+          eyebrow="Saint Valentin 2026"
+          title="L'amour dans les détails"
+          subtitle="Une sélection rare pour célébrer l'élégance partagée"
+          cta="Voir les offres spéciales"
+          to="/promotions"
+          image={bannerValentine}
+          align="right"
+        />
         <Promo />
         <Testimonials />
         <Newsletter />

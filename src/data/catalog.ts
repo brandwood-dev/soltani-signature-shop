@@ -94,3 +94,31 @@ export const NEWARRIVALS = PRODUCTS.filter((p) => p.badge === "Nouveau").slice(0
 export const findProduct = (slug: string) => PRODUCTS.find((p) => p.slug === slug);
 export const findCategory = (slug: string) => CATEGORIES.find((c) => c.slug === slug);
 export const productsByCategory = (slug: string) => PRODUCTS.filter((p) => p.category === slug);
+
+export const TOP_BRANDS: { name: string; slug: string; tagline: string; image: string }[] = [
+  { name: "Rolex", slug: slugify("Rolex"), tagline: "Horlogerie d'exception", image: p7 },
+  { name: "Cartier", slug: slugify("Cartier"), tagline: "Joaillerie & Maroquinerie", image: p5 },
+  { name: "Tissot", slug: slugify("Tissot"), tagline: "Précision Suisse", image: p1 },
+  { name: "Ray-Ban", slug: slugify("Ray-Ban"), tagline: "Icônes intemporelles", image: p2 },
+  { name: "Porsche Design", slug: slugify("Porsche Design"), tagline: "Élégance technique", image: p8 },
+  { name: "Tom Ford", slug: slugify("Tom Ford"), tagline: "Parfums signature", image: p3 },
+  { name: "YSL", slug: slugify("YSL"), tagline: "Audace Couture", image: p6 },
+];
+
+export const findBrandBySlug = (slug: string) => {
+  const all = Array.from(new Set(PRODUCTS.map((p) => p.brand)));
+  return all.find((b) => slugify(b) === slug);
+};
+export const productsByBrand = (slug: string) =>
+  PRODUCTS.filter((p) => slugify(p.brand) === slug);
+
+export function searchProducts(q: string, limit = 6): Product[] {
+  const s = q.trim().toLowerCase();
+  if (!s) return [];
+  return PRODUCTS.filter(
+    (p) =>
+      p.name.toLowerCase().includes(s) ||
+      p.brand.toLowerCase().includes(s) ||
+      p.category.toLowerCase().includes(s),
+  ).slice(0, limit);
+}
