@@ -1,55 +1,67 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
 import { CATEGORIES } from "@/data/catalog";
 
 export function Categories() {
   return (
-    <section id="categories" className="py-24 md:py-32 bg-background">
+    <section id="categories" className="py-20 md:py-28 bg-background">
       <div className="container-luxe">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <span className="h-px w-10 bg-gold" />
-              <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Univers</span>
-            </div>
-            <h2 className="font-display text-4xl md:text-6xl font-medium max-w-2xl">
-              Explorez nos <span className="italic font-light text-gold">collections</span>
-            </h2>
+        <div className="flex flex-col items-center text-center mb-12 md:mb-16">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="h-px w-10 bg-gold" />
+            <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Univers</span>
+            <span className="h-px w-10 bg-gold" />
           </div>
-          <p className="text-muted-foreground max-w-sm">
-            Six univers, des centaines de pièces sélectionnées avec exigence pour vous habiller d'exception.
-          </p>
+          <h2 className="font-display text-3xl md:text-5xl font-light max-w-2xl">
+            Explorez nos <span className="italic text-gold">collections</span>
+          </h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-          {CATEGORIES.map((c) => (
-            <Link
-              key={c.slug}
-              to="/category/$slug"
-              params={{ slug: c.slug }}
-              className="group relative aspect-[4/5] overflow-hidden rounded-sm bg-secondary block"
-            >
-              <img
-                src={c.image}
-                alt={c.name}
-                loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
-              <div className="absolute inset-0 ring-1 ring-inset ring-gold/0 group-hover:ring-gold/40 transition-all duration-500" />
-              <div className="absolute inset-x-0 bottom-0 p-5 md:p-7 flex items-end justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-gold mb-1.5">{c.count}</p>
-                  <h3 className="font-display text-2xl md:text-3xl font-semibold text-cream">{c.name}</h3>
-                </div>
-                <span className="grid h-10 w-10 place-items-center rounded-full border border-gold/50 text-gold opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
-                  <ArrowUpRight className="h-4 w-4" />
-                </span>
-              </div>
-            </Link>
-          ))}
+        {/* Mobile: horizontal scroll carousel */}
+        <div className="md:hidden -mx-4 px-4 overflow-x-auto scrollbar-none">
+          <ul className="flex gap-4 snap-x snap-mandatory pb-2">
+            {CATEGORIES.map((c) => (
+              <li key={c.slug} className="snap-start shrink-0 w-[44%]">
+                <CategoryCard slug={c.slug} name={c.name} image={c.image} />
+              </li>
+            ))}
+          </ul>
         </div>
+
+        {/* Desktop: 6-column grid */}
+        <ul className="hidden md:grid grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-5">
+          {CATEGORIES.map((c) => (
+            <li key={c.slug}>
+              <CategoryCard slug={c.slug} name={c.name} image={c.image} />
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
+  );
+}
+
+function CategoryCard({ slug, name, image }: { slug: string; name: string; image: string }) {
+  return (
+    <Link
+      to="/category/$slug"
+      params={{ slug }}
+      className="group block bg-white rounded-sm overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-1"
+    >
+      <div className="aspect-[4/3] overflow-hidden bg-secondary">
+        <img
+          src={image}
+          alt={name}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+        />
+      </div>
+      <div className="px-3 py-4 text-center">
+        <h3 className="font-display text-[13px] md:text-sm font-normal uppercase tracking-[0.15em] text-foreground">
+          {name}
+        </h3>
+        <p className="mt-1.5 text-[11px] text-muted-foreground font-light">Voir la sélection</p>
+        <span className="mt-2 block mx-auto h-px w-8 bg-gold transition-all duration-500 group-hover:w-14" />
+      </div>
+    </Link>
   );
 }
