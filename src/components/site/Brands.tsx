@@ -1,4 +1,12 @@
-const BRANDS = ["ROLEX", "CARTIER", "TISSOT", "RAY·BAN", "PORSCHE DESIGN", "TOM FORD", "DIOR", "CHANEL", "YSL", "GUCCI", "PRADA", "VERSACE"];
+const LOGOS = [
+  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780602563/Plan_de_travail_1_aqe9pv.png",
+  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780602374/Plan_de_travail_7_sz66o9.png",
+  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780602374/Plan_de_travail_8_hxdulh.png",
+  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780602375/Plan_de_travail_6_mwrk7f.png",
+  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780602374/Plan_de_travail_2_kz7djo.png",
+  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780602375/Plan_de_travail_4_tsvvvl.png",
+  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780602374/Plan_de_travail_5_ctc7gk.png",
+];
 
 export function Brands() {
   return (
@@ -8,11 +16,15 @@ export function Brands() {
         <h2 className="font-display text-3xl md:text-4xl font-semibold mt-3 text-foreground">Les maisons d'exception</h2>
       </div>
       <div className="relative">
-        <div className="flex marquee gap-16 whitespace-nowrap w-max">
-          {[...BRANDS, ...BRANDS].map((b, i) => (
-            <span key={i} className="font-display text-2xl md:text-3xl font-light tracking-[0.25em] text-foreground/40 hover:text-gold transition cursor-pointer">
-              {b}
-            </span>
+        <div className="flex marquee items-center gap-16 w-max">
+          {[...LOGOS, ...LOGOS].map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt="Marque partenaire"
+              className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition duration-300 cursor-pointer"
+              loading="lazy"
+            />
           ))}
         </div>
         <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background to-transparent" />
