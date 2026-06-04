@@ -6,7 +6,6 @@ import { Hero } from "@/components/site/Hero";
 import { Categories } from "@/components/site/Categories";
 import { ProductGrid, BESTSELLERS, NEWARRIVALS } from "@/components/site/ProductGrid";
 import { Brands } from "@/components/site/Brands";
-import { TopBrands } from "@/components/site/TopBrands";
 import { PromoBanner } from "@/components/site/PromoBanner";
 import { Promo } from "@/components/site/Promo";
 import { Testimonials } from "@/components/site/Testimonials";
