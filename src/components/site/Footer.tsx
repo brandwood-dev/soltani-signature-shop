@@ -93,13 +93,8 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="py-8 border-t border-border grid md:grid-cols-3 gap-6 items-center">
+        <div className="py-8 border-t border-border grid md:grid-cols-2 gap-6 items-center">
           <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Soltani Signature. Tous droits réservés.</p>
-          <div className="flex justify-center gap-2 flex-wrap">
-            {["VISA", "MASTERCARD", "AMEX", "PAYPAL", "D17", "3X"].map(p => (
-              <span key={p} className="px-2.5 py-1 text-[10px] uppercase tracking-widest border border-border text-foreground/80 rounded-sm">{p}</span>
-            ))}
-          </div>
           <div className="flex md:justify-end gap-5 text-xs">
             {LEGAL.map((l) => (
               <FLink key={l.label} link={l} className="text-foreground/60 hover:text-gold transition" />
