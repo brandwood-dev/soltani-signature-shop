@@ -53,7 +53,7 @@ function Home() {
           cta="Découvrir la collection"
           to="/promotions"
           image={bannerBrumes}
-          align="left"
+          align="right"
         />
         <Testimonials />
         <Promo />
