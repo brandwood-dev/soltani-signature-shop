@@ -10,10 +10,10 @@ export function Newsletter() {
           <div className="relative">
             <Mail className="h-10 w-10 text-gold mx-auto mb-6" />
             <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Rejoignez le <span className="italic font-light text-gold">Cercle Signature</span>
+              Rejoignez <span className="italic font-light text-gold">l'univers Soltani</span>
             </h2>
             <p className="text-foreground/70 max-w-xl mx-auto mb-8">
-              Accès anticipé aux nouvelles collections, ventes privées exclusives et −10% sur votre première commande.
+              Soyez parmi les premières à découvrir nos nouveautés et bénéficiez de -10 % de bienvenue.
             </p>
             <form className="max-w-md mx-auto flex gap-2" onSubmit={(e) => e.preventDefault()}>
               <input
