@@ -8,12 +8,13 @@ const COLS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Boutique",
     links: [
-      { label: "Montres", to: "/category/$slug", params: { slug: "montres" } },
-      { label: "Lunettes", to: "/category/$slug", params: { slug: "lunettes" } },
-      { label: "Parfums", to: "/category/$slug", params: { slug: "parfums" } },
-      { label: "Sacs", to: "/category/$slug", params: { slug: "sacs" } },
-      { label: "Bijoux", to: "/category/$slug", params: { slug: "bijoux" } },
-      { label: "Cosmétiques", to: "/category/$slug", params: { slug: "cosmetiques" } },
+      { label: "Parfums & Fragrances", to: "/category/$slug", params: { slug: "parfums-fragrances" } },
+      { label: "Maquillage", to: "/category/$slug", params: { slug: "maquillage" } },
+      { label: "Soins du Visage", to: "/category/$slug", params: { slug: "soins-visage" } },
+      { label: "Cheveux", to: "/category/$slug", params: { slug: "cheveux" } },
+      { label: "Protection Solaire", to: "/category/$slug", params: { slug: "protection-solaire" } },
+      { label: "Mode & Style", to: "/category/$slug", params: { slug: "mode-style" } },
+      { label: "Bon Plan", to: "/promotions" },
     ],
   },
   {
