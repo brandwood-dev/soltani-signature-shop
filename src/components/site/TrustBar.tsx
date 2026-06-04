@@ -18,7 +18,7 @@ export function TrustBar() {
               className="flex items-center gap-4 lg:justify-center text-left lg:text-left animate-fade-in"
               style={{ animationDelay: `${i * 80}ms` }}
             >
-              <Icon className="h-9 w-9 shrink-0 text-[hsl(var(--gold,42_55%_52%))] text-primary" strokeWidth={1.25} />
+              <Icon className="h-9 w-9 shrink-0 text-gold" strokeWidth={1.25} />
               <div className="min-w-0">
                 <p className="text-[12px] sm:text-[13px] font-medium tracking-[0.14em] uppercase text-foreground">
                   {title}
