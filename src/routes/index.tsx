@@ -36,6 +36,7 @@ function Home() {
       <Header />
       <main>
         <Hero />
+        <TrustBar />
         <Categories />
         <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={BESTSELLERS} kicker="Les pièces les plus convoitées par notre clientèle." />
         <PromoBanner
