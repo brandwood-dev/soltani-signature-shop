@@ -68,8 +68,7 @@ export function Footer() {
           <div className="lg:col-span-2">
             <Logo footer height={52} className="mb-5" />
             <p className="text-foreground/70 max-w-sm leading-relaxed mb-6">
-              Maison tunisienne de référence pour les montres, parfums et accessoires de luxe.
-              Sélection authentique, service d'exception.
+              Soltani Signature s'est imposée comme une référence de prestige, invitant une clientèle exigeante à explorer l'univers de la beauté et de l'élégance. Au fil de notre évolution, nous avons su fidéliser ceux qui recherchent l'exceptionnel à travers un accompagnement sur mesure et une sélection rigoureuse.
             </p>
             <div className="flex gap-3">
               {[Instagram, Facebook, Twitter, Youtube].map((Icon, i) => (
