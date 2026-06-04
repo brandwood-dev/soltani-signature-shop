@@ -14,7 +14,8 @@ import { Footer } from "@/components/site/Footer";
 import { TrustBar } from "@/components/site/TrustBar";
 import { CollectionBanners } from "@/components/site/CollectionBanners";
 import { Packs } from "@/components/site/Packs";
-import bannerValentine from "@/assets/cat-bags.jpg";
+
+const bannerBrumes = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780604892/banner_zgtjc9.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,13 +47,13 @@ function Home() {
         <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
         <Packs />
         <PromoBanner
-          eyebrow="Saint Valentin 2026"
-          title="L'amour dans les détails"
-          subtitle="Une sélection rare pour célébrer l'élégance partagée"
-          cta="Voir les offres spéciales"
+          eyebrow="Collection Victoria's Secret Été 2026"
+          title="Brumes Parfumées"
+          subtitle="Pour le corps & les cheveux"
+          cta="Découvrir la collection"
           to="/promotions"
-          image={bannerValentine}
-          align="right"
+          image={bannerBrumes}
+          align="left"
         />
         <Testimonials />
         <Promo />
