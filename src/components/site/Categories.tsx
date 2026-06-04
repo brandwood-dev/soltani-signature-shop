@@ -3,9 +3,9 @@ import { CATEGORIES } from "@/data/catalog";
 
 export function Categories() {
   return (
-    <section id="categories" className="py-20 md:py-28 bg-background">
+    <section id="categories" className="py-12 md:py-16 bg-background">
       <div className="container-luxe">
-        <div className="flex flex-col items-center text-center mb-12 md:mb-16">
+        <div className="flex flex-col items-center text-center mb-8 md:mb-10">
           <div className="flex items-center gap-3 mb-4">
             <span className="h-px w-10 bg-gold" />
             <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Univers</span>
