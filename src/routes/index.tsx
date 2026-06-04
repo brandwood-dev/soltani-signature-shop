@@ -12,7 +12,8 @@ import { Testimonials } from "@/components/site/Testimonials";
 import { Newsletter } from "@/components/site/Newsletter";
 import { Footer } from "@/components/site/Footer";
 import { TrustBar } from "@/components/site/TrustBar";
-import bannerMothers from "@/assets/cat-jewelry.jpg";
+import { CollectionBanners } from "@/components/site/CollectionBanners";
+import { Packs } from "@/components/site/Packs";
 import bannerValentine from "@/assets/cat-bags.jpg";
 
 export const Route = createFileRoute("/")({
@@ -39,18 +40,11 @@ function Home() {
         <TrustBar />
         <Categories />
         <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={BESTSELLERS} kicker="Les pièces les plus convoitées par notre clientèle." />
-        <PromoBanner
-          eyebrow="Édition Spéciale"
-          title="Fête des Mères"
-          subtitle="Offrez l'élégance"
-          cta="Découvrir les cadeaux"
-          to="/category/bijoux"
-          image={bannerMothers}
-          align="left"
-        />
+        <CollectionBanners />
 
         <Brands />
         <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
+        <Packs />
         <PromoBanner
           eyebrow="Saint Valentin 2026"
           title="L'amour dans les détails"

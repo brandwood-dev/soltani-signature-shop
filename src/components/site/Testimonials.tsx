@@ -8,9 +8,9 @@ const TESTS = [
 
 export function Testimonials() {
   return (
-    <section className="py-24 md:py-32 bg-secondary/40">
+    <section className="py-14 md:py-20 bg-secondary/40">
       <div className="container-luxe">
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Avis Clients</span>
           <h2 className="font-display text-4xl md:text-5xl font-medium mt-3 text-foreground">
             Ils nous font <span className="italic font-light text-gold">confiance</span>

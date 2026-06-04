@@ -5,9 +5,9 @@ export { BESTSELLERS, NEWARRIVALS } from "@/data/catalog";
 
 export function ProductGrid({ title, eyebrow, items, kicker }: { title: string; eyebrow: string; items: Product[]; kicker?: string }) {
   return (
-    <section className="py-20 md:py-28 bg-background">
+    <section className="py-12 md:py-16 bg-background">
       <div className="container-luxe">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-10 gap-4">
           <div>
             <div className="flex items-center gap-3 mb-3">
               <span className="h-px w-10 bg-gold" />
