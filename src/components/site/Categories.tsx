@@ -17,7 +17,7 @@ export function Categories() {
         </div>
 
         {/* Mobile: horizontal scroll carousel */}
-        <div className="md:hidden -mx-4 px-4 overflow-x-auto scrollbar-none">
+        <div className="md:hidden -mx-4 px-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <ul className="flex gap-4 snap-x snap-mandatory pb-2">
             {CATEGORIES.map((c) => (
               <li key={c.slug} className="snap-start shrink-0 w-[44%]">

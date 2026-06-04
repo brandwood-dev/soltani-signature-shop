@@ -67,7 +67,7 @@ export function ProductCarousel({ items, autoPlay = true, autoPlayInterval = 400
     >
       <ul
         ref={scrollerRef}
-        className="flex gap-5 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
+        className="flex gap-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
       >
         {items.map((p) => (
           <li
