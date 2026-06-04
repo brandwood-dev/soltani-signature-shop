@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ProductCard, type Product } from "./ProductCard";
+import { type Product } from "./ProductCard";
+import { ProductCarousel } from "./ProductCarousel";
 
 export { BESTSELLERS, NEWARRIVALS } from "@/data/catalog";
 
@@ -20,9 +21,7 @@ export function ProductGrid({ title, eyebrow, items, kicker }: { title: string; 
             Voir tout →
           </Link>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
-          {items.map((p) => <ProductCard key={p.slug} p={p} />)}
-        </div>
+        <ProductCarousel items={items} />
       </div>
     </section>
   );
