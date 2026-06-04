@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ProductCard, type Product } from "./ProductCard";
+import { ProductCarousel } from "./ProductCarousel";
+import type { Product } from "./ProductCard";
 import p1 from "@/assets/prod-1.jpg";
 import p2 from "@/assets/prod-2.jpg";
 import p3 from "@/assets/prod-3.jpg";
@@ -38,18 +39,7 @@ export function Packs() {
           </Link>
         </div>
 
-        <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-none">
-          <ul className="flex gap-5 snap-x snap-mandatory pb-2">
-            {PACKS.map((p) => (
-              <li
-                key={p.slug}
-                className="snap-start shrink-0 w-[70%] sm:w-[45%] md:w-[32%] lg:w-[24%]"
-              >
-                <ProductCard p={p} />
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ProductCarousel items={PACKS} />
       </div>
     </section>
   );
