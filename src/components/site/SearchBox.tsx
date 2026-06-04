@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
-import { searchProducts, CATEGORIES } from "@/data/catalog";
+import { searchProducts, findCategoryName } from "@/data/catalog";
 
 export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
   const [q, setQ] = useState("");
@@ -36,7 +36,7 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
     onNavigate?.();
   };
 
-  const catLabel = (slug: string) => CATEGORIES.find((c) => c.slug === slug)?.name ?? slug;
+  const catLabel = (slug: string) => findCategoryName(slug);
 
   return (
     <div ref={wrap} className="relative w-full">

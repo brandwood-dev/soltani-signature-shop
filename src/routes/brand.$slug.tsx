@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { ProductCard } from "@/components/site/ProductCard";
-import { findBrandBySlug, productsByBrand, CATEGORIES } from "@/data/catalog";
+import { findBrandBySlug, productsByBrand, findCategoryName } from "@/data/catalog";
 import { ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/brand/$slug")({
@@ -76,7 +76,7 @@ function BrandPage() {
               Tout ({products.length})
             </button>
             {cats.map((c) => {
-              const label = CATEGORIES.find((x) => x.slug === c)?.name ?? c;
+              const label = findCategoryName(c);
               return (
                 <button
                   key={c}

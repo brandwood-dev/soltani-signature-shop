@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
-import { findProduct, productsByCategory, PRODUCTS, CATEGORIES } from "@/data/catalog";
+import { findProduct, productsByCategory, PRODUCTS, findCategory } from "@/data/catalog";
 import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
 import { useCart } from "@/hooks/useCart";
 import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Check, Flame, ShoppingBag } from "lucide-react";
@@ -46,7 +46,9 @@ export const Route = createFileRoute("/product/$slug")({
 function ProductPage() {
   const { product, related, bundle } = Route.useLoaderData() as { product: Product; related: Product[]; bundle: Product[] };
   const gallery = [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
-  const category = CATEGORIES.find((c) => c.slug === product.category)!;
+  const category = findCategory(product.category)!;
+  const parentSlug = category.kind === "sub" ? category.parent.slug : category.slug;
+  const parentName = category.kind === "sub" ? category.parent.name : category.name;
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
@@ -65,7 +67,13 @@ function ProductPage() {
       <div className="container-luxe pt-8 pb-4 flex items-center gap-2 text-xs text-muted-foreground">
         <Link to="/" className="hover:text-gold">Accueil</Link>
         <ChevronRight className="h-3 w-3" />
-        <Link to="/category/$slug" params={{ slug: category.slug }} className="hover:text-gold">{category.name}</Link>
+        <Link to="/category/$slug" params={{ slug: parentSlug }} className="hover:text-gold">{parentName}</Link>
+        {category.kind === "sub" && (
+          <>
+            <ChevronRight className="h-3 w-3" />
+            <Link to="/category/$slug" params={{ slug: category.slug }} className="hover:text-gold">{category.name}</Link>
+          </>
+        )}
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground line-clamp-1">{product.name}</span>
       </div>
