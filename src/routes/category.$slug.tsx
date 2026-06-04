@@ -2,12 +2,15 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { ProductCard } from "@/components/site/ProductCard";
-import { CATEGORIES, PRODUCTS, findCategory, productsByCategory } from "@/data/catalog";
+import {
+  PRODUCTS,
+  findCategory,
+  productsByCategory,
+  findParent,
+} from "@/data/catalog";
 import { ChevronRight, SlidersHorizontal, X } from "lucide-react";
 
-const BRANDS = Array.from(new Set(PRODUCTS.map((p) => p.brand)));
 const COLORS = ["Noir", "Or", "Argent", "Brun", "Rouge", "Bleu"];
-const SIZES = ["S", "M", "L", "XL", "Unique"];
 
 export const Route = createFileRoute("/category/$slug")({
   loader: ({ params }) => {
@@ -16,7 +19,7 @@ export const Route = createFileRoute("/category/$slug")({
     return { category: cat };
   },
   head: ({ params }) => {
-    const cat = CATEGORIES.find((c) => c.slug === params.slug);
+    const cat = findCategory(params.slug);
     const title = cat ? cat.name : "Catégorie";
     return {
       meta: [
@@ -46,24 +49,69 @@ function CategoryPage() {
   const [openFilters, setOpenFilters] = useState(false);
   const [price, setPrice] = useState(20000);
   const [brand, setBrand] = useState<string[]>([]);
+  const [subFilter, setSubFilter] = useState<string | "all">("all");
   const [sort, setSort] = useState("recommended");
 
+  const isParent = category.kind === "parent";
+  const parent = isParent ? findParent(category.slug) : findParent(category.parent.slug);
+
+  const baseList = useMemo(() => productsByCategory(category.slug), [category.slug]);
+
+  const brands = useMemo(
+    () => Array.from(new Set(baseList.map((p) => p.brand))).sort(),
+    [baseList],
+  );
+
   const items = useMemo(() => {
-    let list = productsByCategory(category.slug);
+    let list = baseList;
+    if (isParent && subFilter !== "all") {
+      list = list.filter((p) => p.category === subFilter);
+    }
     if (brand.length) list = list.filter((p) => brand.includes(p.brand));
     list = list.filter((p) => p.price <= price);
     if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [category.slug, brand, price, sort]);
+  }, [baseList, brand, price, sort, subFilter, isParent]);
 
-  const toggleBrand = (b: string) => setBrand((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]));
+  const toggleBrand = (b: string) =>
+    setBrand((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]));
+
+  const maxBound = Math.max(20000, ...PRODUCTS.map((p) => p.price));
 
   const Filters = (
     <div className="space-y-8">
+      {isParent && parent && parent.subs.length > 0 && (
+        <FilterBlock title="Sous-catégorie">
+          <div className="space-y-2.5">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="sub"
+                checked={subFilter === "all"}
+                onChange={() => setSubFilter("all")}
+                className="accent-gold"
+              />
+              <span className="text-sm text-foreground/80">Toutes</span>
+            </label>
+            {parent.subs.map((s) => (
+              <label key={s.slug} className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sub"
+                  checked={subFilter === s.slug}
+                  onChange={() => setSubFilter(s.slug)}
+                  className="accent-gold"
+                />
+                <span className="text-sm text-foreground/80">{s.name}</span>
+              </label>
+            ))}
+          </div>
+        </FilterBlock>
+      )}
       <FilterBlock title="Marque">
         <div className="space-y-2.5">
-          {BRANDS.map((b) => (
+          {brands.map((b) => (
             <label key={b} className="flex items-center gap-3 cursor-pointer group">
               <input type="checkbox" checked={brand.includes(b)} onChange={() => toggleBrand(b)} className="h-4 w-4 accent-gold border-border" />
               <span className="text-sm text-foreground/80 group-hover:text-gold transition">{b}</span>
@@ -72,9 +120,9 @@ function CategoryPage() {
         </div>
       </FilterBlock>
       <FilterBlock title="Prix (max)">
-        <input type="range" min={100} max={20000} step={100} value={price} onChange={(e) => setPrice(+e.target.value)} className="w-full accent-gold" />
+        <input type="range" min={50} max={maxBound} step={50} value={price} onChange={(e) => setPrice(+e.target.value)} className="w-full accent-gold" />
         <div className="flex justify-between text-xs text-muted-foreground mt-2">
-          <span>100 DT</span><span className="text-gold font-semibold">{price} DT</span>
+          <span>50 DT</span><span className="text-gold font-semibold">{price} DT</span>
         </div>
       </FilterBlock>
       <FilterBlock title="Couleur">
@@ -84,32 +132,51 @@ function CategoryPage() {
           ))}
         </div>
       </FilterBlock>
-      <FilterBlock title="Taille">
-        <div className="flex flex-wrap gap-2">
-          {SIZES.map((s) => (
-            <button key={s} className="h-9 min-w-9 px-3 text-xs border border-border hover:border-gold hover:text-gold transition rounded-sm">{s}</button>
-          ))}
-        </div>
-      </FilterBlock>
-      <FilterBlock title="Genre">
-        {["Homme", "Femme", "Unisexe"].map((g) => (
-          <label key={g} className="flex items-center gap-3 cursor-pointer mb-2">
-            <input type="radio" name="gender" className="accent-gold" />
-            <span className="text-sm text-foreground/80">{g}</span>
-          </label>
-        ))}
-      </FilterBlock>
     </div>
   );
 
   return (
     <SiteLayout>
-      <PageHero eyebrow="Collection" title={category.name} subtitle="Une sélection rigoureuse des meilleures pièces." />
-      <div className="container-luxe py-6 flex items-center gap-2 text-xs text-muted-foreground">
+      <PageHero eyebrow={isParent ? "Univers" : category.parent.name} title={category.name} subtitle="Une sélection rigoureuse." />
+      <div className="container-luxe py-6 flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
         <Link to="/" className="hover:text-gold">Accueil</Link>
         <ChevronRight className="h-3 w-3" />
+        {!isParent && (
+          <>
+            <Link to="/category/$slug" params={{ slug: category.parent.slug }} className="hover:text-gold">
+              {category.parent.name}
+            </Link>
+            <ChevronRight className="h-3 w-3" />
+          </>
+        )}
         <span className="text-foreground">{category.name}</span>
       </div>
+
+      {/* Quick links sous-cat pour parent */}
+      {isParent && parent && (
+        <div className="container-luxe pb-6">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSubFilter("all")}
+              className={`px-4 h-9 text-xs uppercase tracking-[0.2em] border rounded-sm transition ${
+                subFilter === "all" ? "border-gold text-gold" : "border-border text-foreground/70 hover:text-gold"
+              }`}
+            >
+              Tout
+            </button>
+            {parent.subs.map((s) => (
+              <Link
+                key={s.slug}
+                to="/category/$slug"
+                params={{ slug: s.slug }}
+                className="px-4 h-9 inline-flex items-center text-xs uppercase tracking-[0.2em] border border-border text-foreground/70 hover:text-gold hover:border-gold transition rounded-sm"
+              >
+                {s.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="container-luxe pb-24 grid lg:grid-cols-[260px_1fr] gap-10">
         <aside className="hidden lg:block">{Filters}</aside>
