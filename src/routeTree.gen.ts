@@ -14,10 +14,15 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrderConfirmationRouteImport } from './routes/order-confirmation'
+import { Route as MaisonRouteImport } from './routes/maison'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HommeRouteImport } from './routes/homme'
+import { Route as FemmeRouteImport } from './routes/femme'
+import { Route as EnfantRouteImport } from './routes/enfant'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as BienEtreRouteImport } from './routes/bien-etre'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
@@ -50,9 +55,29 @@ const OrderConfirmationRoute = OrderConfirmationRouteImport.update({
   path: '/order-confirmation',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MaisonRoute = MaisonRouteImport.update({
+  id: '/maison',
+  path: '/maison',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HommeRoute = HommeRouteImport.update({
+  id: '/homme',
+  path: '/homme',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FemmeRoute = FemmeRouteImport.update({
+  id: '/femme',
+  path: '/femme',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnfantRoute = EnfantRouteImport.update({
+  id: '/enfant',
+  path: '/enfant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -68,6 +93,11 @@ const CheckoutRoute = CheckoutRouteImport.update({
 const CartRoute = CartRouteImport.update({
   id: '/cart',
   path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BienEtreRoute = BienEtreRouteImport.update({
+  id: '/bien-etre',
+  path: '/bien-etre',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -104,10 +134,15 @@ const BrandSlugRoute = BrandSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bien-etre': typeof BienEtreRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/enfant': typeof EnfantRoute
+  '/femme': typeof FemmeRoute
+  '/homme': typeof HommeRoute
   '/login': typeof LoginRoute
+  '/maison': typeof MaisonRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -121,10 +156,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bien-etre': typeof BienEtreRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/enfant': typeof EnfantRoute
+  '/femme': typeof FemmeRoute
+  '/homme': typeof HommeRoute
   '/login': typeof LoginRoute
+  '/maison': typeof MaisonRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -139,10 +179,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bien-etre': typeof BienEtreRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/enfant': typeof EnfantRoute
+  '/femme': typeof FemmeRoute
+  '/homme': typeof HommeRoute
   '/login': typeof LoginRoute
+  '/maison': typeof MaisonRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -158,10 +203,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/bien-etre'
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/enfant'
+    | '/femme'
+    | '/homme'
     | '/login'
+    | '/maison'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -175,10 +225,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/bien-etre'
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/enfant'
+    | '/femme'
+    | '/homme'
     | '/login'
+    | '/maison'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -192,10 +247,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/bien-etre'
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/enfant'
+    | '/femme'
+    | '/homme'
     | '/login'
+    | '/maison'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -210,10 +270,15 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  BienEtreRoute: typeof BienEtreRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
+  EnfantRoute: typeof EnfantRoute
+  FemmeRoute: typeof FemmeRoute
+  HommeRoute: typeof HommeRoute
   LoginRoute: typeof LoginRoute
+  MaisonRoute: typeof MaisonRoute
   OrderConfirmationRoute: typeof OrderConfirmationRoute
   ProfileRoute: typeof ProfileRoute
   PromotionsRoute: typeof PromotionsRoute
@@ -262,11 +327,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderConfirmationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/maison': {
+      id: '/maison'
+      path: '/maison'
+      fullPath: '/maison'
+      preLoaderRoute: typeof MaisonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/homme': {
+      id: '/homme'
+      path: '/homme'
+      fullPath: '/homme'
+      preLoaderRoute: typeof HommeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/femme': {
+      id: '/femme'
+      path: '/femme'
+      fullPath: '/femme'
+      preLoaderRoute: typeof FemmeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enfant': {
+      id: '/enfant'
+      path: '/enfant'
+      fullPath: '/enfant'
+      preLoaderRoute: typeof EnfantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -288,6 +381,13 @@ declare module '@tanstack/react-router' {
       path: '/cart'
       fullPath: '/cart'
       preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bien-etre': {
+      id: '/bien-etre'
+      path: '/bien-etre'
+      fullPath: '/bien-etre'
+      preLoaderRoute: typeof BienEtreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -338,10 +438,15 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  BienEtreRoute: BienEtreRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
+  EnfantRoute: EnfantRoute,
+  FemmeRoute: FemmeRoute,
+  HommeRoute: HommeRoute,
   LoginRoute: LoginRoute,
+  MaisonRoute: MaisonRoute,
   OrderConfirmationRoute: OrderConfirmationRoute,
   ProfileRoute: ProfileRoute,
   PromotionsRoute: PromotionsRoute,

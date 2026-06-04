@@ -1,9 +1,9 @@
 const ITEMS = [
-  { label: "Homme", href: "#homme" },
-  { label: "Femme", href: "#femme" },
-  { label: "Enfant", href: "#enfant" },
-  { label: "Maison", href: "#maison" },
-  { label: "Bien-être", href: "#bien-etre" },
+  { label: "Homme", href: "/homme" },
+  { label: "Femme", href: "/femme" },
+  { label: "Enfant", href: "/enfant" },
+  { label: "Maison", href: "/maison" },
+  { label: "Bien-être", href: "/bien-etre" },
 ];
 
 export function CategoryNav() {
