@@ -11,6 +11,7 @@ import { Promo } from "@/components/site/Promo";
 import { Testimonials } from "@/components/site/Testimonials";
 import { Newsletter } from "@/components/site/Newsletter";
 import { Footer } from "@/components/site/Footer";
+import { TrustBar } from "@/components/site/TrustBar";
 import bannerMothers from "@/assets/cat-jewelry.jpg";
 import bannerValentine from "@/assets/cat-bags.jpg";
 
@@ -35,6 +36,7 @@ function Home() {
       <Header />
       <main>
         <Hero />
+        <TrustBar />
         <Categories />
         <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={BESTSELLERS} kicker="Les pièces les plus convoitées par notre clientèle." />
         <PromoBanner
