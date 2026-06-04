@@ -47,7 +47,6 @@ function Home() {
           align="left"
         />
 
-        <TopBrands />
         <Brands />
         <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
         <PromoBanner
