@@ -29,7 +29,7 @@ export function CategoryNav() {
       </nav>
 
       {/* Mobile — scroll horizontal */}
-      <nav className="lg:hidden overflow-x-auto scrollbar-hide">
+      <nav className="lg:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="container-luxe">
           <ul className="flex items-center justify-center gap-6 h-12 px-2 min-w-max">
             {ITEMS.map((cat) => (
