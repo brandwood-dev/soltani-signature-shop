@@ -4,6 +4,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Newsletter } from "@/components/site/Newsletter";
 import { LifestyleHero } from "@/components/site/LifestyleHero";
+import { TrustBar } from "@/components/site/TrustBar";
 import { LifestyleSection, DualBanner } from "@/components/site/LifestyleSection";
 import { PromoBanner } from "@/components/site/PromoBanner";
 import type { ReactNode } from "react";
