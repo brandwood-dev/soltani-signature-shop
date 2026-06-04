@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import femmeImg from "@/assets/cat-cosmetics.jpg";
-import hommeImg from "@/assets/cat-watches.jpg";
-import enfantImg from "@/assets/hero-3.jpg";
+
+const femmeImg = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780603714/Plan_de_travail_2_dhojvi.png";
+const hommeImg = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780603716/Plan_de_travail_1_pkdgmx.png";
+const enfantImg = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780603724/Plan_de_travail_3_wvqw4p.png";
 
 type Card = {
   eyebrow: string;
