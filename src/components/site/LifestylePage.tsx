@@ -73,6 +73,8 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
           secondaryCta={config.hero.secondaryCta}
         />
 
+        <TrustBar />
+
         {config.intro}
 
         {config.sections.slice(0, 2).map((s) => (
