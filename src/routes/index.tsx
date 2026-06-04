@@ -14,7 +14,8 @@ import { Footer } from "@/components/site/Footer";
 import { TrustBar } from "@/components/site/TrustBar";
 import { CollectionBanners } from "@/components/site/CollectionBanners";
 import { Packs } from "@/components/site/Packs";
-import bannerValentine from "@/assets/cat-bags.jpg";
+
+const bannerBrumes = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780604892/banner_zgtjc9.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
