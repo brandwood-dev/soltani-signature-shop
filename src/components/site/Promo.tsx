@@ -8,8 +8,8 @@ export function Promo() {
   const target = useStableDeadline(3, 8);
   return (
     <section id="promos" className="relative py-14 md:py-20 overflow-hidden bg-background">
-      <img src={promoBg} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-25" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
+      <img src={promoBg} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-55" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/50 to-transparent" />
       <div className="container-luxe relative grid lg:grid-cols-2 gap-12 items-center">
         <div>
           <span className="inline-block px-3 py-1 text-[10px] uppercase tracking-[0.3em] font-bold bg-destructive text-cream rounded-sm mb-6">
