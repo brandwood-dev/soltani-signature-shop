@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import heroBag from "@/assets/cat-bags.jpg";
 import { CountdownCells, useStableDeadline } from "./Countdown";
+
+const promoBg = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780631109/Gemini_Generated_Image_4e23oq4e23oq4e23_1_fzbnmx.jpg";
 
 export function Promo() {
   const target = useStableDeadline(3, 8);
   return (
     <section id="promos" className="relative py-14 md:py-20 overflow-hidden bg-background">
-      <img src={heroBag} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-25" />
+      <img src={promoBg} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-25" />
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
       <div className="container-luxe relative grid lg:grid-cols-2 gap-12 items-center">
         <div>
