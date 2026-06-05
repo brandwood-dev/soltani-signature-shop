@@ -12,8 +12,8 @@ export function Brands() {
   return (
     <section className="py-16 border-y border-border bg-secondary/40 overflow-hidden">
       <div className="container-luxe mb-8 text-center">
-        <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Marques Partenaires</span>
-        <h2 className="font-display text-3xl md:text-4xl font-semibold mt-3 text-foreground">Les maisons d'exception</h2>
+        <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Les signatures de beauté & lifestyle</span>
+        <h2 className="font-display text-3xl md:text-4xl font-semibold mt-3 text-foreground">NOS MARQUES À LA UNE</h2>
       </div>
       <div className="relative">
         <div className="flex marquee items-center gap-16 w-max">

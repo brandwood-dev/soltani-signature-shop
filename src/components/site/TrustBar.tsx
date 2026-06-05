@@ -2,8 +2,8 @@ import { ShieldCheck, Truck, Lock, Headphones } from "lucide-react";
 
 const ITEMS = [
   { Icon: ShieldCheck, title: "Produits 100% Authentiques", sub: "Sourcing officiel et certifié" },
-  { Icon: Truck, title: "Livraison Rapide", sub: "Partout en Tunisie & à l'international" },
-  { Icon: Lock, title: "Paiement Sécurisé", sub: "Carte bancaire, virement, à la livraison" },
+  { Icon: Truck, title: "Livraison Rapide", sub: "Livraison sur toute la Tunisie sous 48h" },
+  { Icon: Lock, title: "Paiement Sécurisé", sub: "Paiement par carte bancaire ou en espèces à la livraison" },
   { Icon: Headphones, title: "Service Client 7J/7", sub: "À votre écoute" },
 ];
 
