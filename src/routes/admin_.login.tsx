@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ShieldCheck, ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/site/Logo";
 
-export const Route = createFileRoute("/admin/login")({
+export const Route = createFileRoute("/admin_/login")({
   head: () => ({
     meta: [
       { title: "Connexion Admin — Soltani Signature" },
