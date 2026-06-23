@@ -2,7 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Package,
-  PackagePlus,
   ShoppingBag,
   Users,
   Tags,
@@ -30,8 +29,7 @@ import {
 
 const mainItems = [
   { title: "Tableau de bord", url: "/admin", icon: LayoutDashboard, exact: true },
-  { title: "Produits", url: "/admin/products", icon: Package, exact: true },
-  { title: "Ajouter un produit", url: "/admin/products/new", icon: PackagePlus },
+  { title: "Produits", url: "/admin/products", icon: Package },
   { title: "Commandes", url: "/admin/orders", icon: ShoppingBag },
   { title: "Clients", url: "/admin/customers", icon: Users },
   { title: "Catégories", url: "/admin/categories", icon: Tags },
