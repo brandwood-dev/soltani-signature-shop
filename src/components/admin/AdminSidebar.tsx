@@ -2,12 +2,16 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Package,
+  PackagePlus,
   ShoppingBag,
   Users,
   Tags,
   Settings,
   Store,
   LogOut,
+  Megaphone,
+  Image as ImageIcon,
+  GalleryHorizontalEnd,
 } from "lucide-react";
 
 import {
@@ -26,10 +30,17 @@ import {
 
 const mainItems = [
   { title: "Tableau de bord", url: "/admin", icon: LayoutDashboard, exact: true },
-  { title: "Produits", url: "/admin/products", icon: Package },
+  { title: "Produits", url: "/admin/products", icon: Package, exact: true },
+  { title: "Ajouter un produit", url: "/admin/products/new", icon: PackagePlus },
   { title: "Commandes", url: "/admin/orders", icon: ShoppingBag },
   { title: "Clients", url: "/admin/customers", icon: Users },
   { title: "Catégories", url: "/admin/categories", icon: Tags },
+];
+
+const contentItems = [
+  { title: "Banderole promo", url: "/admin/marquee", icon: Megaphone },
+  { title: "Hero (slides)", url: "/admin/hero", icon: GalleryHorizontalEnd },
+  { title: "Bannières", url: "/admin/banners", icon: ImageIcon },
 ];
 
 const footerItems = [
@@ -82,6 +93,28 @@ export function AdminSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url, item.exact)}
+                    tooltip={item.title}
+                  >
+                    <Link to={item.url} onClick={handleNav}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Contenu vitrine</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {contentItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
                     tooltip={item.title}
                   >
                     <Link to={item.url} onClick={handleNav}>

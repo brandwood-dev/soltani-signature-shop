@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Filter } from "lucide-react";
 
@@ -87,10 +87,12 @@ function AdminProducts() {
         title="Produits"
         subtitle={`${filtered.length} produits au catalogue`}
         actions={
-          <Button size="sm" className="h-9">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nouveau produit</span>
-            <span className="sm:hidden">Ajouter</span>
+          <Button asChild size="sm" className="h-9">
+            <Link to="/admin/products/new">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nouveau produit</span>
+              <span className="sm:hidden">Ajouter</span>
+            </Link>
           </Button>
         }
       />
