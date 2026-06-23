@@ -33,6 +33,7 @@ import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as BrandSlugRouteImport } from './routes/brand.$slug'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMarqueeRouteImport } from './routes/admin.marquee'
 import { Route as AdminHeroRouteImport } from './routes/admin.hero'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
@@ -162,6 +163,11 @@ const AdminProductsRoute = AdminProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMarqueeRoute = AdminMarqueeRouteImport.update({
   id: '/marquee',
   path: '/marquee',
@@ -193,9 +199,9 @@ const AdminProductsIndexRoute = AdminProductsIndexRouteImport.update({
   getParentRoute: () => AdminProductsRoute,
 } as any)
 const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
-  id: '/orders/',
-  path: '/orders/',
-  getParentRoute: () => AdminRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminOrdersRoute,
 } as any)
 const AdminProductsNewRoute = AdminProductsNewRouteImport.update({
   id: '/new',
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/hero': typeof AdminHeroRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/products': typeof AdminProductsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/brand/$slug': typeof BrandSlugRoute
@@ -293,6 +300,7 @@ export interface FileRoutesById {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/hero': typeof AdminHeroRoute
   '/admin/marquee': typeof AdminMarqueeRoute
+  '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/products': typeof AdminProductsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/brand/$slug': typeof BrandSlugRoute
@@ -329,6 +337,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/hero'
     | '/admin/marquee'
+    | '/admin/orders'
     | '/admin/products'
     | '/admin/settings'
     | '/brand/$slug'
@@ -395,6 +404,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/hero'
     | '/admin/marquee'
+    | '/admin/orders'
     | '/admin/products'
     | '/admin/settings'
     | '/brand/$slug'
@@ -601,6 +611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/marquee': {
       id: '/admin/marquee'
       path: '/marquee'
@@ -645,10 +662,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/orders/': {
       id: '/admin/orders/'
-      path: '/orders'
+      path: '/'
       fullPath: '/admin/orders/'
       preLoaderRoute: typeof AdminOrdersIndexRouteImport
-      parentRoute: typeof AdminRoute
+      parentRoute: typeof AdminOrdersRoute
     }
     '/admin/products/new': {
       id: '/admin/products/new'
@@ -659,6 +676,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminOrdersRouteChildren {
+  AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
+}
+
+const AdminOrdersRouteChildren: AdminOrdersRouteChildren = {
+  AdminOrdersIndexRoute: AdminOrdersIndexRoute,
+}
+
+const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
+  AdminOrdersRouteChildren,
+)
 
 interface AdminProductsRouteChildren {
   AdminProductsNewRoute: typeof AdminProductsNewRoute
@@ -680,10 +709,10 @@ interface AdminRouteChildren {
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminHeroRoute: typeof AdminHeroRoute
   AdminMarqueeRoute: typeof AdminMarqueeRoute
+  AdminOrdersRoute: typeof AdminOrdersRouteWithChildren
   AdminProductsRoute: typeof AdminProductsRouteWithChildren
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
-  AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -692,10 +721,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomersRoute: AdminCustomersRoute,
   AdminHeroRoute: AdminHeroRoute,
   AdminMarqueeRoute: AdminMarqueeRoute,
+  AdminOrdersRoute: AdminOrdersRouteWithChildren,
   AdminProductsRoute: AdminProductsRouteWithChildren,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
-  AdminOrdersIndexRoute: AdminOrdersIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
