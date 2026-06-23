@@ -196,8 +196,10 @@ function AdminProducts() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Pencil className="h-4 w-4" /> Modifier
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/products/$id/edit" params={{ id: p.id }}>
+                            <Pencil className="h-4 w-4" /> Modifier
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
                           <Trash2 className="h-4 w-4" /> Supprimer
@@ -303,8 +305,10 @@ function AdminProducts() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Pencil className="h-4 w-4" /> Modifier
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/products/$id/edit" params={{ id: p.id }}>
+                              <Pencil className="h-4 w-4" /> Modifier
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">
                             <Trash2 className="h-4 w-4" /> Supprimer
