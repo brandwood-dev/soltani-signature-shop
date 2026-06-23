@@ -60,12 +60,6 @@ function AdminDashboard() {
       icon: ShoppingBag,
     },
     {
-      label: "Visiteurs",
-      value: kpis.visitors.toLocaleString("fr-FR"),
-      delta: kpis.visitorsDelta,
-      icon: Eye,
-    },
-    {
       label: "Nouveaux clients",
       value: kpis.customers.toString(),
       delta: kpis.customersDelta,
@@ -77,12 +71,7 @@ function AdminDashboard() {
       delta: kpis.averageBasketDelta,
       icon: Package,
     },
-    {
-      label: "Taux de conversion",
-      value: `${kpis.conversionRate}%`,
-      delta: kpis.conversionDelta,
-      icon: Percent,
-    },
+
   ];
 
   return (
