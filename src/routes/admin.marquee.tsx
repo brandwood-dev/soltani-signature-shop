@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/admin/marquee")({
-  component: AdminMarquee;
+  component: AdminMarquee,
 });
 
 type Message = {
