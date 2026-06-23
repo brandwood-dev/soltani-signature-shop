@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { MOCK_PRODUCTS, formatTND } from "@/lib/admin/mock-data";
 
-export const Route = createFileRoute("/admin/products")({
+export const Route = createFileRoute("/admin/products/")({
   component: AdminProducts,
 });
 
