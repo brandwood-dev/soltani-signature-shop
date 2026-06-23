@@ -5,12 +5,11 @@ import {
   ShoppingBag,
   Users,
   Package,
-  Eye,
-  Percent,
   ArrowUpRight,
   ArrowDownRight,
   Download,
 } from "lucide-react";
+
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
