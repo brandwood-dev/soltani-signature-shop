@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search, Eye, MoreHorizontal, Download } from "lucide-react";
 
@@ -139,7 +139,12 @@ function AdminOrders() {
           {/* Mobile */}
           <div className="divide-y divide-border sm:hidden">
             {paged.map((o) => (
-              <div key={o.id} className="p-3">
+              <Link
+                key={o.id}
+                to="/admin/orders/$id"
+                params={{ id: o.id }}
+                className="block p-3 hover:bg-muted/40"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{o.reference}</p>
@@ -155,7 +160,7 @@ function AdminOrders() {
                     {formatTND(o.total)}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
             {paged.length === 0 && (
               <div className="p-8 text-center text-sm text-muted-foreground">
@@ -182,7 +187,15 @@ function AdminOrders() {
               <TableBody>
                 {paged.map((o) => (
                   <TableRow key={o.id}>
-                    <TableCell className="font-medium">{o.reference}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link
+                        to="/admin/orders/$id"
+                        params={{ id: o.id }}
+                        className="hover:underline"
+                      >
+                        {o.reference}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <div className="min-w-0">
                         <p className="truncate text-sm">{o.customer}</p>
@@ -212,8 +225,10 @@ function AdminOrders() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4" /> Voir détails
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/orders/$id" params={{ id: o.id }}>
+                              <Eye className="h-4 w-4" /> Voir détails
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem>Marquer expédiée</DropdownMenuItem>
                           <DropdownMenuItem>Marquer livrée</DropdownMenuItem>
