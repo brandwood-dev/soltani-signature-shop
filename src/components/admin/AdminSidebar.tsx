@@ -11,6 +11,8 @@ import {
   Megaphone,
   Image as ImageIcon,
   GalleryHorizontalEnd,
+  Award,
+  MessageSquareQuote,
 } from "lucide-react";
 
 import {
@@ -39,6 +41,8 @@ const contentItems = [
   { title: "Banderole promo", url: "/admin/marquee", icon: Megaphone },
   { title: "Hero (slides)", url: "/admin/hero", icon: GalleryHorizontalEnd },
   { title: "Bannières", url: "/admin/banners", icon: ImageIcon },
+  { title: "Marques à la une", url: "/admin/brands", icon: Award },
+  { title: "Avis clients", url: "/admin/testimonials", icon: MessageSquareQuote },
 ];
 
 const footerItems = [
