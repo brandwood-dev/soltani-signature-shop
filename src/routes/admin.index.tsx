@@ -92,7 +92,7 @@ function AdminDashboard() {
 
       <div className="flex-1 space-y-4 p-3 sm:space-y-6 sm:p-6">
         {/* KPIs */}
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {cards.map((k) => {
             const up = k.delta >= 0;
             return (
