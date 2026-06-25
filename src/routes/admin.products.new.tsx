@@ -49,6 +49,7 @@ function AdminNewProduct() {
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
+  const [attributes, setAttributes] = useState<Record<string, string[]>>({});
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
