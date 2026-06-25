@@ -15,6 +15,7 @@ export type Product = {
   image: string;
   badge?: "Best Seller" | "Nouveau" | "Promo";
   rating?: number;
+  attributes?: Record<string, string[]>;
 };
 
 export function ProductCard({ p }: { p: Product }) {
