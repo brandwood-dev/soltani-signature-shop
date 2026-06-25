@@ -17,12 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CATEGORY_TREE } from "@/data/catalog";
+import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
 
 export const Route = createFileRoute("/admin/products/new")({
   component: AdminNewProduct,
 });
 
-const CATEGORIES = ["Parfums", "Soins", "Maquillage", "Sacs", "Montres", "Accessoires"];
 const BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
   { value: "draft", label: "Brouillon" },
@@ -47,6 +49,7 @@ function AdminNewProduct() {
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
+  const [attributes, setAttributes] = useState<Record<string, string[]>>({});
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -351,7 +354,82 @@ function AdminNewProduct() {
                 </div>
               </CardContent>
             </Card>
+
+            {(() => {
+              const facets = subcategory
+                ? FILTERS_BY_SUB[subcategory] ?? []
+                : category
+                ? getFacetsForCategory(
+                    category,
+                    (CATEGORY_TREE.find((c) => c.slug === category)?.subs ?? []).map((s) => s.slug),
+                  )
+                : [];
+              if (!facets.length) return null;
+              const toggle = (key: string, opt: string) => {
+                setAttributes((prev) => {
+                  const cur = prev[key] ?? [];
+                  const next = cur.includes(opt) ? cur.filter((v) => v !== opt) : [...cur, opt];
+                  return { ...prev, [key]: next };
+                });
+              };
+              return (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Attributs & filtres</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Ces attributs alimentent les filtres affichés aux clients sur la page
+                      {" "}
+                      {subcategory ? "de la sous-catégorie" : "de la catégorie"} sélectionnée.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {facets.map((f) => (
+                      <div key={f.key} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm">{f.label}</Label>
+                          {(attributes[f.key]?.length ?? 0) > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAttributes((p) => ({ ...p, [f.key]: [] }))}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              Effacer
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {f.options.map((opt) => {
+                            const id = `${f.key}-${opt}`;
+                            const checked = attributes[f.key]?.includes(opt) ?? false;
+                            return (
+                              <label
+                                key={id}
+                                htmlFor={id}
+                                className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
+                                  checked
+                                    ? "border-foreground bg-foreground text-background"
+                                    : "border-border hover:border-foreground/40"
+                                }`}
+                              >
+                                <Checkbox
+                                  id={id}
+                                  checked={checked}
+                                  onCheckedChange={() => toggle(f.key, opt)}
+                                  className="sr-only"
+                                />
+                                {opt}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
+
 
           {/* Colonne latérale */}
           <div className="space-y-3 sm:space-y-6">
@@ -393,27 +471,47 @@ function AdminNewProduct() {
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label>Catégorie *</Label>
-                  <Select value={category} onValueChange={setCategory}>
+                  <Select
+                    value={category}
+                    onValueChange={(v) => {
+                      setCategory(v);
+                      setSubcategory("");
+                      setAttributes({});
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
+                      {CATEGORY_TREE.map((c) => (
+                        <SelectItem key={c.slug} value={c.slug}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sub">Sous-catégorie</Label>
-                  <Input
-                    id="sub"
+                  <Label>Sous-catégorie</Label>
+                  <Select
                     value={subcategory}
-                    onChange={(e) => setSubcategory(e.target.value)}
-                    placeholder="Ex : Parfums femme"
-                  />
+                    onValueChange={(v) => {
+                      setSubcategory(v);
+                      setAttributes({});
+                    }}
+                    disabled={!category}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(CATEGORY_TREE.find((c) => c.slug === category)?.subs ?? []).map((s) => (
+                        <SelectItem key={s.slug} value={s.slug}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Marque</Label>
