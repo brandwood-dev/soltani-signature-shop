@@ -396,27 +396,47 @@ function AdminNewProduct() {
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label>Catégorie *</Label>
-                  <Select value={category} onValueChange={setCategory}>
+                  <Select
+                    value={category}
+                    onValueChange={(v) => {
+                      setCategory(v);
+                      setSubcategory("");
+                      setAttributes({});
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
+                      {CATEGORY_TREE.map((c) => (
+                        <SelectItem key={c.slug} value={c.slug}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sub">Sous-catégorie</Label>
-                  <Input
-                    id="sub"
+                  <Label>Sous-catégorie</Label>
+                  <Select
                     value={subcategory}
-                    onChange={(e) => setSubcategory(e.target.value)}
-                    placeholder="Ex : Parfums femme"
-                  />
+                    onValueChange={(v) => {
+                      setSubcategory(v);
+                      setAttributes({});
+                    }}
+                    disabled={!category}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(CATEGORY_TREE.find((c) => c.slug === category)?.subs ?? []).map((s) => (
+                        <SelectItem key={s.slug} value={s.slug}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Marque</Label>
