@@ -17,12 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CATEGORY_TREE } from "@/data/catalog";
+import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
 
 export const Route = createFileRoute("/admin/products/new")({
   component: AdminNewProduct,
 });
 
-const CATEGORIES = ["Parfums", "Soins", "Maquillage", "Sacs", "Montres", "Accessoires"];
 const BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
   { value: "draft", label: "Brouillon" },
