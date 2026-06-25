@@ -1,4 +1,5 @@
 import type { Product } from "@/components/site/ProductCard";
+import { buildProductAttributes } from "@/data/filters";
 import p1 from "@/assets/prod-1.jpg";
 import p2 from "@/assets/prod-2.jpg";
 import p3 from "@/assets/prod-3.jpg";
@@ -559,8 +560,9 @@ function buildProducts(): Product[] {
         const ratingCycle = (i + sub.slug.length) % 5;
         const rating = 4.5 + ratingCycle * 0.1;
 
+        const pSlug = slugify(`${brand}-${name}-${sub.slug}-${i}`);
         out.push({
-          slug: slugify(`${brand}-${name}-${sub.slug}-${i}`),
+          slug: pSlug,
           name,
           brand,
           category: sub.slug,
@@ -569,6 +571,7 @@ function buildProducts(): Product[] {
           image,
           badge,
           rating: Math.min(5, Number(rating.toFixed(1))),
+          attributes: buildProductAttributes(pSlug, sub.slug, i),
         });
       }
     }

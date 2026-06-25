@@ -8,9 +8,8 @@ import {
   productsByCategory,
   findParent,
 } from "@/data/catalog";
+import { getFacetsForCategory, type FacetDef } from "@/data/filters";
 import { ChevronRight, SlidersHorizontal, X } from "lucide-react";
-
-const COLORS = ["Noir", "Or", "Argent", "Brun", "Rouge", "Bleu"];
 
 export const Route = createFileRoute("/category/$slug")({
   loader: ({ params }) => {
@@ -51,6 +50,7 @@ function CategoryPage() {
   const [brand, setBrand] = useState<string[]>([]);
   const [subFilter, setSubFilter] = useState<string | "all">("all");
   const [sort, setSort] = useState("recommended");
+  const [facetSel, setFacetSel] = useState<Record<string, string[]>>({});
 
   const isParent = category.kind === "parent";
   const parent = isParent ? findParent(category.slug) : findParent(category.parent.slug);
@@ -62,6 +62,13 @@ function CategoryPage() {
     [baseList],
   );
 
+  const facets: FacetDef[] = useMemo(() => {
+    if (isParent && parent) {
+      return getFacetsForCategory(category.slug, parent.subs.map((s) => s.slug));
+    }
+    return getFacetsForCategory(category.slug);
+  }, [category.slug, isParent, parent]);
+
   const items = useMemo(() => {
     let list = baseList;
     if (isParent && subFilter !== "all") {
@@ -69,15 +76,41 @@ function CategoryPage() {
     }
     if (brand.length) list = list.filter((p) => brand.includes(p.brand));
     list = list.filter((p) => p.price <= price);
+    // Filtres dynamiques
+    for (const [key, vals] of Object.entries(facetSel)) {
+      if (!vals.length) continue;
+      list = list.filter((p) => {
+        const pv = p.attributes?.[key];
+        if (!pv?.length) return false;
+        return pv.some((v) => vals.includes(v));
+      });
+    }
     if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [baseList, brand, price, sort, subFilter, isParent]);
+  }, [baseList, brand, price, sort, subFilter, isParent, facetSel]);
 
   const toggleBrand = (b: string) =>
     setBrand((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]));
 
+  const toggleFacet = (key: string, val: string) =>
+    setFacetSel((s) => {
+      const curr = s[key] ?? [];
+      const next = curr.includes(val) ? curr.filter((x) => x !== val) : [...curr, val];
+      return { ...s, [key]: next };
+    });
+
+  const resetFacets = () => {
+    setFacetSel({});
+    setBrand([]);
+    setPrice(maxBound);
+  };
+
   const maxBound = Math.max(20000, ...PRODUCTS.map((p) => p.price));
+  const activeCount =
+    brand.length +
+    Object.values(facetSel).reduce((a, v) => a + v.length, 0) +
+    (price < maxBound ? 1 : 0);
 
   const Filters = (
     <div className="space-y-8">
@@ -109,6 +142,14 @@ function CategoryPage() {
           </div>
         </FilterBlock>
       )}
+
+      <FilterBlock title="Prix (max)">
+        <input type="range" min={50} max={maxBound} step={50} value={price} onChange={(e) => setPrice(+e.target.value)} className="w-full accent-gold" />
+        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+          <span>50 DT</span><span className="text-gold font-semibold">{price} DT</span>
+        </div>
+      </FilterBlock>
+
       <FilterBlock title="Marque">
         <div className="space-y-2.5">
           {brands.map((b) => (
@@ -119,19 +160,36 @@ function CategoryPage() {
           ))}
         </div>
       </FilterBlock>
-      <FilterBlock title="Prix (max)">
-        <input type="range" min={50} max={maxBound} step={50} value={price} onChange={(e) => setPrice(+e.target.value)} className="w-full accent-gold" />
-        <div className="flex justify-between text-xs text-muted-foreground mt-2">
-          <span>50 DT</span><span className="text-gold font-semibold">{price} DT</span>
-        </div>
-      </FilterBlock>
-      <FilterBlock title="Couleur">
-        <div className="flex flex-wrap gap-2">
-          {COLORS.map((c) => (
-            <button key={c} className="px-3 py-1.5 text-xs border border-border hover:border-gold hover:text-gold transition rounded-sm">{c}</button>
-          ))}
-        </div>
-      </FilterBlock>
+
+      {facets.map((f) => (
+        <FilterBlock key={f.key} title={f.label}>
+          <div className="space-y-2.5">
+            {f.options.map((o) => {
+              const checked = (facetSel[f.key] ?? []).includes(o);
+              return (
+                <label key={o} className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleFacet(f.key, o)}
+                    className="h-4 w-4 accent-gold border-border"
+                  />
+                  <span className="text-sm text-foreground/80 group-hover:text-gold transition">{o}</span>
+                </label>
+              );
+            })}
+          </div>
+        </FilterBlock>
+      ))}
+
+      {activeCount > 0 && (
+        <button
+          onClick={resetFacets}
+          className="w-full h-10 text-[11px] uppercase tracking-[0.25em] border border-gold/40 text-gold hover:bg-gold hover:text-ink transition rounded-sm"
+        >
+          Réinitialiser ({activeCount})
+        </button>
+      )}
     </div>
   );
 
@@ -184,7 +242,7 @@ function CategoryPage() {
         <div>
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
             <button onClick={() => setOpenFilters(true)} className="lg:hidden inline-flex items-center gap-2 px-4 h-10 border border-border rounded-sm text-sm">
-              <SlidersHorizontal className="h-4 w-4" /> Filtres
+              <SlidersHorizontal className="h-4 w-4" /> Filtres {activeCount > 0 && <span className="text-gold">({activeCount})</span>}
             </button>
             <p className="text-sm text-muted-foreground hidden lg:block">{items.length} produits</p>
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-10 px-3 bg-secondary/60 border border-border text-sm rounded-sm">
