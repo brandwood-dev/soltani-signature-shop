@@ -41,7 +41,17 @@ export function useWishlist() {
     emit();
   }, []);
 
+  const reconcile = useCallback((validSlugs: string[]) => {
+    const valid = new Set(validSlugs);
+    const cur = read();
+    const next = cur.filter((s) => valid.has(s));
+    if (next.length !== cur.length) {
+      localStorage.setItem(KEY, JSON.stringify(next));
+      emit();
+    }
+  }, []);
+
   const has = useCallback((slug: string) => slugs.includes(slug), [slugs]);
 
-  return { slugs, toggle, remove, has, count: slugs.length };
+  return { slugs, toggle, remove, reconcile, has, count: slugs.length };
 }
