@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { useWishlist } from "@/hooks/useWishlist";
 import { PRODUCTS } from "@/data/catalog";
@@ -15,8 +16,13 @@ export const Route = createFileRoute("/wishlist")({
 });
 
 function WishlistPage() {
-  const { slugs, remove } = useWishlist();
+  const { slugs, remove, reconcile } = useWishlist();
   const items = PRODUCTS.filter((p) => slugs.includes(p.slug));
+
+  useEffect(() => {
+    reconcile(PRODUCTS.map((p) => p.slug));
+  }, [reconcile]);
+
 
   return (
     <SiteLayout>
