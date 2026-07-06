@@ -71,8 +71,13 @@ export function Footer() {
               Soltani Signature s'est imposée comme une référence de prestige, invitant une clientèle exigeante à explorer l'univers de la beauté et de l'élégance. Au fil de notre évolution, nous avons su fidéliser ceux qui recherchent l'exceptionnel à travers un accompagnement sur mesure et une sélection rigoureuse.
             </p>
             <div className="flex gap-3">
-              {[Instagram, Facebook, Twitter, Youtube].map((Icon, i) => (
-                <a key={i} href="#" aria-label="Réseau social" className="grid h-10 w-10 place-items-center border border-gold/40 text-gold hover:bg-gold hover:text-ink transition rounded-sm">
+              {[
+                { Icon: Instagram, label: "Suivez-nous sur Instagram" },
+                { Icon: Facebook, label: "Suivez-nous sur Facebook" },
+                { Icon: Twitter, label: "Suivez-nous sur Twitter" },
+                { Icon: Youtube, label: "Suivez-nous sur YouTube" },
+              ].map(({ Icon, label }) => (
+                <a key={label} href="#" aria-label={label} className="grid h-10 w-10 place-items-center border border-gold/40 text-gold hover:bg-gold hover:text-ink transition rounded-sm">
                   <Icon className="h-4 w-4" />
                 </a>
               ))}

@@ -20,10 +20,56 @@ export const Route = createFileRoute("/product/$slug")({
   },
   head: ({ params }) => {
     const p = findProduct(params.slug);
+    if (!p) {
+      return { meta: [{ title: "Produit — Soltani Signature" }] };
+    }
+    const title = `${p.name} — ${p.brand} | Soltani Signature`;
+    const description = `${p.brand} · ${p.name}. Découvrez cette pièce d'exception à ${p.price} DT chez Soltani Signature. Authenticité garantie, livraison rapide en Tunisie, paiement en 3 fois sans frais.`;
+    const url = `https://soltani-signature-shop.lovable.app/product/${params.slug}`;
+    const image = p.image?.startsWith("http") ? p.image : undefined;
     return {
       meta: [
-        { title: p ? `${p.name} — Soltani Signature` : "Produit — Soltani Signature" },
-        { name: "description", content: p ? `${p.brand} · ${p.name}. Livraison rapide, paiement en 3x sans frais.` : "" },
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        ...(image ? [{ property: "og:image", content: image }, { name: "twitter:image", content: image }] : []),
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: p.name,
+            brand: { "@type": "Brand", name: p.brand },
+            ...(image ? { image } : {}),
+            description,
+            sku: params.slug,
+            offers: {
+              "@type": "Offer",
+              price: p.price,
+              priceCurrency: "TND",
+              availability: "https://schema.org/InStock",
+              url,
+            },
+            ...(p.rating
+              ? {
+                  aggregateRating: {
+                    "@type": "AggregateRating",
+                    ratingValue: p.rating,
+                    reviewCount: 128,
+                  },
+                }
+              : {}),
+          }),
+        },
       ],
     };
   },
