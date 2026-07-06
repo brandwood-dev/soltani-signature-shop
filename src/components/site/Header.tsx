@@ -125,12 +125,16 @@ export function Header() {
         scrolled ? "bg-background/95 backdrop-blur-xl shadow-luxe" : "bg-background/70 backdrop-blur-md"
       } border-b border-border`}
     >
-      <div className="container-luxe flex h-20 items-center gap-6">
-        <button onClick={() => setOpen(!open)} className="lg:hidden text-foreground" aria-label="Menu">
+      <div className="container-luxe flex h-16 md:h-20 items-center gap-3 md:gap-6">
+        <button
+          onClick={() => setOpen(!open)}
+          className="lg:hidden shrink-0 p-2 -ml-2 text-foreground"
+          aria-label="Menu"
+        >
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <Link to="/" className="mx-auto lg:mx-0">
+        <Link to="/" className="mx-auto lg:mx-0 min-w-0 flex items-center">
           <Logo height={42} />
         </Link>
 
@@ -138,13 +142,13 @@ export function Header() {
           <SearchBox />
         </div>
 
-        <div className="ml-auto flex items-center gap-1 text-foreground">
-          <Link to="/profile" className="p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
-          <Link to="/wishlist" className="relative p-2.5 hover:text-gold transition" aria-label="Wishlist">
+        <div className="ml-auto flex items-center gap-0.5 md:gap-1 text-foreground shrink-0">
+          <Link to="/profile" className="hidden sm:inline-flex p-2 md:p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
+          <Link to="/wishlist" className="relative p-2 md:p-2.5 hover:text-gold transition" aria-label="Wishlist">
             <Heart className="h-5 w-5" />
             <CountBadge count={wishlistCount} tone="destructive" />
           </Link>
-          <Link to="/cart" className="relative p-2.5 hover:text-gold transition" aria-label="Panier">
+          <Link to="/cart" className="relative p-2 md:p-2.5 hover:text-gold transition" aria-label="Panier">
             <ShoppingBag className="h-5 w-5" />
             <CountBadge count={cartCount} tone="gold" />
           </Link>

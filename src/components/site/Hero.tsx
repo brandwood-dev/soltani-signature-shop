@@ -38,7 +38,7 @@ export function Hero() {
   const slide = SLIDES[i];
 
   return (
-    <section className="relative h-[88vh] min-h-[600px] w-full overflow-hidden bg-background">
+    <section className="relative h-[70vh] min-h-[440px] md:h-[88vh] md:min-h-[600px] w-full overflow-hidden bg-background">
       <h1 className="sr-only">Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie</h1>
       <AnimatePresence mode="sync">
         <motion.div
@@ -61,7 +61,7 @@ export function Hero() {
       </AnimatePresence>
 
       <div className="container-luxe relative z-10 flex h-full items-center">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={i}
@@ -70,29 +70,29 @@ export function Hero() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <div className="flex items-center gap-3 mb-6">
-                <span className="h-px w-12 bg-gold" />
-                <span className="text-[11px] uppercase tracking-[0.4em] text-gold font-medium">
+              <div className="flex items-center gap-3 mb-4 md:mb-6">
+                <span className="h-px w-8 md:w-12 bg-gold" />
+                <span className="text-[10px] md:text-[11px] uppercase tracking-[0.3em] md:tracking-[0.4em] text-gold font-medium">
                   {slide.eyebrow}
                 </span>
               </div>
-              <p className="font-display text-4xl md:text-6xl lg:text-7xl font-medium text-foreground leading-[0.95] mb-6">
+              <p className="font-display text-[2rem] leading-[1.05] sm:text-4xl md:text-6xl lg:text-7xl font-medium text-foreground md:leading-[0.95] mb-4 md:mb-6">
                 {slide.title}
               </p>
-              <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mb-6 md:mb-10 leading-relaxed">
                 {slide.subtitle}
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-3 md:gap-4">
                 <a
                   href="#categories"
-                  className="group inline-flex items-center gap-3 bg-gold text-ink px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-gold-soft transition shadow-gold rounded-sm"
+                  className="group inline-flex items-center gap-2 md:gap-3 bg-gold text-ink px-5 md:px-7 py-3 md:py-4 text-[11px] md:text-[12px] uppercase tracking-[0.2em] md:tracking-[0.25em] font-semibold hover:bg-gold-soft transition shadow-gold rounded-sm"
                 >
                   {slide.cta}
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
                 </a>
                 <a
                   href="#promos"
-                  className="inline-flex items-center gap-3 border border-foreground/30 text-foreground px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-foreground hover:text-background transition rounded-sm"
+                  className="inline-flex items-center gap-2 md:gap-3 border border-foreground/30 text-foreground px-5 md:px-7 py-3 md:py-4 text-[11px] md:text-[12px] uppercase tracking-[0.2em] md:tracking-[0.25em] font-semibold hover:bg-foreground hover:text-background transition rounded-sm"
                 >
                   Voir les promos
                 </a>
@@ -102,8 +102,8 @@ export function Hero() {
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="absolute bottom-8 right-8 z-10 flex items-center gap-3">
+      {/* Controls (hidden on mobile for cleaner look) */}
+      <div className="hidden md:flex absolute bottom-8 right-8 z-10 items-center gap-3">
         <button
           onClick={() => setI((p) => (p - 1 + SLIDES.length) % SLIDES.length)}
           className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 text-gold hover:bg-gold hover:text-ink transition bg-background/70 backdrop-blur"
@@ -124,12 +124,12 @@ export function Hero() {
       </div>
 
       {/* Dots */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+      <div className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex gap-2 z-10">
         {SLIDES.map((_, idx) => (
           <button
             key={idx}
             onClick={() => setI(idx)}
-            className={`h-[2px] transition-all duration-500 ${idx === i ? "w-14 bg-gold" : "w-7 bg-foreground/25"}`}
+            className={`h-[2px] transition-all duration-500 ${idx === i ? "w-10 md:w-14 bg-gold" : "w-5 md:w-7 bg-foreground/25"}`}
             aria-label={`Slide ${idx + 1}`}
           />
         ))}
