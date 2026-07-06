@@ -1,18 +1,18 @@
-## Problème
+# Supprimer le badge « Edit with Lovable »
 
-Le badge du cœur (Header) affiche le nombre de slugs stockés dans `localStorage` (`soltani-wishlist`), tandis que la page `/wishlist` n'affiche que les produits dont le slug existe encore dans `PRODUCTS` (`PRODUCTS.filter(p => slugs.includes(p.slug))`).
+Le badge « Edit with Lovable » est injecté automatiquement par Lovable sur toutes les versions publiées (y compris votre domaine personnalisé `soltanisignature.com`). Il ne fait pas partie du code du projet — impossible donc de le retirer en modifiant un fichier. Il se désactive via un réglage de publication.
 
-Après la restructuration du catalogue, d'anciens slugs sauvegardés dans le navigateur ne correspondent plus à aucun produit. Résultat :
-- La page Favoris paraît vide (0 carte affichée).
-- Aucun bouton "Retirer" n'est rendu pour ces slugs orphelins.
-- Le compteur reste bloqué à 5 car les slugs orphelins restent dans `localStorage` et personne ne les nettoie.
+## Ce que je vais faire
 
-## Correctif
+1. Basculer le réglage de visibilité du badge sur « masqué » via l'outil `set_badge_visibility` (`hide_badge: true`).
+2. Republier le site pour que le changement soit visible en production sur `www.soltanisignature.com`.
 
-1. **`src/hooks/useWishlist.ts`** — ajouter un utilitaire `reconcile(validSlugs: string[])` qui réécrit `localStorage` en ne gardant que les slugs présents dans la liste fournie, puis émet `wishlist:change`. Exposer cette fonction depuis le hook.
+## Prérequis important
 
-2. **`src/routes/wishlist.tsx`** — au montage, calculer l'ensemble des slugs valides à partir de `PRODUCTS` et appeler `reconcile` une fois si des slugs orphelins existent. Cela vide automatiquement les références mortes et remet le badge à la bonne valeur (0 quand la page est vide).
+Masquer le badge nécessite un **plan Pro ou supérieur** sur Lovable. Si votre espace de travail est sur le plan gratuit, l'appel échouera et il faudra d'abord passer à un plan Pro depuis les paramètres de facturation.
 
-3. Optionnel défensif : dans le hook lui-même, au premier `read()` côté client, filtrer silencieusement contre `PRODUCTS` n'est pas faisable (cycle d'import). On garde donc la réconciliation côté page Favoris, qui est l'endroit naturel où l'utilisateur constate le souci.
+## Après application
 
-Aucun changement visuel, uniquement de la cohérence d'état.
+- Le badge disparaîtra du site publié (Lovable URL + domaine personnalisé) dès que la nouvelle version sera déployée (~1 minute).
+- Le badge restera visible dans l'éditeur / la preview — c'est normal, il ne concerne que les déploiements publics.
+- Réversible à tout moment (`hide_badge: false`).
