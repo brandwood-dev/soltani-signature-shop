@@ -39,6 +39,7 @@ export function Hero() {
 
   return (
     <section className="relative h-[88vh] min-h-[600px] w-full overflow-hidden bg-background">
+      <h1 className="sr-only">Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie</h1>
       <AnimatePresence mode="sync">
         <motion.div
           key={i}
@@ -75,9 +76,9 @@ export function Hero() {
                   {slide.eyebrow}
                 </span>
               </div>
-              <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-medium text-foreground leading-[0.95] mb-6">
+              <p className="font-display text-4xl md:text-6xl lg:text-7xl font-medium text-foreground leading-[0.95] mb-6">
                 {slide.title}
-              </h1>
+              </p>
               <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed">
                 {slide.subtitle}
               </p>

@@ -96,6 +96,40 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Soltani Signature",
+          url: "https://soltani-signature-shop.lovable.app",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: "https://soltani-signature-shop.lovable.app/?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+          },
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Soltani Signature",
+          url: "https://soltani-signature-shop.lovable.app",
+          logo: "https://soltani-signature-shop.lovable.app/favicon.ico",
+          sameAs: [],
+          contactPoint: {
+            "@type": "ContactPoint",
+            telephone: "+216-58-997-716",
+            contactType: "customer service",
+            areaServed: "TN",
+            availableLanguage: ["French", "Arabic"],
+          },
+        }),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

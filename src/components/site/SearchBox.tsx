@@ -48,6 +48,7 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder={compact ? "Rechercher…" : "Rechercher une marque, un produit…"}
+          aria-label="Rechercher un produit ou une marque"
           className={`w-full ${compact ? "h-10 pl-10" : "h-11 pl-11"} pr-9 bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold/60 transition rounded-sm`}
         />
         {q && (

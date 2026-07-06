@@ -20,11 +20,24 @@ export const Route = createFileRoute("/category/$slug")({
   head: ({ params }) => {
     const cat = findCategory(params.slug);
     const title = cat ? cat.name : "Catégorie";
+    const fullTitle = `${title} — Soltani Signature`;
+    const description = cat
+      ? `Découvrez notre sélection ${title.toLowerCase()} de luxe chez Soltani Signature : marques d'exception, authenticité garantie, livraison rapide en Tunisie et paiement en 3 fois sans frais.`
+      : "Explorez nos catégories de luxe : parfums, montres, maroquinerie, bijoux et cosmétiques signés des plus grandes maisons.";
+    const url = `https://soltani-signature-shop.lovable.app/category/${params.slug}`;
     return {
       meta: [
-        { title: `${title} — Soltani Signature` },
-        { name: "description", content: `Découvrez notre sélection ${title.toLowerCase()} de luxe.` },
+        { title: fullTitle },
+        { name: "description", content: description },
+        { property: "og:title", content: fullTitle },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: fullTitle },
+        { name: "twitter:description", content: description },
       ],
+      links: [{ rel: "canonical", href: url }],
     };
   },
   notFoundComponent: () => (

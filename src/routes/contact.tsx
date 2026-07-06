@@ -3,12 +3,49 @@ import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { MapPin, Phone, Mail, MessageCircle, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact — Soltani Signature" },
-      { name: "description", content: "Contactez notre équipe ou visitez notre showroom à Tunis." },
-    ],
-  }),
+  head: () => {
+    const url = "https://soltani-signature-shop.lovable.app/contact";
+    const title = "Contact & Showroom — Soltani Signature";
+    const description = "Contactez notre équipe ou visitez notre showroom Soltani Signature à Tunis : parfums, montres et maroquinerie de luxe. Ouvert du lundi au samedi de 9h à 19h.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            name: "Soltani Signature",
+            image: "https://soltani-signature-shop.lovable.app/favicon.ico",
+            url: "https://soltani-signature-shop.lovable.app",
+            telephone: "+216-71-000-000",
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "Avenue Habib Bourguiba",
+              addressLocality: "Tunis",
+              postalCode: "1000",
+              addressCountry: "TN",
+            },
+            openingHoursSpecification: [
+              {
+                "@type": "OpeningHoursSpecification",
+                dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                opens: "09:00",
+                closes: "19:00",
+              },
+            ],
+          }),
+        },
+      ],
+    };
+  },
   component: ContactPage,
 });
 
