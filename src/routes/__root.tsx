@@ -79,8 +79,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Soltani Signature" },
-      { name: "description", content: "Boutique de luxe en Tunisie — Montres, parfums, sacs et accessoires premium." },
+      { title: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
+      { name: "description", content: "Boutique de luxe en ligne : montres, lunettes, parfums, sacs, bijoux et cosmétiques premium. Livraison gratuite dès 300 DT, paiement 3x sans frais." },
+      { property: "og:title", content: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
+      { name: "twitter:title", content: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
+      { property: "og:description", content: "Boutique de luxe en ligne : montres, lunettes, parfums, sacs, bijoux et cosmétiques premium. Livraison gratuite dès 300 DT, paiement 3x sans frais." },
+      { name: "twitter:description", content: "Boutique de luxe en ligne : montres, lunettes, parfums, sacs, bijoux et cosmétiques premium. Livraison gratuite dès 300 DT, paiement 3x sans frais." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Gqm7BUzu0mYT4yvPah1MgKQDZH03/social-images/social-1783329577667-ok.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Gqm7BUzu0mYT4yvPah1MgKQDZH03/social-images/social-1783329577667-ok.webp" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
