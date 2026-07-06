@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ShieldCheck, ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/site/Logo";
+import { signInAdmin } from "@/lib/admin/auth";
 
 export const Route = createFileRoute("/admin_/login")({
   head: () => ({
@@ -18,20 +19,22 @@ function AdminLoginPage() {
   const navigate = useNavigate();
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [remember, setRemember] = useState(true);
+  const [email, setEmail] = useState("contact@soltanisignature.com");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    setTimeout(() => {
-      try {
-        (remember ? localStorage : sessionStorage).setItem("soltani-admin-auth", "1");
-      } catch {}
+    try {
+      await signInAdmin(email, password);
+      await navigate({ to: "/admin" });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Connexion impossible.");
+    } finally {
       setLoading(false);
-      navigate({ to: "/admin" });
-    }, 700);
+    }
   };
 
   return (
@@ -95,7 +98,9 @@ function AdminLoginPage() {
                   required
                   type="email"
                   autoComplete="email"
-                  placeholder="admin@soltani-signature.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="contact@soltanisignature.com"
                   className="input-luxe pl-10"
                 />
               </div>
@@ -111,7 +116,11 @@ function AdminLoginPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setError("Contactez le super-administrateur pour réinitialiser votre mot de passe.")}
+                  onClick={() =>
+                    setError(
+                      "Contactez le super-administrateur pour réinitialiser votre mot de passe.",
+                    )
+                  }
                   className="text-[11px] text-gold hover:underline"
                 >
                   Oublié ?
@@ -124,6 +133,8 @@ function AdminLoginPage() {
                   required
                   type={showPwd ? "text" : "password"}
                   autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder="••••••••"
                   className="input-luxe pl-10 pr-10"
                 />
@@ -138,15 +149,9 @@ function AdminLoginPage() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="h-4 w-4 rounded-sm border-border accent-[var(--gold)]"
-              />
-              Rester connecté sur cet appareil
-            </label>
+            <p className="text-xs text-muted-foreground">
+              Session sécurisée via Supabase Auth. Ne partagez jamais vos identifiants.
+            </p>
 
             <button
               type="submit"
