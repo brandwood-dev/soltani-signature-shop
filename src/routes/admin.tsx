@@ -1,8 +1,18 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export const Route = createFileRoute("/admin")({
+  ssr: false,
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+    const authed =
+      localStorage.getItem("soltani-admin-auth") === "1" ||
+      sessionStorage.getItem("soltani-admin-auth") === "1";
+    if (!authed) {
+      throw redirect({ to: "/admin/login" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Admin — Soltani Signature" },
