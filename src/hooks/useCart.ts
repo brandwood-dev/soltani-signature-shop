@@ -1,7 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import p1 from "@/assets/prod-1.jpg";
-import p3 from "@/assets/prod-3.jpg";
-import p5 from "@/assets/prod-5.jpg";
 
 export type CartLine = {
   id: string;
@@ -15,21 +12,13 @@ export type CartLine = {
 
 const KEY = "soltani-cart";
 
-const DEFAULT_LINES: CartLine[] = [
-  { id: "1", name: "Chronographe Acier Noir", brand: "Tissot", price: 2890, qty: 1, image: p1, variant: "Noir · 42mm" },
-  { id: "2", name: "Eau de Parfum Ambré 100ml", brand: "Tom Ford", price: 850, qty: 2, image: p3, variant: "100ml" },
-  { id: "3", name: "Pendentif Diamant Solitaire", brand: "Cartier", price: 6800, qty: 1, image: p5, variant: "Or 18k" },
-];
-
 const read = (): CartLine[] => {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw === null) {
-      localStorage.setItem(KEY, JSON.stringify(DEFAULT_LINES));
-      return DEFAULT_LINES;
-    }
-    return JSON.parse(raw) as CartLine[];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as CartLine[]) : [];
   } catch {
     return [];
   }
