@@ -1,17 +1,17 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
-  Printer,
-  Download,
-  Mail,
-  Phone,
-  MapPin,
-  CreditCard,
-  Package,
-  Truck,
   CheckCircle2,
   Clock,
+  CreditCard,
+  Download,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  Printer,
+  Truck,
   XCircle,
 } from "lucide-react";
 
@@ -35,35 +35,76 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAdminOrder, updateAdminOrderStatus, type AdminOrderStatus } from "@/lib/admin-orders-api";
+import {
+  getAdminOrder,
+  updateAdminOrderStatus,
+  type AdminOrderDetails,
+  type AdminOrderStatus,
+} from "@/lib/admin-orders-api";
 import { formatDate, formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/orders/$id")({
   component: OrderDetails,
-  notFoundComponent: () => (
-    <div className="p-8 text-center text-sm text-muted-foreground">
-      Commande introuvable.{" "}
-      <Link to="/admin/orders" className="text-primary underline">
-        Retour à la liste
-      </Link>
-    </div>
-  ),
-  loader: async ({ params }) => {
-    try {
-      const order = await getAdminOrder(params.id);
-      return { order };
-    } catch {
-      throw notFound();
-    }
-  },
 });
 
 function OrderDetails() {
-  const { order } = Route.useLoaderData();
-  const [currentOrder, setCurrentOrder] = useState(order);
-  const [status, setStatus] = useState<AdminOrderStatus>(order.status);
+  const { id } = Route.useParams();
+  const [currentOrder, setCurrentOrder] = useState<AdminOrderDetails | null>(null);
+  const [status, setStatus] = useState<AdminOrderStatus>("pending");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadOrder() {
+      try {
+        setLoading(true);
+        setError("");
+        const next = await getAdminOrder(id);
+        if (!mounted) return;
+        setCurrentOrder(next);
+        setStatus(next.status);
+      } catch (err) {
+        if (!mounted) return;
+        setCurrentOrder(null);
+        setError(err instanceof Error ? err.message : "Impossible de charger la commande.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadOrder();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <>
+        <AdminHeader title="Commande" subtitle="Chargement de la commande…" />
+        <div className="flex-1 p-8 text-center text-sm text-muted-foreground">
+          Chargement des détails…
+        </div>
+      </>
+    );
+  }
+
+  if (!currentOrder) {
+    return (
+      <>
+        <AdminHeader title="Commande introuvable" subtitle="Impossible de charger cette commande" />
+        <div className="p-8 text-center text-sm text-muted-foreground">
+          {error || "Commande introuvable."}{" "}
+          <Link to="/admin/orders" className="text-primary underline">
+            Retour à la liste
+          </Link>
+        </div>
+      </>
+    );
+  }
 
   const timeline = [
     { key: "pending", label: "Commande reçue", icon: Clock, date: currentOrder.createdAt },
@@ -80,6 +121,7 @@ function OrderDetails() {
       setError("");
       const next = await updateAdminOrderStatus(currentOrder.id, status);
       setCurrentOrder(next);
+      setStatus(next.status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Mise à jour impossible.");
     } finally {
@@ -134,11 +176,11 @@ function OrderDetails() {
                   </div>
                 ) : (
                   <ol className="relative space-y-4">
-                    {timeline.map((t, index) => {
+                    {timeline.map((item, index) => {
                       const done = index <= orderIndex;
                       const active = index === orderIndex;
                       return (
-                        <li key={t.key} className="flex items-start gap-3">
+                        <li key={item.key} className="flex items-start gap-3">
                           <div
                             className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 ${
                               done
@@ -146,18 +188,18 @@ function OrderDetails() {
                                 : "border-border bg-background text-muted-foreground"
                             }`}
                           >
-                            <t.icon className="h-4 w-4" />
+                            <item.icon className="h-4 w-4" />
                           </div>
                           <div className="flex-1 pt-1">
                             <p className={`text-sm ${done ? "font-medium" : "text-muted-foreground"}`}>
-                              {t.label}
+                              {item.label}
                               {active && (
                                 <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                                   En cours
                                 </span>
                               )}
                             </p>
-                            {done && <p className="text-xs text-muted-foreground">{formatDate(t.date)}</p>}
+                            {done && <p className="text-xs text-muted-foreground">{formatDate(item.date)}</p>}
                           </div>
                         </li>
                       );
