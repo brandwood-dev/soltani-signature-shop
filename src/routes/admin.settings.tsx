@@ -147,13 +147,13 @@ function AdminSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
+              <div className={settings.freeShippingEnabled ? "space-y-1.5 opacity-60" : "space-y-1.5"}>
                 <Label htmlFor="ship-fee">Frais de livraison (DT)</Label>
-                <Input id="ship-fee" type="number" min={0.001} step="0.001" value={settings.shippingFee} onChange={(event) => update({ shippingFee: Number(event.target.value) })} />
+                <Input id="ship-fee" type="number" min={0.001} step="0.001" value={settings.shippingFee} disabled={settings.freeShippingEnabled} onChange={(event) => update({ shippingFee: Number(event.target.value) })} />
               </div>
-              <div className="space-y-1.5">
+              <div className={settings.freeShippingEnabled ? "space-y-1.5 opacity-60" : "space-y-1.5"}>
                 <Label htmlFor="ship-free">Livraison offerte dès (DT)</Label>
-                <Input id="ship-free" type="number" min={0.001} step="0.001" value={settings.freeShippingThreshold} onChange={(event) => update({ freeShippingThreshold: Number(event.target.value) })} />
+                <Input id="ship-free" type="number" min={0.001} step="0.001" value={settings.freeShippingThreshold} disabled={settings.freeShippingEnabled} onChange={(event) => update({ freeShippingThreshold: Number(event.target.value) })} />
               </div>
             </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
