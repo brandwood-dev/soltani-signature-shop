@@ -1,9 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
-import { SHIPPING_FLAT_RATE_TND } from "@/lib/commerce";
 import { Minus, Plus, X, Tag, ShieldCheck } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import {
+  DEFAULT_SHOP_SETTINGS,
+  calculateShipping,
+  getPublicShopSettings,
+  type ShopSettings,
+} from "@/lib/settings-api";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Panier — Soltani Signature" }] }),
@@ -13,9 +18,21 @@ export const Route = createFileRoute("/cart")({
 function CartPage() {
   const { lines, update, remove, subtotal } = useCart();
   const [code, setCode] = useState("");
+  const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
 
-  const shipping = SHIPPING_FLAT_RATE_TND;
+  useEffect(() => {
+    getPublicShopSettings()
+      .then(setSettings)
+      .catch(() => setSettings(DEFAULT_SHOP_SETTINGS));
+  }, []);
+
+  const shipping = calculateShipping(subtotal, settings);
   const total = subtotal + shipping;
+  const paymentMessage = settings.cashOnDeliveryEnabled
+    ? "Paiement à la livraison disponible partout en Tunisie."
+    : settings.cardPaymentEnabled
+      ? "Paiement par carte disponible au checkout."
+      : "Aucun moyen de paiement disponible pour le moment.";
 
   return (
     <SiteLayout>
@@ -74,7 +91,7 @@ function CartPage() {
             <span className="font-display font-bold text-2xl text-gold tabular-nums">{total} DT</span>
           </div>
           <div className="p-3 bg-background border border-gold/30 rounded-sm mb-4">
-            <p className="text-xs text-foreground/80">Paiement à la livraison disponible partout en Tunisie.</p>
+            <p className="text-xs text-foreground/80">{paymentMessage}</p>
           </div>
           <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
             Passer commande

@@ -1,10 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, CreditCard, Lock, Truck, User } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { SHIPPING_FLAT_RATE_TND } from "@/lib/commerce";
 import { createCodOrder } from "@/lib/catalog-api";
 import { useCart } from "@/hooks/useCart";
+import {
+  DEFAULT_SHOP_SETTINGS,
+  calculateShipping,
+  getPublicShopSettings,
+  type ShopSettings,
+} from "@/lib/settings-api";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Commande — Soltani Signature" }] }),
@@ -18,6 +23,7 @@ const STEPS = [
 ];
 
 const SHIPPING_LABEL = "Livraison standard Tunisie";
+type CheckoutPaymentMethod = "CASH_ON_DELIVERY" | "CARD";
 
 function CheckoutPage() {
   const navigate = useNavigate();
@@ -25,6 +31,8 @@ function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("CASH_ON_DELIVERY");
   const [form, setForm] = useState({
     email: "",
     firstName: "",
@@ -37,8 +45,26 @@ function CheckoutPage() {
     postalCode: "",
   });
 
-  const shipping = SHIPPING_FLAT_RATE_TND;
+  useEffect(() => {
+    getPublicShopSettings()
+      .then((next) => {
+        setSettings(next);
+        if (!next.cashOnDeliveryEnabled && next.cardPaymentEnabled) {
+          setPaymentMethod("CARD");
+        } else {
+          setPaymentMethod("CASH_ON_DELIVERY");
+        }
+      })
+      .catch(() => setSettings(DEFAULT_SHOP_SETTINGS));
+  }, []);
+
+  const shipping = calculateShipping(subtotal, settings);
   const total = subtotal + shipping;
+  const paymentIntro = settings.cashOnDeliveryEnabled
+    ? "Paiement à la livraison disponible partout en Tunisie."
+    : settings.cardPaymentEnabled
+      ? "Paiement par carte disponible."
+      : "Aucun moyen de paiement disponible pour le moment.";
 
   const updateField = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -62,6 +88,18 @@ function CheckoutPage() {
       setError("Votre panier est vide.");
       return;
     }
+    if (!settings.cashOnDeliveryEnabled && !settings.cardPaymentEnabled) {
+      setError("Aucun moyen de paiement n'est disponible pour le moment.");
+      return;
+    }
+    if (paymentMethod === "CARD") {
+      setError("Le paiement par carte sera activé prochainement.");
+      return;
+    }
+    if (!settings.cashOnDeliveryEnabled) {
+      setError("Le paiement à la livraison est désactivé.");
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -69,7 +107,7 @@ function CheckoutPage() {
     try {
       const order = await createCodOrder({
         customerEmail: form.email,
-        paymentMethod: "CASH_ON_DELIVERY",
+        paymentMethod,
         shippingAddress: {
           fullName: `${form.firstName} ${form.lastName}`.trim(),
           phone: form.phone,
@@ -119,7 +157,7 @@ function CheckoutPage() {
     <SiteLayout>
       <div className="container-luxe py-10">
         <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">Finaliser la commande</h1>
-        <p className="text-sm text-muted-foreground mb-10">Paiement à la livraison disponible partout en Tunisie.</p>
+        <p className="text-sm text-muted-foreground mb-10">{paymentIntro}</p>
 
         <div className="flex items-center justify-between max-w-2xl mx-auto mb-12">
           {STEPS.map((item, index) => (
@@ -162,7 +200,7 @@ function CheckoutPage() {
                   <Field label="Gouvernorat"><input value={form.governorate} onChange={(e) => updateField("governorate", e.target.value)} className="input-luxe" /></Field>
                 </div>
                 <div className="rounded-sm border border-gold/30 bg-gold/5 p-4 text-sm">
-                  {SHIPPING_LABEL} — tarif fixe {shipping} DT.
+                  {shipping === 0 ? "Livraison offerte." : `${SHIPPING_LABEL} — tarif fixe ${settings.shippingFee} DT.`}
                 </div>
               </div>
             )}
@@ -170,14 +208,41 @@ function CheckoutPage() {
             {step === 3 && (
               <div className="space-y-5">
                 <h2 className="font-display text-xl font-bold mb-2">Mode de paiement</h2>
-                <div className="flex items-start gap-3 p-4 border border-gold bg-gold/5 rounded-sm">
-                  <input type="radio" checked readOnly className="accent-gold mt-1" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">Paiement à la livraison</p>
-                    <p className="text-xs text-muted-foreground">Espèces à la réception de la commande.</p>
+                {settings.cashOnDeliveryEnabled && (
+                  <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-gold bg-gold/5 p-4">
+                    <input
+                      type="radio"
+                      checked={paymentMethod === "CASH_ON_DELIVERY"}
+                      onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
+                      className="accent-gold mt-1"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">Paiement à la livraison</p>
+                      <p className="text-xs text-muted-foreground">Espèces à la réception de la commande.</p>
+                    </div>
+                    <CreditCard className="h-5 w-5 text-gold" />
+                  </label>
+                )}
+                {settings.cardPaymentEnabled && (
+                  <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-border bg-background p-4">
+                    <input
+                      type="radio"
+                      checked={paymentMethod === "CARD"}
+                      onChange={() => setPaymentMethod("CARD")}
+                      className="accent-gold mt-1"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">Paiement par carte</p>
+                      <p className="text-xs text-muted-foreground">Activation du paiement en ligne en cours.</p>
+                    </div>
+                    <CreditCard className="h-5 w-5 text-gold" />
+                  </label>
+                )}
+                {!settings.cashOnDeliveryEnabled && !settings.cardPaymentEnabled && (
+                  <div className="rounded-sm border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                    Aucun moyen de paiement n'est disponible actuellement.
                   </div>
-                  <CreditCard className="h-5 w-5 text-gold" />
-                </div>
+                )}
               </div>
             )}
 
@@ -218,7 +283,7 @@ function CheckoutPage() {
             </div>
             <dl className="space-y-2 text-sm py-4 border-b border-border">
               <div className="flex justify-between"><dt className="text-muted-foreground">Sous-total</dt><dd className="tabular-nums">{subtotal} DT</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Livraison</dt><dd className="tabular-nums">{shipping} DT</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Livraison</dt><dd className="tabular-nums">{shipping === 0 ? "Offerte" : `${shipping} DT`}</dd></div>
             </dl>
             <div className="flex justify-between items-end pt-4">
               <span className="font-display font-bold">Total</span>
