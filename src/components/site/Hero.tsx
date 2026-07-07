@@ -1,48 +1,87 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import hero1 from "@/assets/hero-1.jpg";
 import hero2 from "@/assets/hero-2.jpg";
 import hero3 from "@/assets/hero-3.jpg";
+import type { HeroSlide } from "@/lib/hero-api";
+import { getActiveHeroSlides } from "@/lib/hero-api";
 
-const SLIDES = [
+const FALLBACK_SLIDES: HeroSlide[] = [
   {
+    id: "fallback-1",
     image: hero1,
-    eyebrow: "Collection Automne",
+    tagline: "Collection Automne",
     title: "L'Art de l'Élégance",
-    subtitle: "Bijoux d'exception, accessoires signés. Une sélection rare pour celles qui osent.",
-    cta: "Découvrir la collection",
+    subtitle: "Bijoux d'exception & accessoires signés",
+    description: "Une sélection rare pour celles et ceux qui osent une signature luxueuse.",
+    ctaPrimary: { text: "Découvrir", link: "#categories" },
+    ctaSecondary: { text: "Voir les promos", link: "#promos" },
+    active: true,
+    sortOrder: 0,
+    createdAt: "",
+    updatedAt: "",
   },
   {
+    id: "fallback-2",
     image: hero2,
-    eyebrow: "Horlogerie Suisse",
+    tagline: "Horlogerie Suisse",
     title: "Le Temps en Or",
-    subtitle: "Montres mécaniques, chronographes d'exception. La précision se porte au poignet.",
-    cta: "Explorer les montres",
+    subtitle: "Montres mécaniques & chronographes",
+    description: "La précision se porte au poignet avec des pièces d'exception.",
+    ctaPrimary: { text: "Explorer", link: "/homme" },
+    ctaSecondary: { text: "En savoir plus", link: "/about" },
+    active: true,
+    sortOrder: 1,
+    createdAt: "",
+    updatedAt: "",
   },
   {
+    id: "fallback-3",
     image: hero3,
-    eyebrow: "Parfumerie de Niche",
+    tagline: "Parfumerie de Niche",
     title: "Sillages Inoubliables",
-    subtitle: "Des fragrances rares signées par les plus grandes maisons.",
-    cta: "Voir les parfums",
+    subtitle: "Fragrances rares & maisons iconiques",
+    description: "Des notes intenses, élégantes et mémorables pour chaque moment.",
+    ctaPrimary: { text: "Voir parfums", link: "/femme" },
+    ctaSecondary: { text: "Promotions", link: "/promotions" },
+    active: true,
+    sortOrder: 2,
+    createdAt: "",
+    updatedAt: "",
   },
 ];
 
 export function Hero() {
-  const [i, setI] = useState(0);
+  const [index, setIndex] = useState(0);
+  const [slides, setSlides] = useState<HeroSlide[]>(FALLBACK_SLIDES);
+
   useEffect(() => {
-    const t = setInterval(() => setI((p) => (p + 1) % SLIDES.length), 6000);
-    return () => clearInterval(t);
+    getActiveHeroSlides()
+      .then((apiSlides) => {
+        if (apiSlides.length > 0) {
+          setSlides(apiSlides);
+          setIndex(0);
+        }
+      })
+      .catch(() => setSlides(FALLBACK_SLIDES));
   }, []);
-  const slide = SLIDES[i];
+
+  useEffect(() => {
+    const timer = setInterval(() => setIndex((current) => (current + 1) % slides.length), 6000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  const slide = slides[index] ?? slides[0];
 
   return (
-    <section className="relative h-[70vh] min-h-[440px] md:h-[88vh] md:min-h-[600px] w-full overflow-hidden bg-background">
-      <h1 className="sr-only">Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie</h1>
+    <section className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
+      <h1 className="sr-only">
+        Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
+      </h1>
       <AnimatePresence mode="sync">
         <motion.div
-          key={i}
+          key={slide.id}
           initial={{ opacity: 0, scale: 1.08 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
@@ -61,40 +100,40 @@ export function Hero() {
       </AnimatePresence>
 
       <div className="container-luxe relative z-10 flex h-full items-center">
-        <div className="max-w-2xl w-full">
+        <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait">
             <motion.div
-              key={i}
+              key={slide.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <div className="flex items-center gap-3 mb-4 md:mb-6">
-                <span className="h-px w-8 md:w-12 bg-gold" />
-                <span className="text-[10px] md:text-[11px] uppercase tracking-[0.3em] md:tracking-[0.4em] text-gold font-medium">
-                  {slide.eyebrow}
+              <div className="mb-4 flex items-center gap-3 md:mb-6">
+                <span className="h-px w-8 bg-gold md:w-12" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-gold md:text-[11px] md:tracking-[0.4em]">
+                  {slide.tagline}
                 </span>
               </div>
-              <p className="font-display text-[2rem] leading-[1.05] sm:text-4xl md:text-6xl lg:text-7xl font-medium text-foreground md:leading-[0.95] mb-4 md:mb-6">
+              <p className="mb-4 font-display text-[2rem] font-medium leading-[1.05] text-foreground sm:text-4xl md:mb-6 md:text-6xl md:leading-[0.95] lg:text-7xl">
                 {slide.title}
               </p>
-              <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mb-6 md:mb-10 leading-relaxed">
-                {slide.subtitle}
+              <p className="mb-6 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base md:mb-10 md:text-lg">
+                {slide.subtitle}. {slide.description}
               </p>
               <div className="flex flex-wrap gap-3 md:gap-4">
                 <a
-                  href="#categories"
-                  className="group inline-flex items-center gap-2 md:gap-3 bg-gold text-ink px-5 md:px-7 py-3 md:py-4 text-[11px] md:text-[12px] uppercase tracking-[0.2em] md:tracking-[0.25em] font-semibold hover:bg-gold-soft transition shadow-gold rounded-sm"
+                  href={slide.ctaPrimary.link}
+                  className="group inline-flex items-center gap-2 rounded-sm bg-gold px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink shadow-gold transition hover:bg-gold-soft md:gap-3 md:px-7 md:py-4 md:text-[12px] md:tracking-[0.25em]"
                 >
-                  {slide.cta}
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
+                  {slide.ctaPrimary.text}
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </a>
                 <a
-                  href="#promos"
-                  className="inline-flex items-center gap-2 md:gap-3 border border-foreground/30 text-foreground px-5 md:px-7 py-3 md:py-4 text-[11px] md:text-[12px] uppercase tracking-[0.2em] md:tracking-[0.25em] font-semibold hover:bg-foreground hover:text-background transition rounded-sm"
+                  href={slide.ctaSecondary.link}
+                  className="inline-flex items-center gap-2 rounded-sm border border-foreground/30 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground transition hover:bg-foreground hover:text-background md:gap-3 md:px-7 md:py-4 md:text-[12px] md:tracking-[0.25em]"
                 >
-                  Voir les promos
+                  {slide.ctaSecondary.text}
                 </a>
               </div>
             </motion.div>
@@ -102,35 +141,33 @@ export function Hero() {
         </div>
       </div>
 
-      {/* Controls (hidden on mobile for cleaner look) */}
-      <div className="hidden md:flex absolute bottom-8 right-8 z-10 items-center gap-3">
+      <div className="absolute bottom-8 right-8 z-10 hidden items-center gap-3 md:flex">
         <button
-          onClick={() => setI((p) => (p - 1 + SLIDES.length) % SLIDES.length)}
-          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 text-gold hover:bg-gold hover:text-ink transition bg-background/70 backdrop-blur"
+          onClick={() => setIndex((current) => (current - 1 + slides.length) % slides.length)}
+          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 bg-background/70 text-gold backdrop-blur transition hover:bg-gold hover:text-ink"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <span className="text-foreground/70 text-sm tabular-nums tracking-widest">
-          0{i + 1} <span className="text-gold/70">/ 0{SLIDES.length}</span>
+        <span className="text-sm tabular-nums tracking-widest text-foreground/70">
+          0{index + 1} <span className="text-gold/70">/ 0{slides.length}</span>
         </span>
         <button
-          onClick={() => setI((p) => (p + 1) % SLIDES.length)}
-          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 text-gold hover:bg-gold hover:text-ink transition bg-background/70 backdrop-blur"
+          onClick={() => setIndex((current) => (current + 1) % slides.length)}
+          className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 bg-background/70 text-gold backdrop-blur transition hover:bg-gold hover:text-ink"
           aria-label="Suivant"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>
 
-      {/* Dots */}
-      <div className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {SLIDES.map((_, idx) => (
+      <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2 md:bottom-10">
+        {slides.map((slideItem, dotIndex) => (
           <button
-            key={idx}
-            onClick={() => setI(idx)}
-            className={`h-[2px] transition-all duration-500 ${idx === i ? "w-10 md:w-14 bg-gold" : "w-5 md:w-7 bg-foreground/25"}`}
-            aria-label={`Slide ${idx + 1}`}
+            key={slideItem.id}
+            onClick={() => setIndex(dotIndex)}
+            className={`h-[2px] transition-all duration-500 ${dotIndex === index ? "w-10 bg-gold md:w-14" : "w-5 bg-foreground/25 md:w-7"}`}
+            aria-label={`Slide ${dotIndex + 1}`}
           />
         ))}
       </div>
