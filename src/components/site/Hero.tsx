@@ -54,7 +54,7 @@ const FALLBACK_SLIDES: HeroSlide[] = [
 
 export function Hero() {
   const [index, setIndex] = useState(0);
-  const [slides, setSlides] = useState<HeroSlide[]>(FALLBACK_SLIDES);
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
 
   useEffect(() => {
     getActiveHeroSlides()
@@ -68,11 +68,21 @@ export function Hero() {
   }, []);
 
   useEffect(() => {
+    if (slides.length <= 1) return;
+
     const timer = setInterval(() => setIndex((current) => (current + 1) % slides.length), 6000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
   const slide = slides[index] ?? slides[0];
+
+  if (!slide) {
+    return (
+      <section className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/30 to-background" />
+      </section>
+    );
+  }
 
   return (
     <section className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
