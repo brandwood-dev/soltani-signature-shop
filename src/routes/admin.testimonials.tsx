@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Star, Search, MapPin } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -22,6 +22,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { Testimonial, TestimonialInput } from "@/lib/testimonials-api";
+import {
+  createTestimonial,
+  deleteTestimonial,
+  getAdminTestimonials,
+  updateTestimonial,
+} from "@/lib/testimonials-api";
 
 export const Route = createFileRoute("/admin/testimonials")({
   component: AdminTestimonials,
@@ -54,54 +61,19 @@ const GOUVERNORATS = [
   "Zaghouan",
 ] as const;
 
-type Testimonial = {
-  id: string;
-  rating: 1 | 2 | 3 | 4 | 5;
-  name: string;
-  text: string;
-  gouvernorat: string;
-  productTitle: string;
-  productUrl: string;
-};
+type EditableTestimonial = Testimonial & { isNew?: boolean };
 
-const SEED: Testimonial[] = [
-  {
-    id: "t1",
-    rating: 5,
-    name: "Salma Ben Ahmed",
-    text: "Service impeccable et parfum d'une qualité incroyable. Livraison rapide à Tunis. Je recommande !",
-    gouvernorat: "Tunis",
-    productTitle: "Pack Parfum Découverte",
-    productUrl: "/product/pack-parfum-decouverte",
-  },
-  {
-    id: "t2",
-    rating: 4,
-    name: "Mohamed Trabelsi",
-    text: "Bon rapport qualité-prix, l'emballage est très soigné. J'ai adoré le coffret.",
-    gouvernorat: "Sousse",
-    productTitle: "Coffret Cadeau Homme",
-    productUrl: "/product/coffret-cadeau-homme",
-  },
-  {
-    id: "t3",
-    rating: 5,
-    name: "Ines Khelifi",
-    text: "Une expérience d'achat luxueuse, je suis cliente fidèle depuis 2 ans.",
-    gouvernorat: "Sfax",
-    productTitle: "Eau de Parfum Florale",
-    productUrl: "",
-  },
-];
-
-const empty = (): Testimonial => ({
-  id: `t_${Math.random().toString(36).slice(2, 8)}`,
+const empty = (): EditableTestimonial => ({
+  id: "new",
   rating: 5,
   name: "",
   text: "",
   gouvernorat: "Tunis",
   productTitle: "",
   productUrl: "",
+  createdAt: "",
+  updatedAt: "",
+  isNew: true,
 });
 
 function Stars({ value, onChange }: { value: number; onChange?: (n: 1 | 2 | 3 | 4 | 5) => void }) {
@@ -125,10 +97,13 @@ function Stars({ value, onChange }: { value: number; onChange?: (n: 1 | 2 | 3 | 
 }
 
 function AdminTestimonials() {
-  const [items, setItems] = useState<Testimonial[]>(SEED);
+  const [items, setItems] = useState<Testimonial[]>([]);
   const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<Testimonial | null>(null);
+  const [editing, setEditing] = useState<EditableTestimonial | null>(null);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const filtered = useMemo(
     () =>
@@ -144,24 +119,85 @@ function AdminTestimonials() {
     [items, query],
   );
 
-  const remove = (id: string) => setItems((s) => s.filter((t) => t.id !== id));
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const refresh = async () => {
+    try {
+      setError("");
+      setLoading(true);
+      setItems(await getAdminTestimonials());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de charger les témoignages.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      setError("");
+      await deleteTestimonial(id);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    }
+  };
+
   const openNew = () => {
+    setError("");
     setEditing(empty());
     setOpen(true);
   };
+
   const openEdit = (t: Testimonial) => {
-    setEditing({ ...t });
+    setError("");
+    setEditing({ ...t, productUrl: t.productUrl ?? "" });
     setOpen(true);
   };
-  const save = () => {
-    if (!editing || !editing.name.trim() || !editing.text.trim()) return;
-    setItems((s) =>
-      s.some((t) => t.id === editing.id)
-        ? s.map((t) => (t.id === editing.id ? editing : t))
-        : [...s, editing],
-    );
-    setOpen(false);
-    setEditing(null);
+
+  const validate = (testimonial: EditableTestimonial) => {
+    if (!testimonial.name.trim()) return "Le nom complet du client est obligatoire.";
+    if (!testimonial.text.trim()) return "Le témoignage est obligatoire.";
+    if (!testimonial.productTitle.trim()) return "Le titre de l'article acheté est obligatoire.";
+    return "";
+  };
+
+  const toInput = (testimonial: EditableTestimonial): TestimonialInput => ({
+    rating: testimonial.rating,
+    name: testimonial.name.trim(),
+    text: testimonial.text.trim(),
+    gouvernorat: testimonial.gouvernorat,
+    productTitle: testimonial.productTitle.trim(),
+    productUrl: testimonial.productUrl?.trim() || undefined,
+  });
+
+  const save = async () => {
+    if (!editing) return;
+
+    const validationError = validate(editing);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      if (editing.isNew) {
+        await createTestimonial(toInput(editing));
+      } else {
+        await updateTestimonial(editing.id, toInput(editing));
+      }
+      setOpen(false);
+      setEditing(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enregistrement impossible.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -179,6 +215,12 @@ function AdminTestimonials() {
       />
 
       <div className="flex-1 space-y-3 p-3 sm:space-y-4 sm:p-6">
+        {error && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -190,53 +232,63 @@ function AdminTestimonials() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-          {filtered.map((t) => (
-            <Card key={t.id}>
-              <CardContent className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{t.name}</p>
-                    <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <MapPin className="h-3 w-3" /> {t.gouvernorat}
-                    </p>
-                  </div>
-                  <Stars value={t.rating} />
-                </div>
-                <p className="line-clamp-4 text-sm text-muted-foreground">"{t.text}"</p>
-                <div className="rounded-md bg-muted/50 px-2 py-1.5 text-xs">
-                  <span className="font-medium">Article : </span>
-                  {t.productUrl ? (
-                    <a href={t.productUrl} className="underline" target="_blank" rel="noreferrer">
-                      {t.productTitle}
-                    </a>
-                  ) : (
-                    <span>{t.productTitle || "—"}</span>
-                  )}
-                </div>
-                <div className="flex justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => openEdit(t)}
-                    aria-label="Modifier"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => remove(t.id)}
-                    aria-label="Supprimer"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+          {loading && (
+            <Card className="col-span-full">
+              <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                Chargement des témoignages…
               </CardContent>
             </Card>
-          ))}
-          {filtered.length === 0 && (
+          )}
+
+          {!loading &&
+            filtered.map((t) => (
+              <Card key={t.id}>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{t.name}</p>
+                      <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <MapPin className="h-3 w-3" /> {t.gouvernorat}
+                      </p>
+                    </div>
+                    <Stars value={t.rating} />
+                  </div>
+                  <p className="line-clamp-4 text-sm text-muted-foreground">"{t.text}"</p>
+                  <div className="rounded-md bg-muted/50 px-2 py-1.5 text-xs">
+                    <span className="font-medium">Article : </span>
+                    {t.productUrl ? (
+                      <a href={t.productUrl} className="underline" target="_blank" rel="noreferrer">
+                        {t.productTitle}
+                      </a>
+                    ) : (
+                      <span>{t.productTitle || "—"}</span>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openEdit(t)}
+                      aria-label="Modifier"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => remove(t.id)}
+                      aria-label="Supprimer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+          {!loading && filtered.length === 0 && (
             <Card className="col-span-full">
               <CardContent className="p-8 text-center text-sm text-muted-foreground">
                 Aucun témoignage.
@@ -249,12 +301,15 @@ function AdminTestimonials() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {editing && items.some((t) => t.id === editing.id)
-                ? "Modifier le témoignage"
-                : "Nouveau témoignage"}
-            </DialogTitle>
+            <DialogTitle>{editing?.isNew ? "Nouveau témoignage" : "Modifier le témoignage"}</DialogTitle>
           </DialogHeader>
+
+          {error && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
           {editing && (
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -310,7 +365,7 @@ function AdminTestimonials() {
               <div className="space-y-1.5">
                 <Label>Lien vers l'article (optionnel)</Label>
                 <Input
-                  value={editing.productUrl}
+                  value={editing.productUrl ?? ""}
                   onChange={(e) => setEditing({ ...editing, productUrl: e.target.value })}
                   placeholder="/product/pack-parfum-decouverte"
                 />
@@ -321,7 +376,9 @@ function AdminTestimonials() {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={save}>Enregistrer</Button>
+            <Button onClick={save} disabled={saving}>
+              {saving ? "Enregistrement…" : "Enregistrer"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

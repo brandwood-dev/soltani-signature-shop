@@ -1,26 +1,33 @@
 import { useEffect, useState } from "react";
 import { Star, Quote } from "lucide-react";
 
-const TESTS = [
-  { name: "Yasmine B.", city: "Tunis", text: "Service impeccable, emballage sublime. Ma montre est arrivée en 24h, exactement comme sur les photos.", product: "Tissot Chronographe" },
-  { name: "Mehdi K.", city: "Sousse", text: "Soltani Signature est devenu mon adresse de référence pour les parfums de niche. Conseillère adorable.", product: "Tom Ford Parfum" },
-  { name: "Lina R.", city: "Sfax", text: "L'expérience d'achat est aussi luxueuse que le produit. Je recommande sans hésiter.", product: "Sac Cartier" },
-];
+import type { Testimonial } from "@/lib/testimonials-api";
+import { getPublicTestimonials } from "@/lib/testimonials-api";
 
-function Card({ t }: { t: (typeof TESTS)[number] }) {
+function Card({ t }: { t: Testimonial }) {
   return (
     <div className="h-full p-6 sm:p-8 bg-card border border-border hover:border-gold/40 shadow-sm transition rounded-sm relative">
       <Quote className="absolute top-5 right-5 h-7 w-7 text-gold/20" />
       <div className="flex gap-0.5 mb-4 sm:mb-5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Star key={i} className="h-4 w-4 fill-gold text-gold" />
+          <Star
+            key={i}
+            className={`h-4 w-4 ${i < t.rating ? "fill-gold text-gold" : "text-muted-foreground/30"}`}
+          />
         ))}
       </div>
       <p className="text-foreground/85 mb-6 leading-relaxed text-[15px]">"{t.text}"</p>
       <div className="pt-4 sm:pt-5 border-t border-border">
         <p className="font-semibold text-foreground">{t.name}</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {t.city} · {t.product}
+          {t.gouvernorat} ·{" "}
+          {t.productUrl ? (
+            <a href={t.productUrl} className="underline underline-offset-2">
+              {t.productTitle}
+            </a>
+          ) : (
+            t.productTitle
+          )}
         </p>
       </div>
     </div>
@@ -28,12 +35,33 @@ function Card({ t }: { t: (typeof TESTS)[number] }) {
 }
 
 export function Testimonials() {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [i, setI] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setI((v) => (v + 1) % TESTS.length), 5000);
-    return () => clearInterval(id);
+    getPublicTestimonials()
+      .then(setTestimonials)
+      .catch(() => setTestimonials([]));
   }, []);
+
+  useEffect(() => {
+    if (testimonials.length <= 1) return;
+    const id = setInterval(() => setI((v) => (v + 1) % testimonials.length), 5000);
+    return () => clearInterval(id);
+  }, [testimonials.length]);
+
+  useEffect(() => {
+    setI(0);
+  }, [testimonials.length]);
+
+  if (testimonials.length === 0) {
+    return null;
+  }
+
+  const desktopTestimonials =
+    testimonials.length <= 3
+      ? testimonials
+      : Array.from({ length: 3 }, (_, offset) => testimonials[(i + offset) % testimonials.length]);
 
   return (
     <section className="py-12 md:py-20 bg-secondary/40">
@@ -45,29 +73,27 @@ export function Testimonials() {
           </h2>
         </div>
 
-        {/* Desktop: grid */}
         <div className="hidden md:grid md:grid-cols-3 gap-6">
-          {TESTS.map((t) => (
-            <Card key={t.name} t={t} />
+          {desktopTestimonials.map((t) => (
+            <Card key={t.id} t={t} />
           ))}
         </div>
 
-        {/* Mobile: auto-carousel, 1 card per line */}
         <div className="md:hidden">
           <div className="relative overflow-hidden">
             <div
               className="flex transition-transform duration-700 ease-out"
               style={{ transform: `translateX(-${i * 100}%)` }}
             >
-              {TESTS.map((t) => (
-                <div key={t.name} className="w-full shrink-0 px-1">
+              {testimonials.map((t) => (
+                <div key={t.id} className="w-full shrink-0 px-1">
                   <Card t={t} />
                 </div>
               ))}
             </div>
           </div>
           <div className="mt-5 flex items-center justify-center gap-2">
-            {TESTS.map((_, idx) => (
+            {testimonials.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setI(idx)}
