@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
+import { SHIPPING_FLAT_RATE_TND } from "@/lib/commerce";
 import { Minus, Plus, X, Tag, ShieldCheck } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 
@@ -13,7 +14,7 @@ function CartPage() {
   const { lines, update, remove, subtotal } = useCart();
   const [code, setCode] = useState("");
 
-  const shipping = subtotal >= 300 ? 0 : 15;
+  const shipping = SHIPPING_FLAT_RATE_TND;
   const total = subtotal + shipping;
 
   return (
@@ -73,13 +74,13 @@ function CartPage() {
             <span className="font-display font-bold text-2xl text-gold tabular-nums">{total} DT</span>
           </div>
           <div className="p-3 bg-background border border-gold/30 rounded-sm mb-4">
-            <p className="text-xs text-foreground/80">Ou <span className="font-bold text-gold">3× {(total / 3).toFixed(0)} DT</span> sans frais</p>
+            <p className="text-xs text-foreground/80">Paiement à la livraison disponible partout en Tunisie.</p>
           </div>
           <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
             Passer commande
           </Link>
           <p className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 text-gold" /> Paiement 100% sécurisé
+            <ShieldCheck className="h-4 w-4 text-gold" /> Commande confirmée via API sécurisée
           </p>
         </aside>
       </div>

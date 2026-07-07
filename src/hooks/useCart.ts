@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type CartLine = {
   id: string;
+  productSlug?: string;
+  variantId: string;
   name: string;
   brand: string;
   price: number;
@@ -18,7 +20,7 @@ const read = (): CartLine[] => {
     const raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as CartLine[]) : [];
+    return Array.isArray(parsed) ? (parsed as CartLine[]).filter((line) => Boolean(line.variantId)) : [];
   } catch {
     return [];
   }
@@ -48,35 +50,33 @@ export function useCart() {
   }, []);
 
   const update = useCallback((id: string, qty: number) => {
-    const next = read().map((l) => (l.id === id ? { ...l, qty: Math.max(1, qty) } : l));
+    const next = read().map((line) => (line.id === id ? { ...line, qty: Math.max(1, qty) } : line));
     write(next);
   }, []);
 
   const remove = useCallback((id: string) => {
-    write(read().filter((l) => l.id !== id));
+    write(read().filter((line) => line.id !== id));
   }, []);
 
   const clear = useCallback(() => {
-    localStorage.setItem(KEY, JSON.stringify([]));
-    window.dispatchEvent(new Event("cart:change"));
+    write([]);
   }, []);
 
   const add = useCallback((item: Omit<CartLine, "qty"> & { qty?: number }) => {
-    const cur = read();
+    const current = read();
     const qty = item.qty ?? 1;
-    const idx = cur.findIndex((l) => l.id === item.id);
-    let next: CartLine[];
-    if (idx >= 0) {
-      next = cur.map((l, i) => (i === idx ? { ...l, qty: l.qty + qty } : l));
-    } else {
-      next = [...cur, { ...item, qty }];
-    }
+    const idx = current.findIndex((line) => line.variantId === item.variantId);
+    const next =
+      idx >= 0
+        ? current.map((line, index) => (index === idx ? { ...line, qty: line.qty + qty } : line))
+        : [...current, { ...item, qty }];
+
     write(next);
     openCartDrawer();
   }, []);
 
-  const count = lines.reduce((s, l) => s + l.qty, 0);
-  const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
+  const count = lines.reduce((sum, line) => sum + line.qty, 0);
+  const subtotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);
 
   return { lines, add, update, remove, clear, count, subtotal };
 }

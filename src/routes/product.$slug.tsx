@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { findProduct, productsByCategory, PRODUCTS, findCategory } from "@/data/catalog";
+import { getCatalogProduct, getCatalogProducts } from "@/lib/catalog-api";
 import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
 import { useCart } from "@/hooks/useCart";
 import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Check, Flame, ShoppingBag } from "lucide-react";
@@ -11,11 +12,14 @@ import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRigh
 
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }): { product: Product; related: Product[]; bundle: Product[] } => {
-    const product = findProduct(params.slug);
+  loader: async ({ params }): Promise<{ product: Product; related: Product[]; bundle: Product[] }> => {
+    const product = await getCatalogProduct(params.slug).catch(() => findProduct(params.slug));
     if (!product) throw notFound();
-    const related = productsByCategory(product.category).filter((p: Product) => p.slug !== product.slug).slice(0, 4);
-    const bundle = PRODUCTS.filter((p: Product) => p.slug !== product.slug).slice(0, 2);
+    const apiProducts = await getCatalogProducts({ category: product.category }).catch(() => []);
+    const relatedSource = apiProducts.length ? apiProducts : productsByCategory(product.category);
+    const related = relatedSource.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
+    const bundleSource = [...(apiProducts.length ? apiProducts : []), ...PRODUCTS].filter((p: Product) => p.slug !== product.slug);
+    const bundle = bundleSource.slice(0, 2);
     return { product, related, bundle };
   },
   head: ({ params }) => {
@@ -91,7 +95,7 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { product, related, bundle } = Route.useLoaderData() as { product: Product; related: Product[]; bundle: Product[] };
-  const gallery = [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
+  const gallery = product.gallery?.length ? product.gallery : [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
   const category = findCategory(product.category)!;
   const parentSlug = category.kind === "sub" ? category.parent.slug : category.slug;
   const parentName = category.kind === "sub" ? category.parent.name : category.name;
@@ -102,11 +106,18 @@ function ProductPage() {
   const { add } = useCart();
 
   const handleAddToCart = () => {
-    add({ id: product.slug, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: "Standard", qty });
+    if (!product.variantId) return;
+    add({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
   };
 
   const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
-  const bundleTotal = (pick.main ? product.price : 0) + (pick.b0 ? bundle[0].price : 0) + (pick.b1 ? bundle[1].price : 0);
+  const bundleTotal =
+    (pick.main ? product.price : 0) +
+    bundle.reduce((sum, item, index) => sum + (pick[`b${index}`] ? item.price : 0), 0);
+  const bundleItems = [
+    { key: "main", img: product.image, name: product.name, price: product.price },
+    ...bundle.map((item, index) => ({ key: `b${index}`, img: item.image, name: item.name, price: item.price })),
+  ];
 
   return (
     <SiteLayout>
@@ -160,7 +171,7 @@ function ProductPage() {
           )}
 
           <p className="text-sm text-foreground/80 mb-6 leading-relaxed">
-            Une pièce d'exception sélectionnée par nos experts. {product.brand} incarne le raffinement et la précision dans les moindres détails.
+            {product.description ?? `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
           </p>
 
           <div className="mb-5">
@@ -194,7 +205,7 @@ function ProductPage() {
             <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm"><Share2 className="h-5 w-5" /></button>
           </div>
           <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-ink text-cream text-[12px] uppercase tracking-[0.2em] font-bold hover:opacity-90 rounded-sm">
-            Acheter maintenant — Paiement 3×
+            Acheter maintenant — Paiement à la livraison
           </Link>
 
           <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-border">
@@ -214,9 +225,7 @@ function ProductPage() {
         <p className="text-sm text-muted-foreground mb-8">Composez votre look signature.</p>
         <div className="grid md:grid-cols-[1fr_auto] gap-8 items-center">
           <div className="flex items-center gap-4 flex-wrap">
-            {[{ key: "main", img: product.image, name: product.name, price: product.price },
-              { key: "b0", img: bundle[0].image, name: bundle[0].name, price: bundle[0].price },
-              { key: "b1", img: bundle[1].image, name: bundle[1].name, price: bundle[1].price }].map((b, i) => (
+            {bundleItems.map((b, i) => (
               <div key={b.key} className="flex items-center gap-4">
                 <label className="relative cursor-pointer">
                   <input type="checkbox" checked={pick[b.key]} onChange={() => setPick({ ...pick, [b.key]: !pick[b.key] })} className="sr-only peer" />

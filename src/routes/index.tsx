@@ -14,10 +14,19 @@ import { Footer } from "@/components/site/Footer";
 import { TrustBar } from "@/components/site/TrustBar";
 import { CollectionBanners } from "@/components/site/CollectionBanners";
 import { Packs } from "@/components/site/Packs";
+import { getCatalogProducts } from "@/lib/catalog-api";
+import type { Product } from "@/components/site/ProductCard";
 
 const bannerBrumes = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780604892/banner_zgtjc9.jpg";
 
 export const Route = createFileRoute("/")({
+  loader: async (): Promise<{ bestsellers: Product[]; newArrivals: Product[] }> => {
+    const products = await getCatalogProducts().catch(() => []);
+    return {
+      bestsellers: products.slice(0, 8),
+      newArrivals: products.slice(8, 16).length ? products.slice(8, 16) : products.slice(0, 8),
+    };
+  },
   head: () => ({
     meta: [
       { title: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
@@ -31,6 +40,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const { bestsellers, newArrivals } = Route.useLoaderData();
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar />
@@ -40,11 +51,11 @@ function Home() {
         <Hero />
         <TrustBar />
         <Categories />
-        <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={BESTSELLERS} kicker="Les pièces les plus convoitées par notre clientèle." />
+        <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={bestsellers.length ? bestsellers : BESTSELLERS} kicker="Les pièces les plus convoitées par notre clientèle." />
         <CollectionBanners />
 
         <Brands />
-        <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
+        <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={newArrivals.length ? newArrivals : NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
         <Packs />
         <PromoBanner
           eyebrow="Collection Victoria's Secret Été 2026"

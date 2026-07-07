@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/useCart";
 
 
 export type Product = {
+  id?: string;
   slug: string;
   name: string;
   brand: string;
@@ -15,6 +16,11 @@ export type Product = {
   image: string;
   badge?: "Best Seller" | "Nouveau" | "Promo";
   rating?: number;
+  variantId?: string;
+  variantLabel?: string;
+  stockQuantity?: number;
+  description?: string;
+  gallery?: string[];
   attributes?: Record<string, string[]>;
 };
 
@@ -28,7 +34,8 @@ export function ProductCard({ p }: { p: Product }) {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    add({ id: p.slug, name: p.name, brand: p.brand, price: p.price, image: p.image, variant: "Standard" });
+    if (!p.variantId) return;
+    add({ id: p.variantId, productSlug: p.slug, variantId: p.variantId, name: p.name, brand: p.brand, price: p.price, image: p.image, variant: p.variantLabel ?? "Standard" });
   };
 
   const handleQuickView = (e: React.MouseEvent) => {

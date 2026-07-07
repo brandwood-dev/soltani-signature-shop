@@ -10,12 +10,14 @@ import {
 } from "@/data/catalog";
 import { getFacetsForCategory, type FacetDef } from "@/data/filters";
 import { ChevronRight, SlidersHorizontal, X } from "lucide-react";
+import { getCatalogProducts } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/category/$slug")({
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
     const cat = findCategory(params.slug);
     if (!cat) throw notFound();
-    return { category: cat };
+    const products = await getCatalogProducts({ category: params.slug }).catch(() => []);
+    return { category: cat, products };
   },
   head: ({ params }) => {
     const cat = findCategory(params.slug);
@@ -57,7 +59,7 @@ export const Route = createFileRoute("/category/$slug")({
 });
 
 function CategoryPage() {
-  const { category } = Route.useLoaderData();
+  const { category, products } = Route.useLoaderData();
   const [openFilters, setOpenFilters] = useState(false);
   const [price, setPrice] = useState(20000);
   const [brand, setBrand] = useState<string[]>([]);
@@ -68,7 +70,7 @@ function CategoryPage() {
   const isParent = category.kind === "parent";
   const parent = isParent ? findParent(category.slug) : findParent(category.parent.slug);
 
-  const baseList = useMemo(() => productsByCategory(category.slug), [category.slug]);
+  const baseList = useMemo(() => (products.length ? products : productsByCategory(category.slug)), [category.slug, products]);
 
   const brands = useMemo(
     () => Array.from(new Set(baseList.map((p) => p.brand))).sort(),
@@ -119,7 +121,7 @@ function CategoryPage() {
     setPrice(maxBound);
   };
 
-  const maxBound = Math.max(20000, ...PRODUCTS.map((p) => p.price));
+  const maxBound = Math.max(20000, ...baseList.map((p) => p.price), ...PRODUCTS.map((p) => p.price));
   const activeCount =
     brand.length +
     Object.values(facetSel).reduce((a, v) => a + v.length, 0) +
