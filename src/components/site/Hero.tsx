@@ -1,56 +1,9 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import hero1 from "@/assets/hero-1.jpg";
-import hero2 from "@/assets/hero-2.jpg";
-import hero3 from "@/assets/hero-3.jpg";
 import type { HeroSlide } from "@/lib/hero-api";
 import { getActiveHeroSlides } from "@/lib/hero-api";
 
-const FALLBACK_SLIDES: HeroSlide[] = [
-  {
-    id: "fallback-1",
-    image: hero1,
-    tagline: "Collection Automne",
-    title: "L'Art de l'Élégance",
-    subtitle: "Bijoux d'exception & accessoires signés",
-    description: "Une sélection rare pour celles et ceux qui osent une signature luxueuse.",
-    ctaPrimary: { text: "Découvrir", link: "#categories" },
-    ctaSecondary: { text: "Voir les promos", link: "#promos" },
-    active: true,
-    sortOrder: 0,
-    createdAt: "",
-    updatedAt: "",
-  },
-  {
-    id: "fallback-2",
-    image: hero2,
-    tagline: "Horlogerie Suisse",
-    title: "Le Temps en Or",
-    subtitle: "Montres mécaniques & chronographes",
-    description: "La précision se porte au poignet avec des pièces d'exception.",
-    ctaPrimary: { text: "Explorer", link: "/homme" },
-    ctaSecondary: { text: "En savoir plus", link: "/about" },
-    active: true,
-    sortOrder: 1,
-    createdAt: "",
-    updatedAt: "",
-  },
-  {
-    id: "fallback-3",
-    image: hero3,
-    tagline: "Parfumerie de Niche",
-    title: "Sillages Inoubliables",
-    subtitle: "Fragrances rares & maisons iconiques",
-    description: "Des notes intenses, élégantes et mémorables pour chaque moment.",
-    ctaPrimary: { text: "Voir parfums", link: "/femme" },
-    ctaSecondary: { text: "Promotions", link: "/promotions" },
-    active: true,
-    sortOrder: 2,
-    createdAt: "",
-    updatedAt: "",
-  },
-];
 
 export function Hero() {
   const [index, setIndex] = useState(0);
@@ -64,7 +17,7 @@ export function Hero() {
           setIndex(0);
         }
       })
-      .catch(() => setSlides(FALLBACK_SLIDES));
+      .catch(() => setSlides([]));
   }, []);
 
   useEffect(() => {
@@ -87,7 +40,7 @@ export function Hero() {
   return (
     <section className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
       <h1 className="sr-only">
-        Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
+        Soltani Signature â€” Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
       </h1>
       <AnimatePresence mode="sync">
         <motion.div
@@ -155,7 +108,7 @@ export function Hero() {
         <button
           onClick={() => setIndex((current) => (current - 1 + slides.length) % slides.length)}
           className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 bg-background/70 text-gold backdrop-blur transition hover:bg-gold hover:text-ink"
-          aria-label="Précédent"
+          aria-label="PrÃ©cÃ©dent"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -184,3 +137,4 @@ export function Hero() {
     </section>
   );
 }
+

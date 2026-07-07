@@ -39,6 +39,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
   }
 
   const response = await fetch(`${publicEnv.apiUrl}${path}`, {
+    cache: "no-store",
     ...init,
     headers,
   });
