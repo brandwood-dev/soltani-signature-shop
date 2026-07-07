@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Eye, MoreHorizontal, Download } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -30,7 +30,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MOCK_ORDERS, formatDate, formatTND } from "@/lib/admin/mock-data";
+import {
+  getAdminOrders,
+  updateAdminOrderStatus,
+  type AdminOrderListItem,
+  type AdminOrderStatus,
+} from "@/lib/admin-orders-api";
+import { formatDate, formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/orders/")({
   component: AdminOrders,
@@ -52,36 +58,54 @@ function AdminOrders() {
   const [payment, setPayment] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [orders, setOrders] = useState<AdminOrderListItem[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({ all: 0 });
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: MOCK_ORDERS.length };
-    for (const t of TABS) if (t !== "all") c[t] = MOCK_ORDERS.filter((o) => o.status === t).length;
-    return c;
-  }, []);
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await getAdminOrders({
+        query,
+        status: tab,
+        payment: payment as "all" | "card" | "cod",
+        page,
+        pageSize,
+      });
+      setOrders(response.orders);
+      setCounts(response.statusCounts);
+      setTotal(response.pagination.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de charger les commandes.");
+      setOrders([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filtered = useMemo(() => {
-    return MOCK_ORDERS.filter((o) => {
-      if (tab !== "all" && o.status !== tab) return false;
-      if (payment !== "all" && o.paymentMethod !== payment) return false;
-      if (query) {
-        const q = query.toLowerCase();
-        return (
-          o.reference.toLowerCase().includes(q) ||
-          o.customer.toLowerCase().includes(q) ||
-          o.email.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [query, tab, payment]);
+  useEffect(() => {
+    refresh();
+  }, [query, tab, payment, page, pageSize]);
 
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const setOrderStatus = async (id: string, status: AdminOrderStatus) => {
+    try {
+      setError("");
+      await updateAdminOrderStatus(id, status);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Mise à jour impossible.");
+    }
+  };
 
   return (
     <>
       <AdminHeader
         title="Commandes"
-        subtitle={`${filtered.length} commandes`}
+        subtitle={`${total} commandes`}
         actions={
           <Button size="sm" variant="outline" className="h-9">
             <Download className="h-4 w-4" />
@@ -134,11 +158,17 @@ function AdminOrders() {
           </CardContent>
         </Card>
 
+        {error && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         {/* List */}
         <Card className="overflow-hidden">
           {/* Mobile */}
           <div className="divide-y divide-border sm:hidden">
-            {paged.map((o) => (
+            {orders.map((o) => (
               <Link
                 key={o.id}
                 to="/admin/orders/$id"
@@ -162,9 +192,14 @@ function AdminOrders() {
                 </div>
               </Link>
             ))}
-            {paged.length === 0 && (
+            {!loading && orders.length === 0 && (
               <div className="p-8 text-center text-sm text-muted-foreground">
                 Aucune commande.
+              </div>
+            )}
+            {loading && (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                Chargement des commandes…
               </div>
             )}
           </div>
@@ -185,7 +220,7 @@ function AdminOrders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.map((o) => (
+                {orders.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell className="font-medium">
                       <Link
@@ -230,9 +265,9 @@ function AdminOrders() {
                               <Eye className="h-4 w-4" /> Voir détails
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem>Marquer expédiée</DropdownMenuItem>
-                          <DropdownMenuItem>Marquer livrée</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem onClick={() => setOrderStatus(o.id, "shipped")}>Marquer expédiée</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setOrderStatus(o.id, "delivered")}>Marquer livrée</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setOrderStatus(o.id, "cancelled")}>
                             Annuler
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -240,10 +275,17 @@ function AdminOrders() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {paged.length === 0 && (
+                {!loading && orders.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
                       Aucune commande.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
+                      Chargement des commandes…
                     </TableCell>
                   </TableRow>
                 )}
@@ -254,7 +296,7 @@ function AdminOrders() {
           <DataPagination
             page={page}
             pageSize={pageSize}
-            total={filtered.length}
+            total={total}
             onPageChange={setPage}
             onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
           />

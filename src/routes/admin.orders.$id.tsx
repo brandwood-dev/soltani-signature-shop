@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   ArrowLeft,
   Printer,
@@ -34,12 +35,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  MOCK_ORDERS,
-  MOCK_PRODUCTS,
-  formatDate,
-  formatTND,
-} from "@/lib/admin/mock-data";
+import { getAdminOrder, updateAdminOrderStatus, type AdminOrderStatus } from "@/lib/admin-orders-api";
+import { formatDate, formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/orders/$id")({
   component: OrderDetails,
@@ -51,44 +48,50 @@ export const Route = createFileRoute("/admin/orders/$id")({
       </Link>
     </div>
   ),
-  loader: ({ params }) => {
-    const order = MOCK_ORDERS.find((o) => o.id === params.id);
-    if (!order) throw notFound();
-    return { order };
+  loader: async ({ params }) => {
+    try {
+      const order = await getAdminOrder(params.id);
+      return { order };
+    } catch {
+      throw notFound();
+    }
   },
 });
 
 function OrderDetails() {
   const { order } = Route.useLoaderData();
-
-  // Mock line items derived from the order
-  const items = MOCK_PRODUCTS.slice(
-    parseInt(order.id.split("_")[1], 10) % 10,
-    (parseInt(order.id.split("_")[1], 10) % 10) + order.items
-  ).map((p) => ({
-    ...p,
-    qty: 1 + ((p.id.charCodeAt(p.id.length - 1) % 3)),
-  }));
-
-  const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
-  const shipping = subtotal > 500 ? 0 : 9;
-  const tax = Math.round(subtotal * 0.19);
-  const total = subtotal + shipping + tax;
+  const [currentOrder, setCurrentOrder] = useState(order);
+  const [status, setStatus] = useState<AdminOrderStatus>(order.status);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const timeline = [
-    { key: "pending", label: "Commande reçue", icon: Clock, date: order.createdAt },
-    { key: "processing", label: "En préparation", icon: Package, date: order.createdAt },
-    { key: "shipped", label: "Expédiée", icon: Truck, date: order.createdAt },
-    { key: "delivered", label: "Livrée", icon: CheckCircle2, date: order.createdAt },
+    { key: "pending", label: "Commande reçue", icon: Clock, date: currentOrder.createdAt },
+    { key: "processing", label: "En préparation", icon: Package, date: currentOrder.updatedAt },
+    { key: "shipped", label: "Expédiée", icon: Truck, date: currentOrder.updatedAt },
+    { key: "delivered", label: "Livrée", icon: CheckCircle2, date: currentOrder.updatedAt },
   ];
-  const order_index = ["pending", "processing", "shipped", "delivered"].indexOf(order.status);
-  const isCancelled = order.status === "cancelled";
+  const orderIndex = ["pending", "processing", "shipped", "delivered"].indexOf(currentOrder.status);
+  const isCancelled = currentOrder.status === "cancelled";
+
+  const saveStatus = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      const next = await updateAdminOrderStatus(currentOrder.id, status);
+      setCurrentOrder(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Mise à jour impossible.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
       <AdminHeader
-        title={order.reference}
-        subtitle={`Commande passée le ${formatDate(order.createdAt)}`}
+        title={currentOrder.reference}
+        subtitle={`Commande passée le ${formatDate(currentOrder.createdAt)}`}
         actions={
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm" className="h-9">
@@ -110,14 +113,18 @@ function OrderDetails() {
       />
 
       <div className="flex-1 p-3 sm:p-6">
+        {error && (
+          <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
-          {/* Main */}
           <div className="space-y-3 sm:space-y-6 lg:col-span-2">
-            {/* Status & Timeline */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <CardTitle className="text-base">Statut</CardTitle>
-                <StatusBadge status={order.status} />
+                <StatusBadge status={currentOrder.status} />
               </CardHeader>
               <CardContent>
                 {isCancelled ? (
@@ -127,9 +134,9 @@ function OrderDetails() {
                   </div>
                 ) : (
                   <ol className="relative space-y-4">
-                    {timeline.map((t, i) => {
-                      const done = i <= order_index;
-                      const active = i === order_index;
+                    {timeline.map((t, index) => {
+                      const done = index <= orderIndex;
+                      const active = index === orderIndex;
                       return (
                         <li key={t.key} className="flex items-start gap-3">
                           <div
@@ -142,11 +149,7 @@ function OrderDetails() {
                             <t.icon className="h-4 w-4" />
                           </div>
                           <div className="flex-1 pt-1">
-                            <p
-                              className={`text-sm ${
-                                done ? "font-medium" : "text-muted-foreground"
-                              }`}
-                            >
+                            <p className={`text-sm ${done ? "font-medium" : "text-muted-foreground"}`}>
                               {t.label}
                               {active && (
                                 <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
@@ -154,11 +157,7 @@ function OrderDetails() {
                                 </span>
                               )}
                             </p>
-                            {done && (
-                              <p className="text-xs text-muted-foreground">
-                                {formatDate(t.date)}
-                              </p>
-                            )}
+                            {done && <p className="text-xs text-muted-foreground">{formatDate(t.date)}</p>}
                           </div>
                         </li>
                       );
@@ -166,7 +165,7 @@ function OrderDetails() {
                   </ol>
                 )}
                 <div className="mt-4 flex items-center gap-2">
-                  <Select defaultValue={order.status}>
+                  <Select value={status} onValueChange={(value) => setStatus(value as AdminOrderStatus)}>
                     <SelectTrigger className="h-9 flex-1 sm:max-w-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -178,50 +177,35 @@ function OrderDetails() {
                       <SelectItem value="cancelled">Annulée</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button size="sm" className="h-9">
-                    Mettre à jour
+                  <Button size="sm" className="h-9" disabled={saving || status === currentOrder.status} onClick={saveStatus}>
+                    {saving ? "Mise à jour…" : "Mettre à jour"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Items */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">
-                  Articles ({order.items})
-                </CardTitle>
+                <CardTitle className="text-base">Articles ({currentOrder.items})</CardTitle>
               </CardHeader>
               <CardContent className="px-0 sm:px-6">
-                {/* Mobile */}
                 <div className="divide-y divide-border sm:hidden">
-                  {items.map((it) => (
-                    <div key={it.id} className="flex gap-3 px-3 py-3">
-                      <img
-                        src={it.image}
-                        alt=""
-                        className="h-14 w-14 shrink-0 rounded-md object-cover"
-                      />
+                  {currentOrder.lineItems.map((item) => (
+                    <div key={item.id} className="flex gap-3 px-3 py-3">
+                      <img src={item.image} alt="" className="h-14 w-14 shrink-0 rounded-md object-cover" />
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-medium leading-tight">
-                          {it.name}
-                        </p>
+                        <p className="line-clamp-2 text-sm font-medium leading-tight">{item.name}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {it.brand} · SKU {it.sku}
+                          {item.brand} · SKU {item.sku}
                         </p>
                         <div className="mt-1 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            Qté : {it.qty}
-                          </span>
-                          <span className="font-semibold tabular-nums">
-                            {formatTND(it.price * it.qty)}
-                          </span>
+                          <span className="text-muted-foreground">Qté : {item.qty}</span>
+                          <span className="font-semibold tabular-nums">{formatTND(item.total)}</span>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                {/* Desktop */}
                 <div className="hidden sm:block">
                   <Table>
                     <TableHeader>
@@ -233,34 +217,22 @@ function OrderDetails() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {items.map((it) => (
-                        <TableRow key={it.id}>
+                      {currentOrder.lineItems.map((item) => (
+                        <TableRow key={item.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <img
-                                src={it.image}
-                                alt=""
-                                className="h-10 w-10 shrink-0 rounded-md object-cover"
-                              />
+                              <img src={item.image} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" />
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-medium">
-                                  {it.name}
-                                </p>
+                                <p className="truncate text-sm font-medium">{item.name}</p>
                                 <p className="truncate text-xs text-muted-foreground">
-                                  {it.brand} · {it.sku}
+                                  {item.brand} · {item.sku}
                                 </p>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {formatTND(it.price)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {it.qty}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold tabular-nums">
-                            {formatTND(it.price * it.qty)}
-                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{formatTND(item.price)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{item.qty}</TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums">{formatTND(item.total)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -269,33 +241,33 @@ function OrderDetails() {
               </CardContent>
             </Card>
 
-            {/* Totals */}
             <Card>
               <CardContent className="space-y-2 p-4 sm:p-6">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Sous-total</span>
-                  <span className="tabular-nums">{formatTND(subtotal)}</span>
+                  <span className="tabular-nums">{formatTND(currentOrder.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Livraison</span>
                   <span className="tabular-nums">
-                    {shipping === 0 ? "Offerte" : formatTND(shipping)}
+                    {currentOrder.shippingTotal === 0 ? "Offerte" : formatTND(currentOrder.shippingTotal)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">TVA (19%)</span>
-                  <span className="tabular-nums">{formatTND(tax)}</span>
-                </div>
+                {currentOrder.discountTotal > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Remise</span>
+                    <span className="tabular-nums">-{formatTND(currentOrder.discountTotal)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex items-center justify-between text-base font-semibold">
                   <span>Total</span>
-                  <span className="tabular-nums">{formatTND(total)}</span>
+                  <span className="tabular-nums">{formatTND(currentOrder.total)}</span>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Side */}
           <div className="space-y-3 sm:space-y-6">
             <Card>
               <CardHeader className="pb-3">
@@ -303,22 +275,19 @@ function OrderDetails() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div>
-                  <p className="font-medium">{order.customer}</p>
-                  <p className="text-xs text-muted-foreground">Client depuis 2024</p>
+                  <p className="font-medium">{currentOrder.customer}</p>
+                  <p className="text-xs text-muted-foreground">Commande client réelle</p>
                 </div>
                 <Separator />
                 <div className="flex items-start gap-2">
                   <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <a
-                    href={`mailto:${order.email}`}
-                    className="break-all text-primary hover:underline"
-                  >
-                    {order.email}
+                  <a href={`mailto:${currentOrder.email}`} className="break-all text-primary hover:underline">
+                    {currentOrder.email}
                   </a>
                 </div>
                 <div className="flex items-start gap-2">
                   <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span>+216 22 345 678</span>
+                  <span>{currentOrder.phone || currentOrder.shippingAddress.phone || "Non renseigné"}</span>
                 </div>
               </CardContent>
             </Card>
@@ -331,9 +300,18 @@ function OrderDetails() {
                 <div className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{order.customer}</p>
-                    <p className="text-muted-foreground">12 Rue de la Liberté</p>
-                    <p className="text-muted-foreground">1002 Tunis Belvédère</p>
+                    <p className="font-medium">{currentOrder.shippingAddress.fullName}</p>
+                    <p className="text-muted-foreground">{currentOrder.shippingAddress.addressLine1}</p>
+                    {currentOrder.shippingAddress.addressLine2 && (
+                      <p className="text-muted-foreground">{currentOrder.shippingAddress.addressLine2}</p>
+                    )}
+                    <p className="text-muted-foreground">
+                      {[
+                        currentOrder.shippingAddress.postalCode,
+                        currentOrder.shippingAddress.city,
+                        currentOrder.shippingAddress.governorate,
+                      ].filter(Boolean).join(" ")}
+                    </p>
                     <p className="text-muted-foreground">Tunisie</p>
                   </div>
                 </div>
@@ -347,15 +325,13 @@ function OrderDetails() {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span>
-                    {order.paymentMethod === "card"
-                      ? "Carte bancaire"
-                      : "Espèces à la livraison"}
-                  </span>
+                  <span>{currentOrder.paymentMethod === "card" ? "Carte bancaire" : "Espèces à la livraison"}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Statut</span>
-                  <span className="font-medium text-emerald-600">Payé</span>
+                  <span className="font-medium text-emerald-600">
+                    {currentOrder.paymentStatus === "paid" ? "Payé" : "En attente"}
+                  </span>
                 </div>
               </CardContent>
             </Card>
