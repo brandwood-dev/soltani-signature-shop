@@ -1,39 +1,60 @@
 import { useEffect, useState } from "react";
-import { Truck, CreditCard, Sparkles, Tag } from "lucide-react";
-
-const MESSAGES = [
-  { icon: Truck, text: "Livraison gratuite dès 300 DT partout en Tunisie" },
-  { icon: CreditCard, text: "Paiement en 4× sans frais avec D17" },
-  { icon: Tag, text: "−25% sur toutes les montres Rolex cette semaine" },
-  { icon: Sparkles, text: "Nouvelles collections Printemps 2026 disponibles" },
-];
+import { Sparkles } from "lucide-react";
+import type { MarqueeMessage } from "@/lib/marquee-api";
+import { getActiveMarqueeMessages } from "@/lib/marquee-api";
 
 export function TopBar() {
-  const [i, setI] = useState(0);
+  const [messages, setMessages] = useState<MarqueeMessage[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const id = setInterval(() => setI((v) => (v + 1) % MESSAGES.length), 4500);
-    return () => clearInterval(id);
+    getActiveMarqueeMessages()
+      .then(setMessages)
+      .catch(() => setMessages([]));
   }, []);
 
+  useEffect(() => {
+    if (messages.length <= 1) return;
+    const interval = window.setInterval(() => {
+      setCurrentIndex((value) => (value + 1) % messages.length);
+    }, 4500);
+
+    return () => window.clearInterval(interval);
+  }, [messages.length]);
+
+  if (!messages.length) {
+    return null;
+  }
+
   return (
-    <div className="border-b border-border/20 bg-black text-[12px] uppercase tracking-[0.18em] text-white overflow-hidden">
-      <div className="container-luxe relative h-10 flex items-center justify-center">
-        {MESSAGES.map((m, idx) => {
-          const Icon = m.icon;
-          const active = mounted ? idx === i : idx === 0;
+    <div className="border-b border-border/20 bg-black text-[11px] uppercase tracking-[0.14em] text-white overflow-hidden sm:text-[12px] sm:tracking-[0.18em]">
+      <div className="container-luxe relative h-10 flex items-center justify-center px-4">
+        {messages.map((message, index) => {
+          const active = mounted ? index === currentIndex : index === 0;
+          const content = (
+            <>
+              <Sparkles className="h-3 w-3 text-gold shrink-0" />
+              <span className="truncate">{message.text}</span>
+            </>
+          );
+
           return (
             <div
-              key={m.text}
+              key={message.id}
               aria-hidden={!active}
-              className={`absolute inset-0 flex items-center justify-center gap-2 transition-all duration-700 ease-out ${
+              className={`absolute inset-0 flex items-center justify-center gap-2 px-4 transition-all duration-700 ease-out ${
                 active ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
               }`}
             >
-              <Icon className="h-3 w-3 text-gold shrink-0" />
-              <span className="truncate">{m.text}</span>
+              {message.link ? (
+                <a href={message.link} className="flex min-w-0 items-center justify-center gap-2 hover:text-gold">
+                  {content}
+                </a>
+              ) : (
+                <span className="flex min-w-0 items-center justify-center gap-2">{content}</span>
+              )}
             </div>
           );
         })}
