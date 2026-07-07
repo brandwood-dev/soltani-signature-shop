@@ -277,6 +277,12 @@ function AdminHero() {
             <DialogTitle>Modifier le slide</DialogTitle>
           </DialogHeader>
 
+          {error && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
           {editing && (
             <div className="space-y-4">
               <div className="space-y-1.5">
