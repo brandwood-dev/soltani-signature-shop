@@ -38,7 +38,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
     headers.set("Authorization", `Bearer ${session.accessToken}`);
   }
 
-  const response = await fetch(`${publicEnv.apiUrl}${path}`, {
+  const response = await fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
     cache: "no-store",
     ...init,
     headers,
@@ -57,6 +57,32 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
   }
 
   return response.json() as Promise<T>;
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
+
+    try {
+      return await fetch(url, {
+        ...init,
+        signal: init.signal ?? controller.signal,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      await new Promise((resolve) => window.setTimeout(resolve, attempt * 500));
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? new Error("Connexion API momentanément indisponible. Réessayez dans quelques secondes.")
+    : new Error("Connexion API momentanément indisponible.");
 }
 
 export async function getCurrentAdmin() {
