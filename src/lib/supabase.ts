@@ -1,6 +1,7 @@
 import { publicEnv } from "@/lib/env";
 
-const STORAGE_KEY = "soltani-admin-session";
+const STORAGE_KEY = "soltani-auth-session";
+const LEGACY_ADMIN_STORAGE_KEY = "soltani-admin-session";
 
 export type SupabaseSession = {
   accessToken: string;
@@ -16,11 +17,12 @@ type SupabaseTokenResponse = {
 
 function saveSession(session: SupabaseSession) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
 }
 
 function readStoredSession() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_ADMIN_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as SupabaseSession) : null;
   } catch {
     return null;
@@ -82,6 +84,7 @@ export async function getSession() {
     return refreshedSession;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
     return null;
   }
 }
@@ -89,6 +92,7 @@ export async function getSession() {
 export async function signOut() {
   const session = readStoredSession();
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
 
   if (!session?.accessToken) {
     return;

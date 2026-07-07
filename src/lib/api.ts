@@ -5,8 +5,19 @@ export type ApiUser = {
   id: string;
   authUserId: string;
   email: string;
+  phone: string | null;
+  firstName: string | null;
+  lastName: string | null;
   role: "CUSTOMER" | "SUPER_ADMIN";
   status: "ACTIVE" | "DISABLED";
+};
+
+export type RegisterCustomerInput = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
 };
 
 type ApiErrorBody = {
@@ -49,5 +60,18 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
 
 export async function getCurrentAdmin() {
   const response = await apiFetch<{ user: ApiUser }>("/admin/me");
+  return response.user;
+}
+
+export async function getCurrentUser() {
+  const response = await apiFetch<{ user: ApiUser }>("/auth/me");
+  return response.user;
+}
+
+export async function registerCustomer(input: RegisterCustomerInput) {
+  const response = await apiFetch<{ user: ApiUser }>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   return response.user;
 }
