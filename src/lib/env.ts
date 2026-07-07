@@ -1,5 +1,12 @@
-function requiredPublicEnv(name: string) {
-  const value = import.meta.env[name];
+const publicEnvFallbacks = {
+  VITE_SUPABASE_URL: "https://etzqtyrkbekvgzfrzgjr.supabase.co",
+  VITE_SUPABASE_ANON_KEY:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0enF0eXJrYmVrdmd6ZnJ6Z2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNjg2MjgsImV4cCI6MjA5ODk0NDYyOH0.zuy7-fRQlfn7iYtyFoNA7MEyQJeed8o7Fqx71fsOPso",
+  VITE_API_URL: "https://soltani-signature-api.vercel.app/api/v1",
+} as const;
+
+function requiredPublicEnv(name: keyof typeof publicEnvFallbacks) {
+  const value = import.meta.env[name] || publicEnvFallbacks[name];
   if (!value) {
     throw new Error(`Missing public environment variable: ${name}`);
   }
