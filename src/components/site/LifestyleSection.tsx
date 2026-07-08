@@ -40,11 +40,17 @@ export function LifestyleSection({ eyebrow, title, kicker, items, ctaLabel = "D�
           </a>
         </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
-          {items.map((p) => (
-            <ProductCard key={p.slug} p={p} />
-          ))}
-        </div>
+        {items.length === 0 ? (
+          <div className="rounded-sm border border-dashed border-border bg-card/40 px-6 py-10 text-center text-sm text-muted-foreground">
+            Aucun produit réel disponible dans cette sélection pour le moment.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
+            {items.map((p) => (
+              <ProductCard key={p.slug} p={p} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

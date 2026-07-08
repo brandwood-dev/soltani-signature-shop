@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
-import { searchProducts, findCategoryName } from "@/data/catalog";
+import { findCategoryName } from "@/data/catalog";
+import { getCatalogProducts } from "@/lib/catalog-api";
+import type { Product } from "@/components/site/ProductCard";
 
 export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [results, setResults] = useState<Product[]>([]);
   const wrap = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  const results = useMemo(() => searchProducts(q, 6), [q]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -18,6 +19,22 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  useEffect(() => {
+    const query = q.trim();
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      getCatalogProducts({ query })
+        .then((items) => setResults(items.slice(0, 6)))
+        .catch(() => setResults([]));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [q]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

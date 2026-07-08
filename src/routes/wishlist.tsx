@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { useWishlist } from "@/hooks/useWishlist";
-import { PRODUCTS } from "@/data/catalog";
+import { getCatalogProducts } from "@/lib/catalog-api";
+import type { Product } from "@/components/site/ProductCard";
 
 export const Route = createFileRoute("/wishlist")({
   head: () => ({
@@ -17,10 +18,18 @@ export const Route = createFileRoute("/wishlist")({
 
 function WishlistPage() {
   const { slugs, remove, reconcile } = useWishlist();
-  const items = PRODUCTS.filter((p) => slugs.includes(p.slug));
+  const [products, setProducts] = useState<Product[]>([]);
+  const items = products.filter((p) => slugs.includes(p.slug));
 
   useEffect(() => {
-    reconcile(PRODUCTS.map((p) => p.slug));
+    getCatalogProducts()
+      .then((items) => {
+        setProducts(items);
+        reconcile(items.map((p) => p.slug));
+      })
+      .catch(() => {
+        setProducts([]);
+      });
   }, [reconcile]);
 
 

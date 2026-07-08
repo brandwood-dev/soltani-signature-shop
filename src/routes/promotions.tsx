@@ -1,11 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
-import { PRODUCTS } from "@/data/catalog";
 import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
-import { Heart, ShoppingBag, Flame, ChevronRight } from "lucide-react";
+import { Flame, ChevronRight } from "lucide-react";
+import { getCatalogProducts } from "@/lib/catalog-api";
+import { ProductCard, type Product } from "@/components/site/ProductCard";
 
 export const Route = createFileRoute("/promotions")({
+  loader: async (): Promise<{ products: Product[] }> => {
+    const products = await getCatalogProducts().catch(() => []);
+    return { products };
+  },
   head: () => ({
     meta: [
       { title: "Promotions — Soltani Signature" },
@@ -23,10 +28,11 @@ const DISCOUNT_TIERS = [
 
 function PromotionsPage() {
   const target = useStableDeadline(2, 14);
-  const allPromos = useMemo(() => PRODUCTS.filter((p) => p.oldPrice).map((p) => ({
+  const { products } = Route.useLoaderData();
+  const allPromos = useMemo(() => products.filter((p) => p.oldPrice).map((p) => ({
     ...p,
     discount: Math.round(((p.oldPrice! - p.price) / p.oldPrice!) * 100),
-  })), []);
+  })), [products]);
 
   const brands = useMemo(() => Array.from(new Set(allPromos.map((p) => p.brand))), [allPromos]);
 
@@ -119,37 +125,7 @@ function PromotionsPage() {
             <p className="text-center py-20 text-muted-foreground">Aucune promotion ne correspond à vos filtres.</p>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
-              {items.map((p) => (
-                <article key={p.slug} className="group relative">
-                  <Link to="/product/$slug" params={{ slug: p.slug }} className="block">
-                    <div className="relative aspect-square overflow-hidden bg-card rounded-sm">
-                      <img src={p.image} alt={p.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                      <span className="absolute top-3 left-3 px-2.5 py-1 text-[11px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm shadow-luxe">
-                        −{p.discount}%
-                      </span>
-                      <button onClick={(e) => e.preventDefault()} aria-label="Wishlist" className="absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-background/80 backdrop-blur hover:text-destructive transition">
-                        <Heart className="h-4 w-4" />
-                      </button>
-                      <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                        <button onClick={(e) => e.preventDefault()} className="w-full inline-flex items-center justify-center gap-2 h-10 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm">
-                          <ShoppingBag className="h-3.5 w-3.5" /> Ajouter
-                        </button>
-                      </div>
-                    </div>
-                    <div className="pt-4">
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-gold mb-1">{p.brand}</p>
-                      <h3 className="text-sm font-medium line-clamp-1 group-hover:text-gold transition">{p.name}</h3>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-base font-semibold tabular-nums">{p.price} DT</span>
-                        <span className="text-xs text-muted-foreground line-through tabular-nums">{p.oldPrice} DT</span>
-                      </div>
-                      <div className="mt-2 text-[11px] text-destructive">
-                        <CountdownInline target={target} />
-                      </div>
-                    </div>
-                  </Link>
-                </article>
-              ))}
+              {items.map((p) => <ProductCard key={p.slug} p={{ ...p, badge: "Promo" }} />)}
             </div>
           )}
         </div>

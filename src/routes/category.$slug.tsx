@@ -3,9 +3,7 @@ import { useState, useMemo } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { ProductCard } from "@/components/site/ProductCard";
 import {
-  PRODUCTS,
   findCategory,
-  productsByCategory,
   findParent,
 } from "@/data/catalog";
 import { getFacetsForCategory, type FacetDef } from "@/data/filters";
@@ -70,7 +68,7 @@ function CategoryPage() {
   const isParent = category.kind === "parent";
   const parent = isParent ? findParent(category.slug) : findParent(category.parent.slug);
 
-  const baseList = useMemo(() => (products.length ? products : productsByCategory(category.slug)), [category.slug, products]);
+  const baseList = useMemo(() => products, [products]);
 
   const brands = useMemo(
     () => Array.from(new Set(baseList.map((p) => p.brand))).sort(),
@@ -121,7 +119,7 @@ function CategoryPage() {
     setPrice(maxBound);
   };
 
-  const maxBound = Math.max(20000, ...baseList.map((p) => p.price), ...PRODUCTS.map((p) => p.price));
+  const maxBound = Math.max(20000, ...baseList.map((p) => p.price));
   const activeCount =
     brand.length +
     Object.values(facetSel).reduce((a, v) => a + v.length, 0) +

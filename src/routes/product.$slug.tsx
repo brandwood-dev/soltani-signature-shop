@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
-import { findProduct, productsByCategory, PRODUCTS, findCategory } from "@/data/catalog";
+import { findCategory } from "@/data/catalog";
 import { getCatalogProduct, getCatalogProducts } from "@/lib/catalog-api";
 import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
 import { useCart } from "@/hooks/useCart";
@@ -13,24 +13,17 @@ import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRigh
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }): Promise<{ product: Product; related: Product[]; bundle: Product[] }> => {
-    const product = await getCatalogProduct(params.slug).catch(() => findProduct(params.slug));
+    const product = await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
     const apiProducts = await getCatalogProducts({ category: product.category }).catch(() => []);
-    const relatedSource = apiProducts.length ? apiProducts : productsByCategory(product.category);
-    const related = relatedSource.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
-    const bundleSource = [...(apiProducts.length ? apiProducts : []), ...PRODUCTS].filter((p: Product) => p.slug !== product.slug);
-    const bundle = bundleSource.slice(0, 2);
+    const related = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
+    const bundle = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 2);
     return { product, related, bundle };
   },
   head: ({ params }) => {
-    const p = findProduct(params.slug);
-    if (!p) {
-      return { meta: [{ title: "Produit — Soltani Signature" }] };
-    }
-    const title = `${p.name} — ${p.brand} | Soltani Signature`;
-    const description = `${p.brand} · ${p.name}. Découvrez cette pièce d'exception à ${p.price} DT chez Soltani Signature. Authenticité garantie, livraison rapide en Tunisie, paiement en 3 fois sans frais.`;
-    const url = `https://soltani-signature-shop.lovable.app/product/${params.slug}`;
-    const image = p.image?.startsWith("http") ? p.image : undefined;
+    const title = "Produit — Soltani Signature";
+    const description = "Découvrez nos produits authentiques chez Soltani Signature.";
+    const url = `https://soltanisignature.com/product/${params.slug}`;
     return {
       meta: [
         { title },
@@ -39,42 +32,11 @@ export const Route = createFileRoute("/product/$slug")({
         { property: "og:description", content: description },
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
-        ...(image ? [{ property: "og:image", content: image }, { name: "twitter:image", content: image }] : []),
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
       ],
       links: [{ rel: "canonical", href: url }],
-      scripts: [
-        {
-          type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Product",
-            name: p.name,
-            brand: { "@type": "Brand", name: p.brand },
-            ...(image ? { image } : {}),
-            description,
-            sku: params.slug,
-            offers: {
-              "@type": "Offer",
-              price: p.price,
-              priceCurrency: "TND",
-              availability: "https://schema.org/InStock",
-              url,
-            },
-            ...(p.rating
-              ? {
-                  aggregateRating: {
-                    "@type": "AggregateRating",
-                    ratingValue: p.rating,
-                    reviewCount: 128,
-                  },
-                }
-              : {}),
-          }),
-        },
-      ],
     };
   },
   notFoundComponent: () => (
@@ -96,9 +58,9 @@ export const Route = createFileRoute("/product/$slug")({
 function ProductPage() {
   const { product, related, bundle } = Route.useLoaderData() as { product: Product; related: Product[]; bundle: Product[] };
   const gallery = product.gallery?.length ? product.gallery : [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
-  const category = findCategory(product.category)!;
-  const parentSlug = category.kind === "sub" ? category.parent.slug : category.slug;
-  const parentName = category.kind === "sub" ? category.parent.name : category.name;
+  const category = findCategory(product.category);
+  const parentSlug = category?.kind === "sub" ? category.parent.slug : (category?.slug ?? product.category);
+  const parentName = category?.kind === "sub" ? category.parent.name : (category?.name ?? "Catalogue");
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
@@ -125,7 +87,7 @@ function ProductPage() {
         <Link to="/" className="hover:text-gold">Accueil</Link>
         <ChevronRight className="h-3 w-3" />
         <Link to="/category/$slug" params={{ slug: parentSlug }} className="hover:text-gold">{parentName}</Link>
-        {category.kind === "sub" && (
+        {category?.kind === "sub" && (
           <>
             <ChevronRight className="h-3 w-3" />
             <Link to="/category/$slug" params={{ slug: category.slug }} className="hover:text-gold">{category.name}</Link>
@@ -234,6 +196,7 @@ function ProductPage() {
         </div>
       </section>
 
+      {bundle.length > 0 && (
       <section className="container-luxe py-12 border-t border-border">
         <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">Fréquemment achetés ensemble</h2>
         <p className="text-sm text-muted-foreground mb-8">Composez votre look signature.</p>
@@ -261,6 +224,7 @@ function ProductPage() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="container-luxe py-12 border-t border-border">
         <div className="flex gap-8 border-b border-border mb-8">
@@ -283,7 +247,7 @@ function ProductPage() {
         {tab === "specs" && (
           <div className="max-w-3xl">
             <dl className="divide-y divide-border">
-              {[["Marque", product.brand], ["Catégorie", category.name], ["Référence", product.slug.toUpperCase()], ["Garantie", "2 ans internationale"]].map(([k, v]) => (
+              {[["Marque", product.brand], ["Catégorie", category?.name ?? product.category], ["Référence", product.slug.toUpperCase()], ["Garantie", "2 ans internationale"]].map(([k, v]) => (
                 <div key={k} className="grid grid-cols-2 py-3 text-sm"><dt className="text-muted-foreground">{k}</dt><dd>{v}</dd></div>
               ))}
             </dl>

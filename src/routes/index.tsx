@@ -4,7 +4,7 @@ import { CategoryNav } from "@/components/site/CategoryNav";
 import { Header } from "@/components/site/Header";
 import { Hero } from "@/components/site/Hero";
 import { Categories } from "@/components/site/Categories";
-import { ProductGrid, BESTSELLERS, NEWARRIVALS } from "@/components/site/ProductGrid";
+import { ProductGrid } from "@/components/site/ProductGrid";
 import { Brands } from "@/components/site/Brands";
 import { PromoBanner } from "@/components/site/PromoBanner";
 import { Promo } from "@/components/site/Promo";
@@ -51,11 +51,11 @@ function Home() {
         <Hero />
         <TrustBar />
         <Categories />
-        <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={bestsellers.length ? bestsellers : BESTSELLERS} kicker="Les pièces les plus convoitées par notre clientèle." />
+        <ProductGrid eyebrow="Les Indispensables" title="Meilleures Ventes" items={bestsellers} kicker="Les pièces les plus convoitées par notre clientèle." />
         <CollectionBanners />
 
         <Brands />
-        <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={newArrivals.length ? newArrivals : NEWARRIVALS} kicker="Les dernières créations des maisons que nous distribuons." />
+        <ProductGrid eyebrow="Just Dropped" title="Nouvelles Arrivées" items={newArrivals} kicker="Les dernières créations des maisons que nous distribuons." />
         <Packs />
         <PromoBanner
           eyebrow="Collection Victoria's Secret Été 2026"

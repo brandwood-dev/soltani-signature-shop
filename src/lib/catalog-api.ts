@@ -69,6 +69,7 @@ export function mapApiProduct(product: ApiProduct): Product {
     slug: product.slug,
     name: product.name,
     brand: product.brand.name,
+    brandSlug: product.brand.slug,
     category: product.category.slug,
     price: numberValue(variant?.price ?? product.basePrice),
     oldPrice: product.compareAtPrice ? numberValue(product.compareAtPrice) : undefined,

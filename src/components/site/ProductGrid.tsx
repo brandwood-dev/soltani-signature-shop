@@ -2,8 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { type Product } from "./ProductCard";
 import { ProductCarousel } from "./ProductCarousel";
 
-export { BESTSELLERS, NEWARRIVALS } from "@/data/catalog";
-
 export function ProductGrid({ title, eyebrow, items, kicker }: { title: string; eyebrow: string; items: Product[]; kicker?: string }) {
   return (
     <section className="py-12 md:py-16 bg-background">
@@ -21,7 +19,13 @@ export function ProductGrid({ title, eyebrow, items, kicker }: { title: string; 
             Voir tout →
           </Link>
         </div>
-        <ProductCarousel items={items} />
+        {items.length === 0 ? (
+          <div className="rounded-sm border border-dashed border-border bg-card/40 px-6 py-12 text-center text-sm text-muted-foreground">
+            Aucun produit réel disponible pour le moment.
+          </div>
+        ) : (
+          <ProductCarousel items={items} />
+        )}
       </div>
     </section>
   );

@@ -1,18 +1,20 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
-import { ProductCard } from "@/components/site/ProductCard";
-import { findBrandBySlug, productsByBrand, findCategoryName } from "@/data/catalog";
+import { ProductCard, type Product } from "@/components/site/ProductCard";
+import { findCategoryName } from "@/data/catalog";
 import { ChevronRight } from "lucide-react";
+import { getCatalogProducts } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/brand/$slug")({
-  loader: ({ params }) => {
-    const brand = findBrandBySlug(params.slug);
-    if (!brand) throw notFound();
-    return { brand };
+  loader: async ({ params }): Promise<{ brand: string; products: Product[] }> => {
+    const products = await getCatalogProducts().catch(() => []);
+    const brandProducts = products.filter((product) => product.brandSlug === params.slug);
+    const brand = brandProducts[0]?.brand ?? params.slug.replace(/-/g, " ");
+    return { brand, products: brandProducts };
   },
   head: ({ params }) => {
-    const brand = findBrandBySlug(params.slug) ?? "Marque";
+    const brand = params.slug.replace(/-/g, " ");
     return {
       meta: [
         { title: `${brand} — Soltani Signature` },
@@ -37,9 +39,7 @@ export const Route = createFileRoute("/brand/$slug")({
 });
 
 function BrandPage() {
-  const { brand } = Route.useLoaderData();
-  const params = Route.useParams();
-  const products = useMemo(() => productsByBrand(params.slug), [params.slug]);
+  const { brand, products } = Route.useLoaderData();
   const cats = useMemo(
     () => Array.from(new Set(products.map((p) => p.category))),
     [products],
