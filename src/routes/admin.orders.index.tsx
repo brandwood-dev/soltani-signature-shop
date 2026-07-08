@@ -39,6 +39,9 @@ import {
 import { formatDate, formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/orders/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    query: typeof search.query === "string" ? search.query : "",
+  }),
   component: AdminOrders,
 });
 
@@ -53,7 +56,8 @@ const TAB_LABELS: Record<string, string> = {
 };
 
 function AdminOrders() {
-  const [query, setQuery] = useState("");
+  const search = Route.useSearch();
+  const [query, setQuery] = useState(search.query);
   const [tab, setTab] = useState<(typeof TABS)[number]>("all");
   const [payment, setPayment] = useState("all");
   const [page, setPage] = useState(1);
