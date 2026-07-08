@@ -1,4 +1,5 @@
 import { getCurrentAdmin } from "@/lib/api";
+import { createAdminLoginNotification } from "@/lib/admin-notifications-api";
 import { getSession, signInWithPassword, signOut } from "@/lib/supabase";
 
 export async function signInAdmin(email: string, password: string) {
@@ -13,6 +14,8 @@ export async function signInAdmin(email: string, password: string) {
     await signOut();
     throw new Error("Accès refusé : ce compte n'est pas administrateur.");
   }
+
+  createAdminLoginNotification().catch(() => undefined);
 
   return admin;
 }

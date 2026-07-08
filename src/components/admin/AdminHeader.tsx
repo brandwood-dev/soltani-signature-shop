@@ -1,8 +1,10 @@
-import { Bell, Search } from "lucide-react";
+﻿import { Bell, Search } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAdminNotifications } from "@/components/admin/AdminNotificationsProvider";
 
 type Props = {
   title: string;
@@ -11,6 +13,8 @@ type Props = {
 };
 
 export function AdminHeader({ title, subtitle, actions }: Props) {
+  const { unread } = useAdminNotifications();
+
   return (
     <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="flex h-14 items-center gap-2 px-3 sm:px-6">
@@ -28,9 +32,15 @@ export function AdminHeader({ title, subtitle, actions }: Props) {
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Rechercher">
             <Search className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
+          <Button variant="ghost" size="icon" aria-label="Notifications" className="relative" asChild>
+            <Link to="/admin/notifications">
+              <Bell className="h-4 w-4" />
+              {unread > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+            </Link>
           </Button>
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-foreground text-background text-xs">SS</AvatarFallback>

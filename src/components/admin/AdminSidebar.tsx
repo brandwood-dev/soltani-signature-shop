@@ -1,4 +1,4 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+﻿import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Package,
@@ -13,6 +13,7 @@ import {
   GalleryHorizontalEnd,
   Award,
   MessageSquareQuote,
+  Bell,
 } from "lucide-react";
 
 import {
@@ -46,7 +47,10 @@ const contentItems = [
   { title: "Avis clients", url: "/admin/testimonials", icon: MessageSquareQuote },
 ];
 
-const footerItems = [{ title: "Paramètres", url: "/admin/settings", icon: Settings }];
+const footerItems = [
+  { title: "Notifications", url: "/admin/notifications", icon: Bell },
+  { title: "Paramètres", url: "/admin/settings", icon: Settings },
+];
 
 export function AdminSidebar() {
   const { state, setOpenMobile, isMobile } = useSidebar();

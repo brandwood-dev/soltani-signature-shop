@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { requireAdminSession } from "@/lib/admin/auth";
+import { AdminNotificationsProvider } from "@/components/admin/AdminNotificationsProvider";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -49,12 +50,14 @@ function AdminLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-muted/30">
-        <AdminSidebar />
-        <SidebarInset className="flex min-w-0 flex-1 flex-col">
-          <Outlet />
-        </SidebarInset>
-      </div>
+      <AdminNotificationsProvider>
+        <div className="flex min-h-screen w-full bg-muted/30">
+          <AdminSidebar />
+          <SidebarInset className="flex min-w-0 flex-1 flex-col">
+            <Outlet />
+          </SidebarInset>
+        </div>
+      </AdminNotificationsProvider>
     </SidebarProvider>
   );
 }
