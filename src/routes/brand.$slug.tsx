@@ -8,7 +8,7 @@ import { getCatalogProducts } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/brand/$slug")({
   loader: async ({ params }): Promise<{ brand: string; products: Product[] }> => {
-    const products = await getCatalogProducts().catch(() => []);
+    const products = await getCatalogProducts().catch((): Product[] => []);
     const brandProducts = products.filter((product) => product.brandSlug === params.slug);
     const brand = brandProducts[0]?.brand ?? params.slug.replace(/-/g, " ");
     return { brand, products: brandProducts };
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/brand/$slug")({
 });
 
 function BrandPage() {
-  const { brand, products } = Route.useLoaderData();
+  const { brand, products } = Route.useLoaderData() as { brand: string; products: Product[] };
   const cats = useMemo(
     () => Array.from(new Set(products.map((p) => p.category))),
     [products],

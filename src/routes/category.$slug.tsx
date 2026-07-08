@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
-import { ProductCard } from "@/components/site/ProductCard";
+import { ProductCard, type Product } from "@/components/site/ProductCard";
 import {
   findCategory,
   findParent,
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/category/$slug")({
   loader: async ({ params }) => {
     const cat = findCategory(params.slug);
     if (!cat) throw notFound();
-    const products = await getCatalogProducts({ category: params.slug }).catch(() => []);
+    const products = await getCatalogProducts({ category: params.slug }).catch((): Product[] => []);
     return { category: cat, products };
   },
   head: ({ params }) => {
@@ -57,7 +57,7 @@ export const Route = createFileRoute("/category/$slug")({
 });
 
 function CategoryPage() {
-  const { category, products } = Route.useLoaderData();
+  const { category, products } = Route.useLoaderData() as { category: ReturnType<typeof findCategory> & object; products: Product[] };
   const [openFilters, setOpenFilters] = useState(false);
   const [price, setPrice] = useState(20000);
   const [brand, setBrand] = useState<string[]>([]);
