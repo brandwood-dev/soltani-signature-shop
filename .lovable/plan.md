@@ -1,18 +1,32 @@
-# Supprimer le badge « Edit with Lovable »
+## Pourquoi le build échoue
 
-Le badge « Edit with Lovable » est injecté automatiquement par Lovable sur toutes les versions publiées (y compris votre domaine personnalisé `soltanisignature.com`). Il ne fait pas partie du code du projet — impossible donc de le retirer en modifiant un fichier. Il se désactive via un réglage de publication.
+Le build TypeScript échoue à cause de 28 erreurs concentrées dans **3 fichiers de route** — aucune ne concerne ta page CGV/Confidentialité/Mentions (qui est bien mise à jour).
 
-## Ce que je vais faire
+### Cause racine
 
-1. Basculer le réglage de visibilité du badge sur « masqué » via l'outil `set_badge_visibility` (`hide_badge: true`).
-2. Republier le site pour que le changement soit visible en production sur `www.soltanisignature.com`.
+Dans chacun de ces fichiers, le loader appelle :
 
-## Prérequis important
+```ts
+const products = await getCatalogProducts(...).catch(() => []);
+```
 
-Masquer le badge nécessite un **plan Pro ou supérieur** sur Lovable. Si votre espace de travail est sur le plan gratuit, l'appel échouera et il faudra d'abord passer à un plan Pro depuis les paramètres de facturation.
+Le fallback `() => []` retourne `never[]`. TypeScript infère alors le type de retour du loader comme `never[]`, ce qui fait perdre le type `Product[]` que TanStack Router expose via `useLoaderData()`. Résultat : tous les `.filter((p) => …)`, `.map((p) => …)`, clés `key={p.slug}`, etc. deviennent `any`/`unknown` → erreurs TS7006 / TS2322 / TS2345.
 
-## Après application
+## Correctif (minimal, 3 fichiers)
 
-- Le badge disparaîtra du site publié (Lovable URL + domaine personnalisé) dès que la nouvelle version sera déployée (~1 minute).
-- Le badge restera visible dans l'éditeur / la preview — c'est normal, il ne concerne que les déploiements publics.
-- Réversible à tout moment (`hide_badge: false`).
+Typer explicitement le fallback pour préserver `Product[]` :
+
+1. **`src/routes/promotions.tsx`** (ligne 11)
+   ```ts
+   const products = await getCatalogProducts().catch((): Product[] => []);
+   ```
+
+2. **`src/routes/category.$slug.tsx`** (ligne 17)
+   - Importer le type : `import { ProductCard, type Product } from "@/components/site/ProductCard";`
+   - `const products = await getCatalogProducts({ category: params.slug }).catch((): Product[] => []);`
+
+3. **`src/routes/brand.$slug.tsx`** (même patron)
+   - Importer `type Product` depuis `@/components/site/ProductCard`
+   - Typer le `.catch((): Product[] => [])`
+
+Aucun autre changement — pas de logique métier ni d'UI touchée. Les erreurs TS7006/TS2322/TS2345 disparaissent d'un coup car le type `Product` remonte correctement dans les `useLoaderData()`.
