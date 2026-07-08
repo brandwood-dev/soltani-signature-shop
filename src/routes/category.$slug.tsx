@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
-import { ProductCard } from "@/components/site/ProductCard";
+import { ProductCard, type Product } from "@/components/site/ProductCard";
 import {
   findCategory,
   findParent,
