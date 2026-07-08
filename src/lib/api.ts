@@ -25,7 +25,7 @@ type ApiErrorBody = {
 };
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}) {
-  const session = await getSession();
+  const session = typeof window === "undefined" ? null : await getSession();
 
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
@@ -64,7 +64,7 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
+    const timeoutId = globalThis.setTimeout(() => controller.abort(), 20_000);
 
     try {
       return await fetch(url, {
@@ -74,9 +74,9 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
     } catch (error) {
       lastError = error;
       if (attempt === attempts) break;
-      await new Promise((resolve) => window.setTimeout(resolve, attempt * 500));
+      await new Promise((resolve) => globalThis.setTimeout(resolve, attempt * 500));
     } finally {
-      window.clearTimeout(timeoutId);
+      globalThis.clearTimeout(timeoutId);
     }
   }
 
