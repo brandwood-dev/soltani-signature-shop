@@ -20,10 +20,10 @@ export function Brands() {
     <section className="overflow-hidden border-y border-border bg-secondary/40 py-16">
       <div className="container-luxe mb-8 text-center">
         <span className="text-[11px] uppercase tracking-[0.4em] text-gold">
-          Les signatures de beautÃ© & lifestyle
+          Les signatures de beauté & lifestyle
         </span>
         <h2 className="mt-3 font-display text-3xl font-semibold text-foreground md:text-4xl">
-          NOS MARQUES Ã€ LA UNE
+          NOS MARQUES À LA UNE
         </h2>
       </div>
       <div className="relative">

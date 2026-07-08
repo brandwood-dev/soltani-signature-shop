@@ -40,7 +40,7 @@ export function Hero() {
   return (
     <section className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
       <h1 className="sr-only">
-        Soltani Signature â€” Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
+        Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
       </h1>
       <AnimatePresence mode="sync">
         <motion.div
@@ -108,7 +108,7 @@ export function Hero() {
         <button
           onClick={() => setIndex((current) => (current - 1 + slides.length) % slides.length)}
           className="grid h-11 w-11 place-items-center rounded-full border border-gold/50 bg-background/70 text-gold backdrop-blur transition hover:bg-gold hover:text-ink"
-          aria-label="PrÃ©cÃ©dent"
+          aria-label="Précédent"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
