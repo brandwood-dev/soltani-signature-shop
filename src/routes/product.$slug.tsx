@@ -141,12 +141,26 @@ function ProductPage() {
             {gallery.map((g, i) => (
               <button key={i} onClick={() => setActive(i)}
                 className={`aspect-square overflow-hidden rounded-sm border-2 transition ${active === i ? "border-gold" : "border-border hover:border-gold/50"}`}>
-                <img src={g} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={g}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.src = "/placeholder.svg";
+                  }}
+                  className="h-full w-full object-contain object-center p-2"
+                />
               </button>
             ))}
           </div>
           <div className="relative group aspect-square overflow-hidden rounded-sm bg-card">
-            <img src={gallery[active]} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-150 cursor-zoom-in" />
+            <img
+              src={gallery[active]}
+              alt={product.name}
+              onError={(event) => {
+                event.currentTarget.src = "/placeholder.svg";
+              }}
+              className="h-full w-full object-contain object-center p-4 transition-transform duration-500 group-hover:scale-150 cursor-zoom-in"
+            />
             {discount > 0 && (
               <span className="absolute top-4 left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">−{discount}%</span>
             )}

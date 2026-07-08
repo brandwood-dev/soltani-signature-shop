@@ -261,7 +261,14 @@ function AdminNewProduct() {
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {images.map((src, i) => (
                       <div key={i} className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
-                        <img src={src} alt="" className="h-full w-full object-cover" />
+                        <img
+                          src={src}
+                          alt=""
+                          onError={(event) => {
+                            event.currentTarget.src = "/placeholder.svg";
+                          }}
+                          className="h-full w-full object-contain object-center p-2"
+                        />
                         {i === 0 && (
                           <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
                             Principale

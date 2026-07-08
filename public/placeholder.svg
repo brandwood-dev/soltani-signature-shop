@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="Image produit indisponible">
+  <rect width="800" height="800" fill="#f7f3ed"/>
+  <rect x="90" y="90" width="620" height="620" rx="18" fill="none" stroke="#d8c5a3" stroke-width="10"/>
+  <circle cx="310" cy="315" r="64" fill="#d8c5a3"/>
+  <path d="M150 630 330 450l105 105 80-80 135 155H150z" fill="#d8c5a3"/>
+  <text x="400" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="5" fill="#9b7a3e">SOLTANI</text>
+</svg>

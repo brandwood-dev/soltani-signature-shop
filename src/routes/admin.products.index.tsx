@@ -87,7 +87,7 @@ function AdminProducts() {
 
   const paged = products;
   const allChecked = paged.length > 0 && paged.every((p) => selected.has(p.id));
-  const productImage = (product: AdminProduct) => product.images[0]?.url ?? "/placeholder.svg";
+  const productImage = (product: AdminProduct) => product.images[0]?.url || "/placeholder.svg";
 
   const toggleAll = () => {
     const next = new Set(selected);
@@ -224,7 +224,14 @@ function AdminProducts() {
           <div className="divide-y divide-border sm:hidden">
             {paged.map((p) => (
               <div key={p.id} className="flex gap-3 p-3">
-                <img src={productImage(p)} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
+                <img
+                  src={productImage(p)}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.src = "/placeholder.svg";
+                  }}
+                  className="h-16 w-16 shrink-0 rounded-md bg-muted object-contain object-center p-1"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <p className="line-clamp-2 text-sm font-medium leading-tight">{p.name}</p>
@@ -288,7 +295,14 @@ function AdminProducts() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img src={productImage(p)} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" />
+                        <img
+                          src={productImage(p)}
+                          alt=""
+                          onError={(event) => {
+                            event.currentTarget.src = "/placeholder.svg";
+                          }}
+                          className="h-10 w-10 shrink-0 rounded-md bg-muted object-contain object-center p-1"
+                        />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{p.name}</p>
                           <p className="truncate text-xs text-muted-foreground">{p.brand}</p>

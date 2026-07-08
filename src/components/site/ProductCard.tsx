@@ -53,7 +53,10 @@ export function ProductCard({ p }: { p: Product }) {
             src={p.image}
             alt={p.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
+            onError={(event) => {
+              event.currentTarget.src = "/placeholder.svg";
+            }}
+            className="h-full w-full object-contain object-center p-3 transition-transform duration-[900ms] ease-out group-hover:scale-105"
           />
 
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
