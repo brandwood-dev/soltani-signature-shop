@@ -39,7 +39,7 @@ export const Route = createFileRoute("/brand/$slug")({
 });
 
 function BrandPage() {
-  const { brand, products } = Route.useLoaderData();
+  const { brand, products } = Route.useLoaderData() as { brand: string; products: Product[] };
   const cats = useMemo(
     () => Array.from(new Set(products.map((p) => p.category))),
     [products],
