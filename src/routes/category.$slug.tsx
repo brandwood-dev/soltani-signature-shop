@@ -14,7 +14,7 @@ export const Route = createFileRoute("/category/$slug")({
   loader: async ({ params }) => {
     const cat = findCategory(params.slug);
     if (!cat) throw notFound();
-    const products = await getCatalogProducts({ category: params.slug }).catch(() => []);
+    const products = await getCatalogProducts({ category: params.slug }).catch((): Product[] => []);
     return { category: cat, products };
   },
   head: ({ params }) => {
