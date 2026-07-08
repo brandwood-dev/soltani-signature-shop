@@ -28,7 +28,7 @@ const DISCOUNT_TIERS = [
 
 function PromotionsPage() {
   const target = useStableDeadline(2, 14);
-  const { products } = Route.useLoaderData();
+  const { products } = Route.useLoaderData() as { products: Product[] };
   const allPromos = useMemo(() => products.filter((p) => p.oldPrice).map((p) => ({
     ...p,
     discount: Math.round(((p.oldPrice! - p.price) / p.oldPrice!) * 100),
