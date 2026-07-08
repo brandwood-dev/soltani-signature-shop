@@ -8,7 +8,7 @@ import { ProductCard, type Product } from "@/components/site/ProductCard";
 
 export const Route = createFileRoute("/promotions")({
   loader: async (): Promise<{ products: Product[] }> => {
-    const products = await getCatalogProducts().catch(() => []);
+    const products = await getCatalogProducts().catch((): Product[] => []);
     return { products };
   },
   head: () => ({
