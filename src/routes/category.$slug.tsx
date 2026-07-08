@@ -57,7 +57,7 @@ export const Route = createFileRoute("/category/$slug")({
 });
 
 function CategoryPage() {
-  const { category, products } = Route.useLoaderData();
+  const { category, products } = Route.useLoaderData() as { category: ReturnType<typeof findCategory> & object; products: Product[] };
   const [openFilters, setOpenFilters] = useState(false);
   const [price, setPrice] = useState(20000);
   const [brand, setBrand] = useState<string[]>([]);
