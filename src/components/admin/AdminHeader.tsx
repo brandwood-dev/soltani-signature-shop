@@ -1,5 +1,5 @@
 ﻿import { Bell, Search } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ type Props = {
 
 export function AdminHeader({ title, subtitle, actions }: Props) {
   const { unread } = useAdminNotifications();
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -32,15 +33,19 @@ export function AdminHeader({ title, subtitle, actions }: Props) {
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Rechercher">
             <Search className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Notifications" className="relative" asChild>
-            <Link to="/admin/notifications">
-              <Bell className="h-4 w-4" />
-              {unread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
-                  {unread > 99 ? "99+" : unread}
-                </span>
-              )}
-            </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Notifications"
+            className="relative"
+            onClick={() => navigate({ to: "/admin/notifications" })}
+          >
+            <Bell className="h-4 w-4" />
+            {unread > 0 && (
+              <span className="pointer-events-none absolute -right-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
           </Button>
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-foreground text-background text-xs">SS</AvatarFallback>
