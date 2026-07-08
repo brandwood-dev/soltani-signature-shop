@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CATEGORY_TREE } from "@/data/catalog";
 import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
+import { createAdminProduct, uploadAdminProductImage } from "@/lib/admin-products-api";
 
 export const Route = createFileRoute("/admin/products/new")({
   component: AdminNewProduct,
@@ -67,6 +68,9 @@ function AdminNewProduct() {
   const [tags, setTags] = useState<string[]>([]);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
   const addImage = () => {
     if (!newImage.trim()) return;
@@ -74,6 +78,19 @@ function AdminNewProduct() {
     setNewImage("");
   };
   const removeImage = (i: number) => setImages((s) => s.filter((_, idx) => idx !== i));
+  const uploadImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    try {
+      setUploading(true);
+      setError("");
+      const uploaded = await Promise.all(Array.from(files).map((file) => uploadAdminProductImage(file)));
+      setImages((current) => [...current, ...uploaded]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload image impossible.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const addTag = () => {
     const t = tagInput.trim();
@@ -83,10 +100,40 @@ function AdminNewProduct() {
   };
   const removeTag = (t: string) => setTags((s) => s.filter((x) => x !== t));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock — pas de backend
-    navigate({ to: "/admin/products" });
+    try {
+      setSaving(true);
+      setError("");
+      await createAdminProduct({
+        name,
+        slug: slug || slugify(name),
+        shortDescription,
+        description,
+        price: Number(price),
+        compareAtPrice: comparePrice ? Number(comparePrice) : null,
+        stockQuantity: trackInventory ? Number(stock || 0) : 0,
+        sku,
+        category,
+        subcategory: subcategory || undefined,
+        brand,
+        tags,
+        images: images.map((url) => ({ url, alt: name })),
+        attributes: Object.entries(attributes).flatMap(([key, values]) =>
+          values.map((value) => ({ key, value })),
+        ),
+        seoTitle: seoTitle || name,
+        seoDescription,
+        status: status as "draft" | "active" | "archived",
+        isFeatured: featured,
+        lowStockThreshold: Number(lowStockAlert || 5),
+      });
+      navigate({ to: "/admin/products" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible d'enregistrer le produit.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -104,7 +151,7 @@ function AdminNewProduct() {
             </Button>
             <Button form="new-product-form" type="submit" size="sm" className="h-9">
               <Save className="h-4 w-4" />
-              <span className="hidden sm:inline">Enregistrer</span>
+              <span className="hidden sm:inline">{saving ? "Enregistrement…" : "Enregistrer"}</span>
             </Button>
           </div>
         }
@@ -115,6 +162,11 @@ function AdminNewProduct() {
         onSubmit={handleSubmit}
         className="flex-1 p-3 sm:p-6"
       >
+        {error && (
+          <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
         <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
           {/* Colonne principale */}
           <div className="space-y-3 sm:space-y-6 lg:col-span-2">
@@ -192,6 +244,18 @@ function AdminNewProduct() {
                     <ImagePlus className="h-4 w-4" />
                     <span className="hidden sm:inline">Ajouter</span>
                   </Button>
+                </div>
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    disabled={uploading}
+                    onChange={(event) => uploadImages(event.target.files)}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {uploading ? "Upload en cours…" : "Vous pouvez aussi uploader plusieurs images."}
+                  </p>
                 </div>
                 {images.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">

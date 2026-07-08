@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Filter } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -30,7 +30,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MOCK_PRODUCTS, formatTND } from "@/lib/admin/mock-data";
+import {
+  deleteAdminProduct,
+  getAdminProducts,
+  type AdminProduct,
+  type AdminProductStatus,
+} from "@/lib/admin-products-api";
+import { formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/products/")({
   component: AdminProducts,
@@ -43,30 +49,45 @@ function AdminProducts() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const categories = useMemo(
-    () => Array.from(new Set(MOCK_PRODUCTS.map((p) => p.category))).sort(),
-    []
+    () => Array.from(new Set(products.map((p) => p.categoryName))).sort(),
+    [products],
   );
 
-  const filtered = useMemo(() => {
-    return MOCK_PRODUCTS.filter((p) => {
-      if (status !== "all" && p.status !== status) return false;
-      if (category !== "all" && p.category !== category) return false;
-      if (query) {
-        const q = query.toLowerCase();
-        return (
-          p.name.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [query, status, category]);
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await getAdminProducts({
+        query,
+        status: status as "all" | AdminProductStatus,
+        category,
+        page,
+        pageSize,
+      });
+      setProducts(response.products);
+      setTotal(response.pagination.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de charger les produits.");
+      setProducts([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+  useEffect(() => {
+    refresh();
+  }, [query, status, category, page, pageSize]);
+
+  const paged = products;
   const allChecked = paged.length > 0 && paged.every((p) => selected.has(p.id));
+  const productImage = (product: AdminProduct) => product.images[0]?.url ?? "/placeholder.svg";
 
   const toggleAll = () => {
     const next = new Set(selected);
@@ -81,11 +102,27 @@ function AdminProducts() {
     setSelected(next);
   };
 
+  const removeProduct = async (id: string) => {
+    if (!window.confirm("Supprimer ce produit ? Il sera archivé s'il est lié à une commande.")) return;
+    try {
+      setError("");
+      await deleteAdminProduct(id);
+      setSelected((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de supprimer le produit.");
+    }
+  };
+
   return (
     <>
       <AdminHeader
         title="Produits"
-        subtitle={`${filtered.length} produits au catalogue`}
+        subtitle={`${total} produits au catalogue`}
         actions={
           <Button asChild size="sm" className="h-9">
             <Link to="/admin/products/new">
@@ -98,7 +135,6 @@ function AdminProducts() {
       />
 
       <div className="flex-1 space-y-3 p-3 sm:space-y-4 sm:p-6">
-        {/* Filters */}
         <Card>
           <CardContent className="p-3 sm:p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -160,35 +196,38 @@ function AdminProducts() {
             {selected.size > 0 && (
               <div className="mt-3 flex items-center justify-between rounded-md border border-border bg-muted/50 px-3 py-2 text-xs">
                 <span>{selected.size} sélectionné(s)</span>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" className="h-7">
-                    Archiver
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-destructive">
-                    Supprimer
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-destructive"
+                  onClick={() => selected.forEach((id) => void removeProduct(id))}
+                >
+                  Supprimer
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Table / Cards */}
         <Card className="overflow-hidden">
-          {/* Mobile cards */}
+          {error && (
+            <div className="border-b border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+          {loading && (
+            <div className="border-b border-border px-4 py-3 text-sm text-muted-foreground">
+              Chargement des produits…
+            </div>
+          )}
+
           <div className="divide-y divide-border sm:hidden">
             {paged.map((p) => (
               <div key={p.id} className="flex gap-3 p-3">
-                <img
-                  src={p.image}
-                  alt=""
-                  className="h-16 w-16 shrink-0 rounded-md object-cover"
-                />
+                <img src={productImage(p)} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="line-clamp-2 text-sm font-medium leading-tight">
-                      {p.name}
-                    </p>
+                    <p className="line-clamp-2 text-sm font-medium leading-tight">{p.name}</p>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="-mr-2 -mt-1 h-7 w-7 shrink-0">
@@ -201,7 +240,7 @@ function AdminProducts() {
                             <Pencil className="h-4 w-4" /> Modifier
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem className="text-destructive" onClick={() => removeProduct(p.id)}>
                           <Trash2 className="h-4 w-4" /> Supprimer
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -213,25 +252,18 @@ function AdminProducts() {
                   <div className="mt-2 flex items-center justify-between">
                     <StatusBadge status={p.status} />
                     <div className="text-right">
-                      <p className="text-sm font-semibold tabular-nums">
-                        {formatTND(p.price)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Stock : {p.stock}
-                      </p>
+                      <p className="text-sm font-semibold tabular-nums">{formatTND(p.price)}</p>
+                      <p className="text-[10px] text-muted-foreground">Stock : {p.stockQuantity}</p>
                     </div>
                   </div>
                 </div>
               </div>
             ))}
-            {paged.length === 0 && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Aucun produit trouvé.
-              </div>
+            {!loading && paged.length === 0 && (
+              <div className="p-8 text-center text-sm text-muted-foreground">Aucun produit trouvé.</div>
             )}
           </div>
 
-          {/* Desktop table */}
           <div className="hidden sm:block">
             <Table>
               <TableHeader>
@@ -245,35 +277,26 @@ function AdminProducts() {
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Prix</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paged.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>
-                      <Checkbox
-                        checked={selected.has(p.id)}
-                        onCheckedChange={() => toggleOne(p.id)}
-                      />
+                      <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={p.image}
-                          alt=""
-                          className="h-10 w-10 shrink-0 rounded-md object-cover"
-                        />
+                        <img src={productImage(p)} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{p.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {p.brand}
-                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{p.brand}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
-                      {p.category}
+                      {p.subcategoryName ?? p.categoryName}
                     </TableCell>
                     <TableCell className="hidden font-mono text-xs text-muted-foreground lg:table-cell">
                       {p.sku}
@@ -287,14 +310,14 @@ function AdminProducts() {
                     <TableCell className="text-right tabular-nums">
                       <span
                         className={
-                          p.stock < 5
+                          p.stockQuantity < 5
                             ? "text-rose-600"
-                            : p.stock < 15
+                            : p.stockQuantity < 15
                               ? "text-amber-600"
                               : ""
                         }
                       >
-                        {p.stock}
+                        {p.stockQuantity}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -310,7 +333,7 @@ function AdminProducts() {
                               <Pencil className="h-4 w-4" /> Modifier
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem className="text-destructive" onClick={() => removeProduct(p.id)}>
                             <Trash2 className="h-4 w-4" /> Supprimer
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -318,7 +341,7 @@ function AdminProducts() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {paged.length === 0 && (
+                {!loading && paged.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
                       Aucun produit trouvé.
@@ -332,7 +355,7 @@ function AdminProducts() {
           <DataPagination
             page={page}
             pageSize={pageSize}
-            total={filtered.length}
+            total={total}
             onPageChange={setPage}
             onPageSizeChange={(s) => {
               setPageSize(s);

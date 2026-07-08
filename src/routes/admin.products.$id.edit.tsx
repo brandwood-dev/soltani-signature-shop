@@ -1,5 +1,5 @@
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ImagePlus, X, Save, Trash2, Eye } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -28,7 +28,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { MOCK_PRODUCTS } from "@/lib/admin/mock-data";
+import {
+  getAdminProduct,
+  updateAdminProduct,
+  uploadAdminProductImage,
+  type AdminProduct,
+} from "@/lib/admin-products-api";
 
 const CATEGORIES = ["Parfums", "Soins", "Maquillage", "Sacs", "Montres", "Accessoires"];
 const BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
@@ -49,52 +54,75 @@ function slugify(s: string) {
 
 export const Route = createFileRoute("/admin/products/$id/edit")({
   component: AdminEditProduct,
-  notFoundComponent: () => (
-    <div className="p-8 text-center text-sm text-muted-foreground">
-      Produit introuvable.{" "}
-      <Link to="/admin/products" className="text-primary underline">
-        Retour à la liste
-      </Link>
-    </div>
-  ),
-  loader: ({ params }) => {
-    const product = MOCK_PRODUCTS.find((p) => p.id === params.id);
-    if (!product) throw notFound();
-    return { product };
-  },
 });
 
 function AdminEditProduct() {
   const navigate = useNavigate();
-  const { product } = Route.useLoaderData();
+  const { id } = Route.useParams();
+  const [product, setProduct] = useState<AdminProduct | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [name, setName] = useState(product.name);
-  const [slug, setSlug] = useState(slugify(product.name));
-  const [sku, setSku] = useState(product.sku);
-  const [brand, setBrand] = useState(product.brand);
-  const [category, setCategory] = useState(product.category);
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [sku, setSku] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
-  const [description, setDescription] = useState(
-    `${product.name} — un produit ${product.brand} de la catégorie ${product.category}.`
-  );
-  const [shortDescription, setShortDescription] = useState(
-    `${product.brand} · ${product.category}`
-  );
-  const [price, setPrice] = useState(product.price.toString());
+  const [description, setDescription] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [comparePrice, setComparePrice] = useState("");
   const [cost, setCost] = useState("");
-  const [stock, setStock] = useState(product.stock.toString());
+  const [stock, setStock] = useState("");
   const [lowStockAlert, setLowStockAlert] = useState("5");
   const [weight, setWeight] = useState("");
-  const [status, setStatus] = useState(product.status);
+  const [status, setStatus] = useState("draft");
   const [featured, setFeatured] = useState(false);
   const [trackInventory, setTrackInventory] = useState(true);
-  const [images, setImages] = useState<string[]>([product.image]);
+  const [images, setImages] = useState<string[]>([]);
   const [newImage, setNewImage] = useState("");
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([product.brand, product.category]);
-  const [seoTitle, setSeoTitle] = useState(product.name);
+  const [tags, setTags] = useState<string[]>([]);
+  const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+
+  useEffect(() => {
+    const loadProduct = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const loaded = await getAdminProduct(id);
+        setProduct(loaded);
+        setName(loaded.name);
+        setSlug(loaded.slug);
+        setSku(loaded.sku);
+        setBrand(loaded.brand);
+        setCategory(loaded.category);
+        setSubcategory(loaded.subcategory ?? "");
+        setDescription(loaded.description ?? "");
+        setShortDescription(loaded.shortDescription ?? "");
+        setPrice(String(loaded.price));
+        setComparePrice(loaded.compareAtPrice ? String(loaded.compareAtPrice) : "");
+        setStock(String(loaded.stockQuantity));
+        setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
+        setStatus(loaded.status);
+        setFeatured(loaded.isFeatured);
+        setImages(loaded.images.map((image) => image.url));
+        setTags(loaded.tags);
+        setSeoTitle(loaded.seoTitle ?? loaded.name);
+        setSeoDescription(loaded.seoDescription ?? "");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Produit introuvable.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadProduct();
+  }, [id]);
 
   const addImage = () => {
     if (!newImage.trim()) return;
@@ -102,6 +130,19 @@ function AdminEditProduct() {
     setNewImage("");
   };
   const removeImage = (i: number) => setImages((s) => s.filter((_, idx) => idx !== i));
+  const uploadImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    try {
+      setUploading(true);
+      setError("");
+      const uploaded = await Promise.all(Array.from(files).map((file) => uploadAdminProductImage(file)));
+      setImages((current) => [...current, ...uploaded]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload image impossible.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const addTag = () => {
     const t = tagInput.trim();
@@ -111,16 +152,44 @@ function AdminEditProduct() {
   };
   const removeTag = (t: string) => setTags((s) => s.filter((x) => x !== t));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate({ to: "/admin/products" });
+    try {
+      setSaving(true);
+      setError("");
+      await updateAdminProduct(id, {
+        name,
+        slug: slug || slugify(name),
+        shortDescription,
+        description,
+        price: Number(price),
+        compareAtPrice: comparePrice ? Number(comparePrice) : null,
+        stockQuantity: trackInventory ? Number(stock || 0) : 0,
+        sku,
+        category,
+        subcategory: subcategory || undefined,
+        brand,
+        tags,
+        images: images.map((url) => ({ url, alt: name })),
+        seoTitle: seoTitle || name,
+        seoDescription,
+        status: status as "draft" | "active" | "archived",
+        isFeatured: featured,
+        lowStockThreshold: Number(lowStockAlert || 5),
+      });
+      navigate({ to: "/admin/products" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible d'enregistrer le produit.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <>
       <AdminHeader
-        title={`Modifier — ${product.name}`}
-        subtitle={`SKU ${product.sku}`}
+        title={`Modifier — ${product?.name ?? "Produit"}`}
+        subtitle={product?.sku ? `SKU ${product.sku}` : "Chargement du produit"}
         actions={
           <div className="flex gap-2">
             <Button asChild variant="ghost" size="sm" className="h-9">
@@ -131,13 +200,29 @@ function AdminEditProduct() {
             </Button>
             <Button form="edit-product-form" type="submit" size="sm" className="h-9">
               <Save className="h-4 w-4" />
-              <span className="hidden sm:inline">Enregistrer</span>
+              <span className="hidden sm:inline">{saving ? "Enregistrement…" : "Enregistrer"}</span>
             </Button>
           </div>
         }
       />
 
       <form id="edit-product-form" onSubmit={handleSubmit} className="flex-1 p-3 sm:p-6">
+        {error && (
+          <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}{" "}
+            {!loading && !product && (
+              <Link to="/admin/products" className="font-medium underline">
+                Retour à la liste
+              </Link>
+            )}
+          </div>
+        )}
+        {loading && (
+          <div className="mb-4 rounded-md border border-border px-4 py-3 text-sm text-muted-foreground">
+            Chargement du produit…
+          </div>
+        )}
+        {!loading && !product ? null : (
         <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
           {/* Main column */}
           <div className="space-y-3 sm:space-y-6 lg:col-span-2">
@@ -204,6 +289,18 @@ function AdminEditProduct() {
                     <ImagePlus className="h-4 w-4" />
                     <span className="hidden sm:inline">Ajouter</span>
                   </Button>
+                </div>
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    disabled={uploading}
+                    onChange={(event) => uploadImages(event.target.files)}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {uploading ? "Upload en cours…" : "Vous pouvez aussi uploader plusieurs images."}
+                  </p>
                 </div>
                 {images.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -527,6 +624,7 @@ function AdminEditProduct() {
             </div>
           </div>
         </div>
+        )}
       </form>
     </>
   );
