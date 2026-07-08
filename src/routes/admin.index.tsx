@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   TrendingUp,
   ShoppingBag,
@@ -29,12 +29,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  MOCK_ORDERS,
-  TOP_PRODUCTS,
   formatDate,
   formatTND,
 } from "@/lib/admin/mock-data";
-import { computeKPIs } from "@/lib/admin/kpi";
+import {
+  getAdminDashboard,
+  type AdminDashboardResponse,
+} from "@/lib/admin-dashboard-api";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -42,33 +43,61 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminDashboard() {
   const [period, setPeriod] = useState<DatePeriod>(() => getDefaultPeriod());
-  const kpis = useMemo(() => computeKPIs(period), [period]);
-  const max = Math.max(...kpis.series.map((d) => d.value), 1);
-  const recentOrders = MOCK_ORDERS.slice(0, 6);
+  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const kpis = dashboard?.kpis;
+  const series = dashboard?.series ?? [];
+  const topProducts = dashboard?.topProducts ?? [];
+  const recentOrders = dashboard?.recentOrders ?? [];
+  const max = Math.max(...series.map((d) => d.value), 1);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError("");
+        const next = await getAdminDashboard(period);
+        if (mounted) setDashboard(next);
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : "Impossible de charger le tableau de bord.");
+          setDashboard(null);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    loadDashboard();
+    return () => {
+      mounted = false;
+    };
+  }, [period]);
 
   const cards = [
     {
       label: "Chiffre d'affaires",
-      value: formatTND(kpis.revenue),
-      delta: kpis.revenueDelta,
+      value: formatTND(kpis?.revenue ?? 0),
+      delta: kpis?.revenueDelta ?? 0,
       icon: TrendingUp,
     },
     {
       label: "Commandes",
-      value: kpis.orders.toString(),
-      delta: kpis.ordersDelta,
+      value: String(kpis?.orders ?? 0),
+      delta: kpis?.ordersDelta ?? 0,
       icon: ShoppingBag,
     },
     {
       label: "Nouveaux clients",
-      value: kpis.customers.toString(),
-      delta: kpis.customersDelta,
+      value: String(kpis?.customers ?? 0),
+      delta: kpis?.customersDelta ?? 0,
       icon: Users,
     },
     {
       label: "Panier moyen",
-      value: formatTND(kpis.averageBasket),
-      delta: kpis.averageBasketDelta,
+      value: formatTND(kpis?.averageBasket ?? 0),
+      delta: kpis?.averageBasketDelta ?? 0,
       icon: Package,
     },
 
@@ -91,6 +120,12 @@ function AdminDashboard() {
       />
 
       <div className="flex-1 space-y-4 p-3 sm:space-y-6 sm:p-6">
+        {error && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         {/* KPIs */}
         <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {cards.map((k) => {
@@ -138,7 +173,7 @@ function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex h-48 items-end gap-1.5 overflow-x-auto sm:h-64 sm:gap-2">
-                {kpis.series.map((d, i) => (
+                {series.map((d, i) => (
                   <div
                     key={i}
                     className="flex min-w-[28px] flex-1 flex-col items-center gap-2"
@@ -155,6 +190,16 @@ function AdminDashboard() {
                     </span>
                   </div>
                 ))}
+                {!loading && series.length === 0 && (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                    Aucune donnée de revenu sur cette période.
+                  </div>
+                )}
+                {loading && (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                    Chargement du graphique…
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -165,13 +210,17 @@ function AdminDashboard() {
               <CardTitle className="text-base">Top produits</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {TOP_PRODUCTS.map((p) => (
+              {topProducts.map((p) => (
                 <div key={p.id} className="flex items-center gap-3">
-                  <img
-                    src={p.image}
-                    alt=""
-                    className="h-10 w-10 shrink-0 rounded-md object-cover"
-                  />
+                  {p.image ? (
+                    <img
+                      src={p.image}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 shrink-0 rounded-md bg-muted" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{p.name}</p>
                     <p className="text-xs text-muted-foreground">{p.brand}</p>
@@ -184,6 +233,16 @@ function AdminDashboard() {
                   </div>
                 </div>
               ))}
+              {!loading && topProducts.length === 0 && (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Aucun produit vendu sur cette période.
+                </p>
+              )}
+              {loading && (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Chargement des produits…
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -224,6 +283,11 @@ function AdminDashboard() {
                   </div>
                 </Link>
               ))}
+              {!loading && recentOrders.length === 0 && (
+                <div className="rounded-lg border border-border bg-background p-3 text-center text-sm text-muted-foreground">
+                  Aucune commande récente.
+                </div>
+              )}
             </div>
             {/* Desktop table */}
             <div className="hidden sm:block">
@@ -261,6 +325,20 @@ function AdminDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {!loading && recentOrders.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                        Aucune commande récente.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {loading && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                        Chargement des commandes…
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
