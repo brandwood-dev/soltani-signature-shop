@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 
 import type { Testimonial } from "@/lib/testimonials-api";
 import { getPublicTestimonials } from "@/lib/testimonials-api";
+import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 function Card({ t }: { t: Testimonial }) {
   return (
@@ -37,6 +38,9 @@ function Card({ t }: { t: Testimonial }) {
 export function Testimonials() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [i, setI] = useState(0);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const inView = useInViewport(sectionRef);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     getPublicTestimonials()
@@ -45,10 +49,10 @@ export function Testimonials() {
   }, []);
 
   useEffect(() => {
-    if (testimonials.length <= 1) return;
+    if (testimonials.length <= 1 || !inView || reducedMotion) return;
     const id = setInterval(() => setI((v) => (v + 1) % testimonials.length), 5000);
     return () => clearInterval(id);
-  }, [testimonials.length]);
+  }, [testimonials.length, inView, reducedMotion]);
 
   useEffect(() => {
     setI(0);
@@ -64,7 +68,7 @@ export function Testimonials() {
       : Array.from({ length: 3 }, (_, offset) => testimonials[(i + offset) % testimonials.length]);
 
   return (
-    <section className="py-12 md:py-20 bg-secondary/40">
+    <section ref={sectionRef} className="py-12 md:py-20 bg-secondary/40">
       <div className="container-luxe">
         <div className="text-center mb-8 md:mb-10">
           <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Avis Clients</span>

@@ -1,60 +1,68 @@
-## Diagnostic
+# Plan d'optimisation des performances
 
-Le problème vient d’une règle globale mobile dans `src/styles.css` :
+Objectif : alléger et accélérer la plateforme (surtout mobile) sans toucher au design ni à la logique métier.
 
-```css
-@media (max-width: 640px) {
-  button, a[role="button"], .btn { min-height: 40px; }
-}
-```
+## 1. Home — chargement différé des sections below-the-fold
 
-Même si les indicateurs ont `h-[3px]`, cette règle force tous les `<button>` à faire au minimum 40px de hauteur sur mobile. C’est pour ça que les points restent visuellement trop grands / rectangulaires.
+Actuellement `src/routes/index.tsx` importe et rend en un seul bloc : Hero, TrustBar, Categories, ProductGrid (x2), CollectionBanners, Brands, Packs, PromoBanner, Testimonials, Promo, Newsletter, Footer. Tout est monté au premier rendu.
 
-## Plan A — recommandé : exclure uniquement les indicateurs de slider
+Actions :
+- Garder eager (dans le bundle initial) uniquement : `TopBar`, `CategoryNav`, `Header`, `Hero`, `TrustBar`, `Categories`, premier `ProductGrid` (Meilleures Ventes).
+- Charger en `React.lazy` + `Suspense` (fallback = simple `div` réservant la hauteur pour éviter le CLS) : `CollectionBanners`, `Brands`, second `ProductGrid`, `Packs`, `PromoBanner`, `Testimonials`, `Promo`, `Newsletter`, `Footer`.
+- Wrapper chaque section lazy dans un composant `<LazySection>` basé sur `IntersectionObserver` (rootMargin ~400px) qui ne monte le composant qu'à l'approche du viewport.
 
-Corriger à la source sans casser les vrais boutons tactiles :
+## 2. Images — priorités et formats
 
-1. Ajouter une classe dédiée aux indicateurs, par exemple `mobile-slider-dot`.
-2. L’appliquer aux indicateurs de :
-   - Hero
-   - Avis clients
-   - TrustBar / badges
-3. Modifier la règle mobile globale pour garder `min-height: 40px` sur les vrais boutons, mais pas sur `.mobile-slider-dot`.
-4. Forcer les indicateurs à rester réellement micro-points :
-   - inactif : `3px x 3px`
-   - actif : `12px x 3px`
-   - `border-radius: 9999px`
-   - aucun padding, aucune min-height
+- Ajouter `loading="lazy"` et `decoding="async"` sur toutes les `<img>` sauf la slide active du Hero (qui reste `loading="eager"` + `fetchpriority="high"`).
+- Ajouter `<link rel="preload" as="image">` de l'image de la 1re slide Hero dans le `head()` de `src/routes/index.tsx`.
+- Ajouter `width`/`height` explicites là où ils manquent (ProductCard, Brands, Testimonials, PromoBanner, CollectionBanners) pour éviter le layout shift.
+- Sur les URLs Cloudinary, ajouter les transformations `f_auto,q_auto,w_<taille>` (helper util) — pas de changement visuel, juste des fichiers plus petits.
 
-Avantage : UX mobile premium, vrais boutons toujours accessibles, desktop inchangé.
+## 3. Sliders / carousels — ne pas tout monter
 
-## Plan B — masquer complètement les indicateurs sur mobile
+- `Hero.tsx` : ne monter dans le DOM que la slide active (au lieu de garder AnimatePresence avec plusieurs children montés). Précharger la slide suivante seulement (`<link rel="preload">` dynamique ou `new Image()`).
+- `ProductCarousel.tsx` : garder le rendu (scroll natif), mais les `<img>` des cartes hors écran passent en `loading="lazy"`. Réduire `autoPlayInterval` uniquement quand visible (pause via IntersectionObserver quand le carousel n'est pas visible → pas de setInterval qui tourne inutilement).
+- `Testimonials`, `TrustBar`, `Brands` (marquee) : mettre l'animation/`setInterval` en pause quand hors viewport via IntersectionObserver.
 
-1. Cacher les indicateurs Hero, Avis clients et TrustBar uniquement sur mobile.
-2. Garder les sliders en auto-play / swipe visuel.
-3. Laisser les indicateurs desktop inchangés.
+## 4. Framer Motion — réduire le coût
 
-Avantage : rendu mobile très minimaliste.
-Inconvénient : l’utilisateur ne voit plus la position dans le slider.
+- Home et sections lourdes utilisent `framer-motion` (Hero AnimatePresence, potentiellement d'autres). Remplacer les animations décoratives simples (fade/slide sans logique) par des animations CSS (`animate-fade-in` déjà défini dans `tailwind.config`) — supprime la dépendance runtime pour ces sections.
+- Conserver `framer-motion` uniquement là où AnimatePresence est réellement nécessaire (transitions de slides Hero).
+- Respecter `prefers-reduced-motion` : désactiver les animations non essentielles (marquee, autoplay carrousels, motion.div) via une media query.
 
-## Plan C — transformer les indicateurs en ligne ultra-fine non cliquable
+## 5. Requêtes réseau — parallélisation et cache
 
-1. Remplacer les boutons indicateurs mobile par des `<span>` visuels non interactifs.
-2. Garder les boutons uniquement desktop.
-3. Sur mobile : afficher seulement une jauge fine de progression.
+- Les composants (Hero, Testimonials, Brands, TopBar) font chacun leur `fetch` en `useEffect`. Les cascader coûte cher au TTI mobile.
+- Passer ces `fetch` dans le `loader` de la route (déjà en place pour products) via `queryClient.ensureQueryData`, puis lire côté composant avec `useSuspenseQuery` — un seul aller-retour SSR, plus rapide, et évite le flash "loading".
+- Ajouter un timeout court + fallback pour l'API externe `soltani-signature-api.vercel.app` qui échoue actuellement (visible dans les logs réseau), afin d'éviter les retries qui bloquent le rendu.
+- Ajouter `staleTime` (ex. 5 min) sur les queries de contenu quasi-statiques (hero, brands, testimonials, top-banner).
 
-Avantage : aucun conflit avec les styles de boutons.
-Inconvénient : perte du clic direct sur un slide mobile.
+## 6. Composants globaux
 
-## Validation prévue
+- `CartDrawer`, `FloatingButtons`, `MobileBottomNav`, `SearchBox` (dialog) : passer en `lazy` + monter uniquement à l'ouverture (déjà partiellement le cas pour le Dialog interne, mais le composant lui-même peut être lazy).
+- Supprimer les listeners globaux inutiles (resize/scroll non passifs) — audit rapide.
 
-Après implémentation :
+## 7. Bundle / build
 
-1. Vérifier sur viewport mobile `390px` que les indicateurs mesurent réellement `3px` de haut, pas `40px`.
-2. Vérifier Hero, Avis clients et TrustBar.
-3. Confirmer que les vrais boutons mobile gardent une bonne zone tactile.
-4. Confirmer que le desktop reste inchangé.
+- Vérifier que `autoCodeSplitting` de TanStack est actif (par défaut oui). S'assurer qu'aucun composant de route n'est `export`é (règle du template) — audit rapide des routes admin (grosses) pour éviter qu'elles ne pèsent sur les chunks partagés.
+- Ajouter `preconnect` vers `res.cloudinary.com` dans `__root.tsx` `head().links`.
 
-## Choix recommandé
+## 8. Vérification
 
-Implémenter le **Plan A**, car il corrige la cause réelle sans supprimer la navigation et sans modifier le design desktop.
+- Après implémentation : lancer un audit Lighthouse mobile via Playwright headless (déjà dispo dans le sandbox) sur `/`, `/femme`, `/product/[slug]` — mesurer LCP, TBT, CLS avant/après.
+- Vérifier visuellement (screenshots mobile + desktop) qu'aucun élément n'a bougé.
+
+## Détails techniques
+
+Fichiers principalement modifiés :
+- `src/routes/index.tsx` — lazy imports + Suspense + preload LCP + head links preconnect
+- `src/routes/__root.tsx` — `<link rel="preconnect">` Cloudinary
+- `src/components/site/Hero.tsx` — 1 slide montée à la fois, preload next, IntersectionObserver pour pause autoplay
+- `src/components/site/ProductCarousel.tsx` — pause autoplay hors viewport, lazy imgs
+- `src/components/site/Testimonials.tsx`, `TrustBar.tsx`, `Brands.tsx` — pause hors viewport, respect reduced-motion
+- `src/components/site/ProductCard.tsx` — `loading="lazy"`, `decoding="async"`, dimensions
+- `src/lib/hero-api.ts`, `testimonials-api.ts`, `featured-brands-api.ts`, `marquee-api.ts` — intégration via TanStack Query dans loaders, staleTime, timeout+fallback
+- Nouveau composant utilitaire `src/components/site/LazySection.tsx` (IntersectionObserver + Suspense wrapper)
+- Nouveau helper `src/lib/cloudinary.ts` (transformation URL `f_auto,q_auto,w_*`)
+
+Aucun changement de design, de couleurs, de typographie, de layout ou de logique métier. Uniquement du chargement différé, du cache, et de la réduction de travail runtime.

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductCard, type Product } from "./ProductCard";
+import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 type Props = {
   items: Product[];
@@ -13,6 +14,8 @@ export function ProductCarousel({ items, autoPlay = true, autoPlayInterval = 400
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
   const pausedRef = useRef(false);
+  const inView = useInViewport(scrollerRef, "200px");
+  const reducedMotion = usePrefersReducedMotion();
 
   const updateButtons = useCallback(() => {
     const el = scrollerRef.current;
@@ -43,7 +46,7 @@ export function ProductCarousel({ items, autoPlay = true, autoPlayInterval = 400
   }, [updateButtons]);
 
   useEffect(() => {
-    if (!autoPlay) return;
+    if (!autoPlay || !inView || reducedMotion) return;
     const id = window.setInterval(() => {
       if (pausedRef.current) return;
       const el = scrollerRef.current;
@@ -55,7 +58,7 @@ export function ProductCarousel({ items, autoPlay = true, autoPlayInterval = 400
       }
     }, autoPlayInterval);
     return () => window.clearInterval(id);
-  }, [autoPlay, autoPlayInterval, scrollByCard]);
+  }, [autoPlay, autoPlayInterval, scrollByCard, inView, reducedMotion]);
 
   return (
     <div

@@ -1,13 +1,17 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { HeroSlide } from "@/lib/hero-api";
 import { getActiveHeroSlides } from "@/lib/hero-api";
+import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 
 export function Hero() {
   const [index, setIndex] = useState(0);
   const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const inView = useInViewport(sectionRef, "200px");
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     getActiveHeroSlides()
@@ -21,11 +25,21 @@ export function Hero() {
   }, []);
 
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (slides.length <= 1 || !inView || reducedMotion) return;
 
     const timer = setInterval(() => setIndex((current) => (current + 1) % slides.length), 6000);
     return () => clearInterval(timer);
-  }, [slides.length]);
+  }, [slides.length, inView, reducedMotion]);
+
+  // Preload the next slide's image so the swap is instant without loading them all upfront.
+  useEffect(() => {
+    if (slides.length <= 1 || typeof Image === "undefined") return;
+    const next = slides[(index + 1) % slides.length];
+    if (next?.image) {
+      const img = new Image();
+      img.src = next.image;
+    }
+  }, [index, slides]);
 
   const slide = slides[index] ?? slides[0];
 
@@ -38,7 +52,7 @@ export function Hero() {
   }
 
   return (
-    <section className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
+    <section ref={sectionRef} className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
       <h1 className="sr-only">
         Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
       </h1>
@@ -56,6 +70,9 @@ export function Hero() {
             alt={slide.title}
             width={1920}
             height={1080}
+            loading={index === 0 ? "eager" : "lazy"}
+            decoding="async"
+            {...(index === 0 ? { fetchPriority: "high" as const } : {})}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
