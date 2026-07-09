@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductCard, type Product } from "./ProductCard";
+import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 type Props = {
   items: Product[];
