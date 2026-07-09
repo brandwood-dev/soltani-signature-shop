@@ -64,13 +64,13 @@ export function TrustBar() {
             </div>
           ))}
         </div>
-        <div className="flex justify-center gap-1.5 pb-3">
+        <div className="flex justify-center gap-1 pb-3">
           {ITEMS.map((_, i) => (
             <button
               key={i}
               aria-label={`Badge ${i + 1}`}
               onClick={() => setIdx(i)}
-              className={`rounded-full transition-all ${i === idx ? "h-1.5 w-4 bg-gold" : "h-1.5 w-1.5 bg-foreground/30"}`}
+              className={`rounded-full transition-all ${i === idx ? "h-[3px] w-3 bg-gold" : "h-[3px] w-[3px] bg-foreground/30"}`}
             />
           ))}
         </div>
