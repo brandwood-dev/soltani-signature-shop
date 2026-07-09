@@ -16,7 +16,10 @@ export function FloatingButtons() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-3">
+    <div
+      className="fixed right-4 sm:right-6 z-[60] flex flex-col items-end gap-3 transition-[bottom] duration-300"
+      style={{ bottom: "calc(1.25rem + var(--mobile-nav-offset, 0px))" }}
+    >
       {/* WhatsApp */}
       <a
         href="https://wa.me/21658997716"

@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { FloatingButtons } from "@/components/site/FloatingButtons";
+import { MobileBottomNav } from "@/components/site/MobileBottomNav";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -163,6 +164,7 @@ function RootComponent() {
       <Outlet />
       <Toaster />
       {!isAdmin && <FloatingButtons />}
+      {!isAdmin && <MobileBottomNav />}
     </QueryClientProvider>
   );
 }

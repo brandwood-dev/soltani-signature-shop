@@ -98,18 +98,18 @@ function ProductPage() {
       </div>
 
       <section className="container-luxe py-8 grid lg:grid-cols-2 gap-12">
-        <div className="grid grid-cols-[80px_1fr] gap-4">
-          <div className="flex flex-col gap-3">
+        <div className="flex flex-col-reverse gap-3 lg:grid lg:grid-cols-[80px_1fr] lg:gap-4 lg:flex-row">
+          <div className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
             {gallery.map((g, i) => (
               <button key={i} onClick={() => setActive(i)}
-                className={`aspect-square overflow-hidden rounded-sm border-2 transition ${active === i ? "border-gold" : "border-border hover:border-gold/50"}`}>
+                className={`shrink-0 w-16 h-16 lg:w-auto lg:h-auto aspect-square overflow-hidden rounded-sm border-2 transition ${active === i ? "border-gold" : "border-border hover:border-gold/50"}`}>
                 <img
                   src={g}
                   alt=""
                   onError={(event) => {
                     event.currentTarget.src = "/placeholder.svg";
                   }}
-                  className="h-full w-full object-contain object-center p-2"
+                  className="h-full w-full object-contain object-center p-1 lg:p-2"
                 />
               </button>
             ))}
@@ -121,26 +121,26 @@ function ProductPage() {
               onError={(event) => {
                 event.currentTarget.src = "/placeholder.svg";
               }}
-              className="h-full w-full object-contain object-center p-4 transition-transform duration-500 group-hover:scale-150 cursor-zoom-in"
+              className="h-full w-full object-contain object-center p-3 lg:p-4 transition-transform duration-500 group-hover:scale-150 cursor-zoom-in"
             />
             {discount > 0 && (
-              <span className="absolute top-4 left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">−{discount}%</span>
+              <span className="absolute top-3 left-3 lg:top-4 lg:left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">−{discount}%</span>
             )}
           </div>
         </div>
 
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-gold mb-2">{product.brand}</p>
-          <h1 className="font-display text-3xl md:text-4xl font-bold mb-3">{product.name}</h1>
-          <div className="flex items-center gap-3 mb-5">
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-3">{product.name}</h1>
+          <div className="flex items-center gap-3 mb-5 flex-wrap">
             <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating ?? 5) ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}</div>
-            <span className="text-xs text-muted-foreground">128 avis · Réf. {product.slug.toUpperCase().slice(0, 10)}</span>
+            <span className="text-[11px] sm:text-xs text-muted-foreground">128 avis · Réf. {product.slug.toUpperCase().slice(0, 10)}</span>
           </div>
 
-          <div className="flex items-end gap-3 mb-6">
-            <span className="text-3xl font-bold tabular-nums">{product.price} DT</span>
-            {product.oldPrice && <span className="text-lg text-muted-foreground line-through tabular-nums">{product.oldPrice} DT</span>}
-            {product.oldPrice && <span className="text-sm text-destructive font-semibold">Économisez {product.oldPrice - product.price} DT</span>}
+          <div className="flex items-end gap-2 sm:gap-3 mb-6 flex-wrap">
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums">{product.price} DT</span>
+            {product.oldPrice && <span className="text-base sm:text-lg text-muted-foreground line-through tabular-nums">{product.oldPrice} DT</span>}
+            {product.oldPrice && <span className="text-xs sm:text-sm text-destructive font-semibold">Économisez {product.oldPrice - product.price} DT</span>}
           </div>
           {discount > 0 && (
             <PromoCountdown />
