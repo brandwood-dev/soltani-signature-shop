@@ -33,18 +33,18 @@ export function Newsletter() {
             <p className="text-foreground/70 max-w-xl mx-auto mb-8">
               Soyez parmi les premières à découvrir nos nouveautés et bénéficiez de -10 % de bienvenue.
             </p>
-            <form className="max-w-md mx-auto flex gap-2" onSubmit={handleSubmit}>
+            <form className="max-w-md mx-auto flex flex-col sm:flex-row gap-2" onSubmit={handleSubmit}>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="votre@email.com"
-                className="flex-1 h-12 px-4 bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold transition rounded-sm"
+                className="w-full sm:flex-1 h-12 px-4 bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold transition rounded-sm"
               />
               <button
                 type="submit"
-                className="h-12 px-6 bg-gold text-ink text-[11px] uppercase tracking-[0.25em] font-semibold hover:bg-ink hover:text-gold transition rounded-sm"
+                className="w-full sm:w-auto h-12 px-6 bg-gold text-ink text-[11px] uppercase tracking-[0.25em] font-semibold hover:bg-ink hover:text-gold transition rounded-sm"
               >
                 S'inscrire
               </button>

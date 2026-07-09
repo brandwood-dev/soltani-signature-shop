@@ -168,20 +168,20 @@ function ProductPage() {
             </div>
           </div>
 
-          <div className="flex gap-3 mb-4">
-            <div className="flex items-center border border-border rounded-sm">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-12 w-12 grid place-items-center hover:text-gold"><Minus className="h-4 w-4" /></button>
-              <span className="w-10 text-center font-semibold">{qty}</span>
-              <button onClick={() => setQty(qty + 1)} className="h-12 w-12 grid place-items-center hover:text-gold"><Plus className="h-4 w-4" /></button>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+            <div className="flex items-center border border-border rounded-sm shrink-0">
+              <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Minus className="h-4 w-4" /></button>
+              <span className="w-8 sm:w-10 text-center font-semibold">{qty}</span>
+              <button onClick={() => setQty(qty + 1)} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Plus className="h-4 w-4" /></button>
             </div>
-            <button onClick={handleAddToCart} className="flex-1 inline-flex items-center justify-center gap-2 h-12 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
-              <ShoppingBag className="h-4 w-4" /> Ajouter au panier
+            <button onClick={handleAddToCart} className="order-3 sm:order-none w-full sm:w-auto sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-3 bg-gold text-ink text-[11px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm whitespace-nowrap">
+              <ShoppingBag className="h-4 w-4 shrink-0" /> Ajouter au panier
             </button>
-            <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm"><Heart className="h-5 w-5" /></button>
-            <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm"><Share2 className="h-5 w-5" /></button>
+            <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0"><Heart className="h-5 w-5" /></button>
+            <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0"><Share2 className="h-5 w-5" /></button>
           </div>
-          <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-ink text-cream text-[12px] uppercase tracking-[0.2em] font-bold hover:opacity-90 rounded-sm">
-            Acheter maintenant — Paiement à la livraison
+          <Link to="/checkout" className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight">
+            <span className="text-center">Acheter maintenant — Paiement à la livraison</span>
           </Link>
 
           <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-border">

@@ -143,7 +143,7 @@ export function Header() {
         </div>
 
         <div className="ml-auto flex items-center gap-0.5 md:gap-1 text-foreground shrink-0">
-          <Link to="/profile" className="hidden sm:inline-flex p-2 md:p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
+          <Link to="/profile" className="hidden lg:inline-flex p-2 md:p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
           <Link to="/wishlist" className="relative p-2 md:p-2.5 hover:text-gold transition" aria-label="Wishlist">
             <Heart className="h-5 w-5" />
             <CountBadge count={wishlistCount} tone="destructive" />
@@ -202,6 +202,23 @@ export function Header() {
                 </Link>
               </li>
             </ul>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center justify-center h-11 px-4 border border-gold text-gold text-[11px] uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-gold hover:text-ink transition"
+              >
+                Se connecter
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center justify-center h-11 px-4 bg-gold text-ink text-[11px] uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-ink hover:text-gold transition"
+              >
+                S'inscrire
+              </Link>
+            </div>
           </div>
         </nav>
       )}

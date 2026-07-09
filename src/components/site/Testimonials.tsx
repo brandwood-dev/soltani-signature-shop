@@ -98,8 +98,8 @@ export function Testimonials() {
                 key={idx}
                 onClick={() => setI(idx)}
                 aria-label={`Témoignage ${idx + 1}`}
-                className={`h-[3px] rounded-full transition-all duration-500 ${
-                  idx === i ? "w-8 bg-gold" : "w-3 bg-foreground/25"
+                className={`h-[2px] rounded-full transition-all duration-500 ${
+                  idx === i ? "w-5 bg-gold" : "w-2 bg-foreground/25"
                 }`}
               />
             ))}
