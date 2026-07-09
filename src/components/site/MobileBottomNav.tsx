@@ -3,18 +3,18 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Tag, Heart, ShoppingBag, User } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 
-const ITEMS = [
+type NavItem = { to: string; label: string; Icon: typeof Tag; badge?: boolean };
+const ITEMS: NavItem[] = [
   { to: "/promotions", label: "Promos", Icon: Tag },
   { to: "/wishlist", label: "Favoris", Icon: Heart },
   { to: "/cart", label: "Panier", Icon: ShoppingBag, badge: true },
   { to: "/profile", label: "Profil", Icon: User },
-] as const;
+];
 
 export function MobileBottomNav() {
   const [visible, setVisible] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { items } = useCart();
-  const count = items?.reduce((n, i) => n + i.qty, 0) ?? 0;
+  const { count } = useCart();
 
   useEffect(() => {
     let last = 0;
