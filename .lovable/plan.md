@@ -1,32 +1,30 @@
-## Pourquoi le build échoue
+## Problème
 
-Le build TypeScript échoue à cause de 28 erreurs concentrées dans **3 fichiers de route** — aucune ne concerne ta page CGV/Confidentialité/Mentions (qui est bien mise à jour).
+Sur mobile, les indicateurs de sliders sont encore visibles ou rectangulaires :
+- **Hero** : indicateurs cachés en `<md` mais réapparaissent dès 768px ; toujours des barres rectangulaires.
+- **Testimonials (Avis clients)** : dots visibles à partir de `sm` (≥640px), style rectangulaire `h-[2px] w-5`.
+- **TrustBar mobile** (badges) : mêmes petites barres rectangulaires.
 
-### Cause racine
+L'utilisateur veut des indicateurs mobile petits et ronds (pas rectangulaires).
 
-Dans chacun de ces fichiers, le loader appelle :
+## Correction
 
-```ts
-const products = await getCatalogProducts(...).catch(() => []);
-```
+Uniformiser en petits points ronds sur mobile, garder le style barre sur desktop.
 
-Le fallback `() => []` retourne `never[]`. TypeScript infère alors le type de retour du loader comme `never[]`, ce qui fait perdre le type `Product[]` que TanStack Router expose via `useLoaderData()`. Résultat : tous les `.filter((p) => …)`, `.map((p) => …)`, clés `key={p.slug}`, etc. deviennent `any`/`unknown` → erreurs TS7006 / TS2322 / TS2345.
+### 1. `src/components/site/Hero.tsx`
+Toujours afficher les indicateurs, mais style adaptatif :
+- Mobile : cercle `h-1.5 w-1.5 rounded-full` (actif = `w-4` pilule dorée).
+- Desktop (`md:`) : garder les barres existantes `h-[2px] w-14 / w-7`.
 
-## Correctif (minimal, 3 fichiers)
+### 2. `src/components/site/Testimonials.tsx`
+Retirer `hidden sm:flex` (les dots doivent rester utiles pour la navigation mobile).
+Passer en points ronds : `h-1.5 w-1.5 rounded-full`, actif = `w-4 rounded-full bg-gold`.
 
-Typer explicitement le fallback pour préserver `Product[]` :
+### 3. `src/components/site/TrustBar.tsx`
+Remplacer les barres du carousel mobile (`h-1 w-1/w-4`) par des points ronds cohérents : `h-1.5 w-1.5 rounded-full`, actif = `bg-gold`, inactif = `bg-foreground/25`.
 
-1. **`src/routes/promotions.tsx`** (ligne 11)
-   ```ts
-   const products = await getCatalogProducts().catch((): Product[] => []);
-   ```
+## Hors périmètre
 
-2. **`src/routes/category.$slug.tsx`** (ligne 17)
-   - Importer le type : `import { ProductCard, type Product } from "@/components/site/ProductCard";`
-   - `const products = await getCatalogProducts({ category: params.slug }).catch((): Product[] => []);`
-
-3. **`src/routes/brand.$slug.tsx`** (même patron)
-   - Importer `type Product` depuis `@/components/site/ProductCard`
-   - Typer le `.catch((): Product[] => [])`
-
-Aucun autre changement — pas de logique métier ni d'UI touchée. Les erreurs TS7006/TS2322/TS2345 disparaissent d'un coup car le type `Product` remonte correctement dans les `useLoaderData()`.
+- Desktop inchangé.
+- Aucun changement de logique, backend, ou layout global.
+- Aucune modification des autres pages.
