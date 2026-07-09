@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ShieldCheck, Truck, Lock, Headphones } from "lucide-react";
+import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 const ITEMS = [
   { Icon: ShieldCheck, title: "Produits 100% Authentiques", sub: "Sourcing officiel et certifié" },
@@ -10,14 +11,18 @@ const ITEMS = [
 
 export function TrustBar() {
   const [idx, setIdx] = useState(0);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const inView = useInViewport(sectionRef);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
+    if (!inView || reducedMotion) return;
     const t = setInterval(() => setIdx((i) => (i + 1) % ITEMS.length), 3500);
     return () => clearInterval(t);
-  }, []);
+  }, [inView, reducedMotion]);
 
   return (
-    <section className="bg-white border-y border-border/60">
+    <section ref={sectionRef} className="bg-white border-y border-border/60">
       {/* Desktop / tablet */}
       <div className="hidden sm:block container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
         <ul className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
