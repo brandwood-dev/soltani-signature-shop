@@ -52,7 +52,7 @@ export function Hero() {
   }
 
   return (
-    <section className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
+    <section ref={sectionRef} className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
       <h1 className="sr-only">
         Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
       </h1>
