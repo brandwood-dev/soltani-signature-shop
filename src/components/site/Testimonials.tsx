@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 
 import type { Testimonial } from "@/lib/testimonials-api";
 import { getPublicTestimonials } from "@/lib/testimonials-api";
+import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 function Card({ t }: { t: Testimonial }) {
   return (
