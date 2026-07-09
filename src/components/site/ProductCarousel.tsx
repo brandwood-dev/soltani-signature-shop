@@ -14,6 +14,8 @@ export function ProductCarousel({ items, autoPlay = true, autoPlayInterval = 400
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
   const pausedRef = useRef(false);
+  const inView = useInViewport(scrollerRef, "200px");
+  const reducedMotion = usePrefersReducedMotion();
 
   const updateButtons = useCallback(() => {
     const el = scrollerRef.current;
