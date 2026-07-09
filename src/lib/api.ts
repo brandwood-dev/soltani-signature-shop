@@ -102,3 +102,13 @@ export async function registerCustomer(input: RegisterCustomerInput) {
   });
   return response.user;
 }
+
+export async function subscribeNewsletter(email: string) {
+  return apiFetch<{ success: boolean }>("/newsletter/subscribe", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      source: "site_newsletter",
+    }),
+  });
+}

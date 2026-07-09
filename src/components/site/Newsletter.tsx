@@ -7,16 +7,35 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { subscribeNewsletter } from "@/lib/api";
 
 export function Newsletter() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    setOpen(true);
-    setEmail("");
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || isSubmitting) return;
+
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      await subscribeNewsletter(normalizedEmail);
+      setOpen(true);
+      setEmail("");
+    } catch (subscriptionError) {
+      setError(
+        subscriptionError instanceof Error
+          ? subscriptionError.message
+          : "Impossible de finaliser votre inscription. Réessayez dans quelques instants.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -38,17 +57,27 @@ export function Newsletter() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
                 placeholder="votre@email.com"
-                className="w-full sm:flex-1 h-12 px-4 bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold transition rounded-sm"
+                className="w-full sm:flex-1 h-12 px-4 bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold transition rounded-sm disabled:cursor-not-allowed disabled:opacity-60"
               />
               <button
                 type="submit"
-                className="w-full sm:w-auto h-12 px-6 bg-gold text-ink text-[11px] uppercase tracking-[0.25em] font-semibold hover:bg-ink hover:text-gold transition rounded-sm"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-12 px-6 bg-gold text-ink text-[11px] uppercase tracking-[0.25em] font-semibold hover:bg-ink hover:text-gold transition rounded-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
-                S'inscrire
+                {isSubmitting ? "Inscription..." : "S'inscrire"}
               </button>
             </form>
+            {error ? (
+              <p className="mt-3 text-sm text-destructive" role="alert" aria-live="polite">
+                {error}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
