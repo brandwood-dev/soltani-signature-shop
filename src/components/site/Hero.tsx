@@ -131,8 +131,8 @@ export function Hero() {
             onClick={() => setIndex(dotIndex)}
             className={`transition-all duration-500 rounded-full md:rounded-none ${
               dotIndex === index
-                ? "h-1.5 w-4 bg-gold md:h-[2px] md:w-14"
-                : "h-1.5 w-1.5 bg-foreground/40 md:w-7"
+                ? "h-[3px] w-3 bg-gold md:h-[2px] md:w-14"
+                : "h-[3px] w-[3px] bg-foreground/40 md:w-7"
             }`}
             aria-label={`Slide ${dotIndex + 1}`}
           />
