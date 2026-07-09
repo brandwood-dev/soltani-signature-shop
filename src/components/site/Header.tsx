@@ -143,7 +143,7 @@ export function Header() {
         </div>
 
         <div className="ml-auto flex items-center gap-0.5 md:gap-1 text-foreground shrink-0">
-          <Link to="/profile" className="hidden sm:inline-flex p-2 md:p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
+          <Link to="/profile" className="hidden lg:inline-flex p-2 md:p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
           <Link to="/wishlist" className="relative p-2 md:p-2.5 hover:text-gold transition" aria-label="Wishlist">
             <Heart className="h-5 w-5" />
             <CountBadge count={wishlistCount} tone="destructive" />
