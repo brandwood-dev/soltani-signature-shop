@@ -70,7 +70,7 @@ export function TrustBar() {
               key={i}
               aria-label={`Badge ${i + 1}`}
               onClick={() => setIdx(i)}
-              className={`rounded-full transition-all ${i === idx ? "h-[3px] w-3 bg-gold" : "h-[3px] w-[3px] bg-foreground/30"}`}
+              className={`mobile-slider-dot min-h-0 p-0 rounded-full transition-all ${i === idx ? "h-[3px] w-3 bg-gold" : "h-[3px] w-[3px] bg-foreground/30"}`}
             />
           ))}
         </div>

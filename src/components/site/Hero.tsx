@@ -129,7 +129,7 @@ export function Hero() {
           <button
             key={slideItem.id}
             onClick={() => setIndex(dotIndex)}
-            className={`transition-all duration-500 rounded-full md:rounded-none ${
+            className={`mobile-slider-dot min-h-0 p-0 transition-all duration-500 rounded-full md:rounded-none ${
               dotIndex === index
                 ? "h-[3px] w-3 bg-gold md:h-[2px] md:w-14"
                 : "h-[3px] w-[3px] bg-foreground/40 md:w-7"
