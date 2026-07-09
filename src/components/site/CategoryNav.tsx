@@ -28,15 +28,15 @@ export function CategoryNav() {
         </div>
       </nav>
 
-      {/* Mobile — scroll horizontal */}
-      <nav className="lg:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="container-luxe">
-          <ul className="flex items-center justify-center gap-6 h-12 px-2 min-w-max">
+      {/* Mobile — répartition équilibrée */}
+      <nav className="lg:hidden">
+        <div className="px-2">
+          <ul className="flex items-center justify-between h-11 gap-1">
             {ITEMS.map((cat) => (
-              <li key={cat.label} className="shrink-0">
+              <li key={cat.label} className="flex-1 min-w-0">
                 <a
                   href={cat.href}
-                  className="text-[12px] tracking-[0.12em] text-foreground/70 hover:text-foreground transition-colors py-3 font-medium whitespace-nowrap"
+                  className="block text-center text-[11px] tracking-[0.06em] text-foreground/70 hover:text-foreground transition-colors py-3 font-medium whitespace-nowrap"
                 >
                   {cat.label}
                 </a>
