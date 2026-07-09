@@ -124,12 +124,16 @@ export function Hero() {
         </button>
       </div>
 
-      <div className="absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 gap-2 md:bottom-10 md:flex">
+      <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 md:bottom-10 md:gap-2">
         {slides.map((slideItem, dotIndex) => (
           <button
             key={slideItem.id}
             onClick={() => setIndex(dotIndex)}
-            className={`h-[2px] transition-all duration-500 ${dotIndex === index ? "w-6 bg-gold md:w-14" : "w-3 bg-foreground/25 md:w-7"}`}
+            className={`transition-all duration-500 rounded-full md:rounded-none ${
+              dotIndex === index
+                ? "h-1.5 w-4 bg-gold md:h-[2px] md:w-14"
+                : "h-1.5 w-1.5 bg-foreground/40 md:w-7"
+            }`}
             aria-label={`Slide ${dotIndex + 1}`}
           />
         ))}
