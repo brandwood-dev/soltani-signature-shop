@@ -94,7 +94,8 @@
   h1, h2, h3, h4, h5 { font-family: var(--font-display); letter-spacing: -0.01em; }
   /* Touch targets on mobile */
   @media (max-width: 640px) {
-    button, a[role="button"], .btn { min-height: 40px; }
+    button:not(.mobile-slider-dot), a[role="button"], .btn { min-height: 40px; }
+    .mobile-slider-dot { min-height: 0; padding: 0; }
   }
 }
 
