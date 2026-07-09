@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Check, CreditCard, Lock, Truck, User } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { createCodOrder } from "@/lib/catalog-api";
+import { createCodOrder, createCustomerCodOrder, type CreateCodOrderInput } from "@/lib/catalog-api";
+import { getCustomerProfile, type CustomerProfile } from "@/lib/api";
 import { useCart } from "@/hooks/useCart";
+import { TUNISIA_GOVERNORATES } from "@/lib/tunisia";
 import {
   DEFAULT_SHOP_SETTINGS,
   calculateShipping,
@@ -33,6 +36,8 @@ function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("CASH_ON_DELIVERY");
+  const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState("new");
   const [form, setForm] = useState({
     email: "",
     firstName: "",
@@ -49,13 +54,38 @@ function CheckoutPage() {
     getPublicShopSettings()
       .then((next) => {
         setSettings(next);
-        if (!next.cashOnDeliveryEnabled && next.cardPaymentEnabled) {
-          setPaymentMethod("CARD");
-        } else {
-          setPaymentMethod("CASH_ON_DELIVERY");
-        }
+        setPaymentMethod(!next.cashOnDeliveryEnabled && next.cardPaymentEnabled ? "CARD" : "CASH_ON_DELIVERY");
       })
       .catch(() => setSettings(DEFAULT_SHOP_SETTINGS));
+  }, []);
+
+  useEffect(() => {
+    getCustomerProfile()
+      .then((profile) => {
+        setCustomerProfile(profile);
+        const defaultAddress = profile.addresses.find((address) => address.isDefault) ?? profile.addresses[0];
+        const fullName = [profile.user.firstName, profile.user.lastName].filter(Boolean).join(" ");
+        const [firstName, ...lastNameParts] = fullName.split(" ").filter(Boolean);
+
+        setForm((current) => ({
+          ...current,
+          email: profile.user.email,
+          firstName: firstName ?? "",
+          lastName: lastNameParts.join(" "),
+          phone: profile.user.phone ?? "",
+          ...(defaultAddress
+            ? {
+                addressLine1: defaultAddress.addressLine1,
+                addressLine2: defaultAddress.addressLine2 ?? "",
+                city: defaultAddress.city,
+                governorate: defaultAddress.governorate,
+                postalCode: defaultAddress.postalCode ?? "",
+              }
+            : {}),
+        }));
+        if (defaultAddress) setSelectedAddressId(defaultAddress.id);
+      })
+      .catch(() => undefined);
   }, []);
 
   const shipping = calculateShipping(subtotal, settings);
@@ -68,6 +98,35 @@ function CheckoutPage() {
 
   const updateField = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
+    if (["addressLine1", "addressLine2", "city", "governorate", "postalCode"].includes(key)) {
+      setSelectedAddressId("new");
+    }
+  };
+
+  const selectSavedAddress = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    if (addressId === "new") {
+      setForm((current) => ({
+        ...current,
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        governorate: "Tunis",
+        postalCode: "",
+      }));
+      return;
+    }
+
+    const address = customerProfile?.addresses.find((item) => item.id === addressId);
+    if (!address) return;
+    setForm((current) => ({
+      ...current,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2 ?? "",
+      city: address.city,
+      governorate: address.governorate,
+      postalCode: address.postalCode ?? "",
+    }));
   };
 
   const nextStep = () => {
@@ -105,9 +164,9 @@ function CheckoutPage() {
     setError(null);
 
     try {
-      const order = await createCodOrder({
+      const orderInput: CreateCodOrderInput = {
         customerEmail: form.email,
-        paymentMethod,
+        paymentMethod: "CASH_ON_DELIVERY",
         shippingAddress: {
           fullName: `${form.firstName} ${form.lastName}`.trim(),
           phone: form.phone,
@@ -121,7 +180,8 @@ function CheckoutPage() {
           variantId: line.variantId,
           quantity: line.qty,
         })),
-      });
+      };
+      const order = customerProfile ? await createCustomerCodOrder(orderInput) : await createCodOrder(orderInput);
 
       localStorage.setItem(
         "soltani-last-order",
@@ -192,12 +252,28 @@ function CheckoutPage() {
             {step === 2 && (
               <div className="space-y-5">
                 <h2 className="font-display text-xl font-bold mb-2">Adresse de livraison</h2>
+                {customerProfile?.addresses.length ? (
+                  <Field label="Adresse enregistrée">
+                    <select value={selectedAddressId} onChange={(event) => selectSavedAddress(event.target.value)} className="input-luxe">
+                      {customerProfile.addresses.map((address) => (
+                        <option key={address.id} value={address.id}>
+                          {address.addressLine1}, {address.city}{address.isDefault ? " — par défaut" : ""}
+                        </option>
+                      ))}
+                      <option value="new">Saisir une nouvelle adresse</option>
+                    </select>
+                  </Field>
+                ) : null}
                 <Field label="Adresse"><input value={form.addressLine1} onChange={(e) => updateField("addressLine1", e.target.value)} className="input-luxe" placeholder="123 Avenue Habib Bourguiba" /></Field>
                 <Field label="Complément d'adresse"><input value={form.addressLine2} onChange={(e) => updateField("addressLine2", e.target.value)} className="input-luxe" /></Field>
                 <div className="grid md:grid-cols-3 gap-4">
                   <Field label="Code postal"><input value={form.postalCode} onChange={(e) => updateField("postalCode", e.target.value)} className="input-luxe" /></Field>
                   <Field label="Ville"><input value={form.city} onChange={(e) => updateField("city", e.target.value)} className="input-luxe" /></Field>
-                  <Field label="Gouvernorat"><input value={form.governorate} onChange={(e) => updateField("governorate", e.target.value)} className="input-luxe" /></Field>
+                  <Field label="Gouvernorat">
+                    <select value={form.governorate} onChange={(e) => updateField("governorate", e.target.value)} className="input-luxe">
+                      {TUNISIA_GOVERNORATES.map((governorate) => <option key={governorate} value={governorate}>{governorate}</option>)}
+                    </select>
+                  </Field>
                 </div>
                 <div className="rounded-sm border border-gold/30 bg-gold/5 p-4 text-sm">
                   {shipping === 0 ? "Livraison offerte." : `${SHIPPING_LABEL} — tarif fixe ${settings.shippingFee} DT.`}
@@ -210,12 +286,7 @@ function CheckoutPage() {
                 <h2 className="font-display text-xl font-bold mb-2">Mode de paiement</h2>
                 {settings.cashOnDeliveryEnabled && (
                   <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-gold bg-gold/5 p-4">
-                    <input
-                      type="radio"
-                      checked={paymentMethod === "CASH_ON_DELIVERY"}
-                      onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
-                      className="accent-gold mt-1"
-                    />
+                    <input type="radio" checked={paymentMethod === "CASH_ON_DELIVERY"} onChange={() => setPaymentMethod("CASH_ON_DELIVERY")} className="accent-gold mt-1" />
                     <div className="flex-1">
                       <p className="font-semibold text-sm">Paiement à la livraison</p>
                       <p className="text-xs text-muted-foreground">Espèces à la réception de la commande.</p>
@@ -225,12 +296,7 @@ function CheckoutPage() {
                 )}
                 {settings.cardPaymentEnabled && (
                   <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-border bg-background p-4">
-                    <input
-                      type="radio"
-                      checked={paymentMethod === "CARD"}
-                      onChange={() => setPaymentMethod("CARD")}
-                      className="accent-gold mt-1"
-                    />
+                    <input type="radio" checked={paymentMethod === "CARD"} onChange={() => setPaymentMethod("CARD")} className="accent-gold mt-1" />
                     <div className="flex-1">
                       <p className="font-semibold text-sm">Paiement par carte</p>
                       <p className="text-xs text-muted-foreground">Activation du paiement en ligne en cours.</p>
@@ -296,7 +362,7 @@ function CheckoutPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="block text-[11px] uppercase tracking-widest text-foreground/60 mb-2">{label}</span>

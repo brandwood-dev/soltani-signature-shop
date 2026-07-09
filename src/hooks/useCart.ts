@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { getCustomerCart, syncCustomerCart } from "@/lib/api";
+import { getSession } from "@/lib/supabase";
 
 export type CartLine = {
   id: string;
@@ -31,6 +33,24 @@ const write = (lines: CartLine[]) => {
   window.dispatchEvent(new Event("cart:change"));
 };
 
+const persistRemote = async (lines: CartLine[]) => {
+  const session = await getSession();
+  if (!session?.accessToken) return;
+  await syncCustomerCart(lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })));
+};
+
+const mergeCartLines = (localLines: CartLine[], remoteLines: CartLine[]) => {
+  const merged = new Map<string, CartLine>();
+  for (const line of remoteLines) merged.set(line.variantId, line);
+  for (const line of localLines) {
+    merged.set(line.variantId, {
+      ...line,
+      qty: Math.max(line.qty, merged.get(line.variantId)?.qty ?? 0),
+    });
+  }
+  return [...merged.values()];
+};
+
 export function openCartDrawer() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("cart:open"));
 }
@@ -43,6 +63,14 @@ export function useCart() {
     const sync = () => setLines(read());
     window.addEventListener("cart:change", sync);
     window.addEventListener("storage", sync);
+    void (async () => {
+      const session = await getSession();
+      if (!session?.accessToken) return;
+      const remoteCart = await getCustomerCart();
+      const merged = mergeCartLines(read(), remoteCart);
+      write(merged);
+      await persistRemote(merged);
+    })().catch(() => undefined);
     return () => {
       window.removeEventListener("cart:change", sync);
       window.removeEventListener("storage", sync);
@@ -52,14 +80,18 @@ export function useCart() {
   const update = useCallback((id: string, qty: number) => {
     const next = read().map((line) => (line.id === id ? { ...line, qty: Math.max(1, qty) } : line));
     write(next);
+    void persistRemote(next).catch(() => undefined);
   }, []);
 
   const remove = useCallback((id: string) => {
-    write(read().filter((line) => line.id !== id));
+    const next = read().filter((line) => line.id !== id);
+    write(next);
+    void persistRemote(next).catch(() => undefined);
   }, []);
 
   const clear = useCallback(() => {
     write([]);
+    void persistRemote([]).catch(() => undefined);
   }, []);
 
   const add = useCallback((item: Omit<CartLine, "qty"> & { qty?: number }) => {
@@ -72,6 +104,7 @@ export function useCart() {
         : [...current, { ...item, qty }];
 
     write(next);
+    void persistRemote(next).catch(() => undefined);
     openCartDrawer();
   }, []);
 

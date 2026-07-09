@@ -32,9 +32,7 @@ const COLS: { title: string; links: FooterLink[] }[] = [
     title: "À propos",
     links: [
       { label: "Notre histoire", to: "/legal/$slug", params: { slug: "notre-histoire" } },
-      { label: "Showroom Tunis", to: "/contact" },
       { label: "Authenticité", to: "/legal/$slug", params: { slug: "authenticite" } },
-      { label: "Programme fidélité", to: "/legal/$slug", params: { slug: "fidelite" } },
     ],
   },
 ];

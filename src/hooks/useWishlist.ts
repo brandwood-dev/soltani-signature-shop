@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import { deleteCustomerWishlistItem, syncCustomerWishlist } from "@/lib/api";
+import { getSession } from "@/lib/supabase";
 
 const KEY = "soltani-wishlist";
 
@@ -14,6 +16,18 @@ const read = (): string[] => {
 
 const emit = () => window.dispatchEvent(new Event("wishlist:change"));
 
+const write = (slugs: string[]) => {
+  localStorage.setItem(KEY, JSON.stringify([...new Set(slugs)]));
+  emit();
+};
+
+const syncRemote = async (slugs: string[]) => {
+  const session = await getSession();
+  if (!session?.accessToken) return;
+  const products = await syncCustomerWishlist(slugs);
+  write(products.map((product) => product.slug));
+};
+
 export function useWishlist() {
   const [slugs, setSlugs] = useState<string[]>([]);
 
@@ -22,6 +36,7 @@ export function useWishlist() {
     const sync = () => setSlugs(read());
     window.addEventListener("wishlist:change", sync);
     window.addEventListener("storage", sync);
+    void syncRemote(read()).catch(() => undefined);
     return () => {
       window.removeEventListener("wishlist:change", sync);
       window.removeEventListener("storage", sync);
@@ -30,15 +45,16 @@ export function useWishlist() {
 
   const toggle = useCallback((slug: string) => {
     const cur = read();
-    const next = cur.includes(slug) ? cur.filter((s) => s !== slug) : [...cur, slug];
-    localStorage.setItem(KEY, JSON.stringify(next));
-    emit();
+    const exists = cur.includes(slug);
+    const next = exists ? cur.filter((s) => s !== slug) : [...cur, slug];
+    write(next);
+    void (exists ? deleteCustomerWishlistItem(slug) : syncRemote(next)).catch(() => undefined);
   }, []);
 
   const remove = useCallback((slug: string) => {
     const next = read().filter((s) => s !== slug);
-    localStorage.setItem(KEY, JSON.stringify(next));
-    emit();
+    write(next);
+    void deleteCustomerWishlistItem(slug).catch(() => undefined);
   }, []);
 
   const reconcile = useCallback((validSlugs: string[]) => {
@@ -46,8 +62,8 @@ export function useWishlist() {
     const cur = read();
     const next = cur.filter((s) => valid.has(s));
     if (next.length !== cur.length) {
-      localStorage.setItem(KEY, JSON.stringify(next));
-      emit();
+      write(next);
+      void syncRemote(next).catch(() => undefined);
     }
   }, []);
 

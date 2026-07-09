@@ -310,7 +310,7 @@ const BP: Record<string, Blueprint> = {
     names: [
       "Sérum Vitamine C 30ml",
       "Sérum Acide Hyaluronique 30ml",
-      "Sérum Rétinol Anti-Âge",
+      "Sérum Rétinol Anti-âge",
       "Sérum Éclat Niacinamide",
       "Sérum Peptides Repulpant",
     ],
@@ -347,7 +347,7 @@ const BP: Record<string, Blueprint> = {
   },
   "contour-yeux": {
     names: [
-      "Contour des Yeux Anti-Âge",
+      "Contour des Yeux Anti-âge",
       "Patchs Yeux Or 60 pcs",
       "Sérum Contour Repulpant",
       "Crème Yeux Caféine",

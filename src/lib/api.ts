@@ -20,6 +20,93 @@ export type RegisterCustomerInput = {
   phone?: string;
 };
 
+export type ApiAddress = {
+  id: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  governorate: string;
+  postalCode: string | null;
+  isDefault: boolean;
+};
+
+export type ApiCustomerOrder = {
+  id: string;
+  reference: string;
+  status: string;
+  subtotal: number;
+  shippingTotal: number;
+  total: number;
+  createdAt: string;
+  items: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    brand: string;
+    image: string;
+    qty: number;
+    price: number;
+    total: number;
+  }>;
+};
+
+export type ApiWishlistProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  brandSlug?: string;
+  category: string;
+  price: number;
+  oldPrice?: number;
+  image: string;
+  badge?: "Best Seller" | "Nouveau" | "Promo";
+  variantId?: string;
+  variantLabel?: string;
+  stockQuantity?: number;
+  gallery?: string[];
+};
+
+export type ApiCartLine = {
+  id: string;
+  productSlug?: string;
+  variantId: string;
+  name: string;
+  brand: string;
+  price: number;
+  qty: number;
+  image: string;
+  variant: string;
+};
+
+export type CustomerProfile = {
+  user: ApiUser;
+  addresses: ApiAddress[];
+  orders: ApiCustomerOrder[];
+  wishlist: ApiWishlistProduct[];
+  cart?: ApiCartLine[];
+  stats: {
+    orders: number;
+    wishlist: number;
+    addresses: number;
+    cart?: number;
+  };
+};
+
+export type UpdateProfileInput = {
+  fullName: string;
+  phone?: string;
+};
+
+export type AddressInput = {
+  addressLine1: string;
+  addressLine2?: string;
+  postalCode?: string;
+  city: string;
+  governorate: string;
+  isDefault?: boolean;
+};
+
 type ApiErrorBody = {
   message?: string | string[];
 };
@@ -93,6 +180,67 @@ export async function getCurrentAdmin() {
 export async function getCurrentUser() {
   const response = await apiFetch<{ user: ApiUser }>("/auth/me");
   return response.user;
+}
+
+export async function getCustomerProfile() {
+  return apiFetch<CustomerProfile>("/auth/profile");
+}
+
+export async function updateCustomerProfile(input: UpdateProfileInput) {
+  const response = await apiFetch<{ user: ApiUser }>("/auth/profile", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return response.user;
+}
+
+export async function createCustomerAddress(input: AddressInput) {
+  const response = await apiFetch<{ address: ApiAddress }>("/auth/addresses", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return response.address;
+}
+
+export async function updateCustomerAddress(id: string, input: AddressInput) {
+  const response = await apiFetch<{ address: ApiAddress }>(`/auth/addresses/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return response.address;
+}
+
+export async function deleteCustomerAddress(id: string) {
+  return apiFetch<{ success: boolean }>(`/auth/addresses/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function syncCustomerWishlist(slugs: string[]) {
+  const response = await apiFetch<{ wishlist: ApiWishlistProduct[] }>("/auth/wishlist/sync", {
+    method: "POST",
+    body: JSON.stringify({ slugs }),
+  });
+  return response.wishlist;
+}
+
+export async function deleteCustomerWishlistItem(slug: string) {
+  return apiFetch<{ success: boolean }>(`/auth/wishlist/${slug}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getCustomerCart() {
+  const response = await apiFetch<{ cart: ApiCartLine[] }>("/auth/cart");
+  return response.cart;
+}
+
+export async function syncCustomerCart(lines: Array<{ variantId: string; quantity: number }>) {
+  const response = await apiFetch<{ cart: ApiCartLine[] }>("/auth/cart/sync", {
+    method: "POST",
+    body: JSON.stringify({ lines }),
+  });
+  return response.cart;
 }
 
 export async function registerCustomer(input: RegisterCustomerInput) {

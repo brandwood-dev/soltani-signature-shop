@@ -156,7 +156,7 @@ export function Header() {
             to="/promotions"
             className="hidden lg:inline-flex ml-2 px-4 py-2 text-[11px] tracking-[0.15em] font-medium bg-destructive text-cream rounded-sm hover:opacity-90"
           >
-            -30%
+            PROMO
           </Link>
         </div>
       </div>

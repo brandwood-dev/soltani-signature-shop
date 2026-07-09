@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Tag, Heart, ShoppingBag, User } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
 
 type NavItem = { to: string; label: string; Icon: typeof Tag; badge?: boolean };
 const ITEMS: NavItem[] = [
   { to: "/promotions", label: "Promos", Icon: Tag },
-  { to: "/wishlist", label: "Favoris", Icon: Heart },
+  { to: "/wishlist", label: "Favoris", Icon: Heart, badge: true },
   { to: "/cart", label: "Panier", Icon: ShoppingBag, badge: true },
   { to: "/profile", label: "Profil", Icon: User },
 ];
@@ -14,7 +15,8 @@ const ITEMS: NavItem[] = [
 export function MobileBottomNav() {
   const [visible, setVisible] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { count } = useCart();
+  const { count: cartCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
 
   useEffect(() => {
     let last = 0;
@@ -49,6 +51,7 @@ export function MobileBottomNav() {
         <ul className="grid grid-cols-4">
           {ITEMS.map(({ to, label, Icon, badge }) => {
             const active = pathname === to;
+            const badgeCount = to === "/wishlist" ? wishlistCount : to === "/cart" ? cartCount : 0;
             return (
               <li key={to}>
                 <Link
@@ -59,9 +62,9 @@ export function MobileBottomNav() {
                 >
                   <span className="relative">
                     <Icon className="h-5 w-5" strokeWidth={1.75} />
-                    {badge && count > 0 && (
+                    {badge && badgeCount > 0 && (
                       <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 grid place-items-center rounded-full bg-gold text-ink text-[9px] font-bold">
-                        {count}
+                        {badgeCount > 99 ? "99+" : badgeCount}
                       </span>
                     )}
                   </span>

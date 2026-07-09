@@ -1,24 +1,35 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+﻿import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import type { FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { findCategory } from "@/data/catalog";
-import { getCatalogProduct, getCatalogProducts } from "@/lib/catalog-api";
+import {
+  createProductReview,
+  deleteProductReview,
+  getCatalogProduct,
+  getCatalogProducts,
+  getMyProductReview,
+  getProductReviews,
+  updateProductReview,
+  type ProductReview,
+} from "@/lib/catalog-api";
+import { getSession } from "@/lib/supabase";
 import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
 import { useCart } from "@/hooks/useCart";
-import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Check, Flame, ShoppingBag } from "lucide-react";
+import { useWishlist } from "@/hooks/useWishlist";
+import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Flame, ShoppingBag, Pencil, Trash2 } from "lucide-react";
 
 
 
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: async ({ params }): Promise<{ product: Product; related: Product[]; bundle: Product[] }> => {
+  loader: async ({ params }): Promise<{ product: Product; related: Product[] }> => {
     const product = await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
     const apiProducts = await getCatalogProducts({ category: product.category }).catch(() => []);
     const related = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
-    const bundle = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 2);
-    return { product, related, bundle };
+    return { product, related };
   },
   head: ({ params }) => {
     const title = "Produit — Soltani Signature";
@@ -56,7 +67,7 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product, related, bundle } = Route.useLoaderData() as { product: Product; related: Product[]; bundle: Product[] };
+  const { product, related } = Route.useLoaderData() as { product: Product; related: Product[] };
   const gallery = product.gallery?.length ? product.gallery : [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
   const category = findCategory(product.category);
   const parentSlug = category?.kind === "sub" ? category.parent.slug : (category?.slug ?? product.category);
@@ -64,22 +75,49 @@ function ProductPage() {
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
-  const [pick, setPick] = useState<Record<string, boolean>>({ main: true, b0: true, b1: false });
+  const [shareMessage, setShareMessage] = useState("");
+  const [reviewSummary, setReviewSummary] = useState({ total: 0, averageRating: 0 });
   const { add } = useCart();
+  const { has, toggle } = useWishlist();
+  const isFavorite = has(product.slug);
+
+  useEffect(() => {
+    let activeRequest = true;
+    getProductReviews(product.slug, { page: 1, pageSize: 1 })
+      .then((response) => {
+        if (activeRequest) setReviewSummary(response.summary);
+      })
+      .catch(() => {
+        if (activeRequest) setReviewSummary({ total: 0, averageRating: 0 });
+      });
+    return () => {
+      activeRequest = false;
+    };
+  }, [product.slug]);
 
   const handleAddToCart = () => {
     if (!product.variantId) return;
     add({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
   };
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, text: product.description ?? product.name, url });
+        setShareMessage("Produit partagé.");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareMessage("Lien copié.");
+      }
+    } catch {
+      setShareMessage("Partage annulé.");
+    }
+    window.setTimeout(() => setShareMessage(""), 2500);
+  };
+
   const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
-  const bundleTotal =
-    (pick.main ? product.price : 0) +
-    bundle.reduce((sum, item, index) => sum + (pick[`b${index}`] ? item.price : 0), 0);
-  const bundleItems = [
-    { key: "main", img: product.image, name: product.name, price: product.price },
-    ...bundle.map((item, index) => ({ key: `b${index}`, img: item.image, name: item.name, price: item.price })),
-  ];
+  const specifications = useMemo(() => buildSpecifications(product, category?.name ?? product.category), [product, category]);
 
   return (
     <SiteLayout>
@@ -133,8 +171,8 @@ function ProductPage() {
           <p className="text-[11px] uppercase tracking-[0.3em] text-gold mb-2">{product.brand}</p>
           <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-3">{product.name}</h1>
           <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating ?? 5) ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}</div>
-            <span className="text-[11px] sm:text-xs text-muted-foreground">128 avis · Réf. {product.slug.toUpperCase().slice(0, 10)}</span>
+            <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.round(reviewSummary.averageRating) ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}</div>
+            <span className="text-[11px] sm:text-xs text-muted-foreground">{reviewSummary.total} avis · Réf. {product.slug.toUpperCase().slice(0, 10)}</span>
           </div>
 
           <div className="flex items-end gap-2 sm:gap-3 mb-6 flex-wrap">
@@ -150,24 +188,6 @@ function ProductPage() {
             {product.description ?? `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
           </p>
 
-          <div className="mb-5">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-foreground/60 mb-2">Couleur : <span className="text-gold">Noir Mat</span></p>
-            <div className="flex gap-2">
-              {["#0a0a0a", "#c9a84c", "#7d6242", "#b8b8b8"].map((c, i) => (
-                <button key={i} className="h-9 w-9 rounded-full border-2 border-border hover:border-gold transition" style={{ background: c }} />
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-foreground/60 mb-2">Taille</p>
-            <div className="flex gap-2">
-              {["S", "M", "L"].map((s) => (
-                <button key={s} className="h-10 px-4 border border-border text-sm hover:border-gold hover:text-gold transition rounded-sm">{s}</button>
-              ))}
-            </div>
-          </div>
-
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
             <div className="flex items-center border border-border rounded-sm shrink-0">
               <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Minus className="h-4 w-4" /></button>
@@ -177,9 +197,24 @@ function ProductPage() {
             <button onClick={handleAddToCart} className="order-3 sm:order-none w-full sm:w-auto sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-3 bg-gold text-ink text-[11px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm whitespace-nowrap">
               <ShoppingBag className="h-4 w-4 shrink-0" /> Ajouter au panier
             </button>
-            <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0"><Heart className="h-5 w-5" /></button>
-            <button className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0"><Share2 className="h-5 w-5" /></button>
+            <button
+              type="button"
+              onClick={() => toggle(product.slug)}
+              aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+              className={`h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0 ${isFavorite ? "text-destructive border-destructive/40" : ""}`}
+            >
+              <Heart className={`h-5 w-5 ${isFavorite ? "fill-destructive" : ""}`} />
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Partager ce produit"
+              className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0"
+            >
+              <Share2 className="h-5 w-5" />
+            </button>
           </div>
+          {shareMessage && <p className="mb-3 text-xs text-gold">{shareMessage}</p>}
           <Link to="/checkout" className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight">
             <span className="text-center">Acheter maintenant — Paiement à la livraison</span>
           </Link>
@@ -196,41 +231,12 @@ function ProductPage() {
         </div>
       </section>
 
-      {bundle.length > 0 && (
-      <section className="container-luxe py-12 border-t border-border">
-        <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">Fréquemment achetés ensemble</h2>
-        <p className="text-sm text-muted-foreground mb-8">Composez votre look signature.</p>
-        <div className="grid md:grid-cols-[1fr_auto] gap-8 items-center">
-          <div className="flex items-center gap-4 flex-wrap">
-            {bundleItems.map((b, i) => (
-              <div key={b.key} className="flex items-center gap-4">
-                <label className="relative cursor-pointer">
-                  <input type="checkbox" checked={pick[b.key]} onChange={() => setPick({ ...pick, [b.key]: !pick[b.key] })} className="sr-only peer" />
-                  <div className="aspect-square w-28 overflow-hidden rounded-sm border-2 border-border peer-checked:border-gold transition">
-                    <img src={b.img} alt="" className="h-full w-full object-cover" />
-                  </div>
-                  {pick[b.key] && <span className="absolute top-2 right-2 h-6 w-6 grid place-items-center rounded-full bg-gold text-ink"><Check className="h-3.5 w-3.5" /></span>}
-                  <p className="mt-2 text-xs font-medium max-w-[112px] truncate">{b.name}</p>
-                  <p className="text-xs text-gold">{b.price} DT</p>
-                </label>
-                {i < 2 && <Plus className="h-5 w-5 text-muted-foreground hidden md:block" />}
-              </div>
-            ))}
-          </div>
-          <div className="text-center md:text-right">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Total pack</p>
-            <p className="font-display text-3xl font-bold text-gold mb-3">{bundleTotal} DT</p>
-            <button className="px-6 h-12 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">Ajouter le pack</button>
-          </div>
-        </div>
-      </section>
-      )}
 
       <section className="container-luxe py-12 border-t border-border">
-        <div className="flex gap-8 border-b border-border mb-8">
-          {[{ k: "desc", l: "Description" }, { k: "specs", l: "Spécifications" }, { k: "reviews", l: "Avis (128)" }].map(({ k, l }) => (
+        <div className="flex gap-5 sm:gap-8 border-b border-border mb-8 overflow-x-auto scrollbar-none">
+          {[{ k: "desc", l: "Description" }, { k: "specs", l: "Spécifications" }, { k: "reviews", l: "Avis produit" }].map(({ k, l }) => (
             <button key={k} onClick={() => setTab(k as typeof tab)}
-              className={`pb-4 text-sm uppercase tracking-widest transition relative ${tab === k ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`pb-4 text-xs sm:text-sm uppercase tracking-widest transition relative whitespace-nowrap ${tab === k ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               {l}
               {tab === k && <span className="absolute bottom-0 inset-x-0 h-px bg-gold" />}
             </button>
@@ -238,35 +244,27 @@ function ProductPage() {
         </div>
         {tab === "desc" && (
           <div className="max-w-3xl text-foreground/80 leading-relaxed space-y-4">
-            <p>{product.name} incarne la quintessence du savoir-faire {product.brand}. Chaque pièce est sélectionnée pour son authenticité, sa qualité et son raffinement.</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Matériaux nobles et finitions haut de gamme</li><li>Authenticité 100% garantie</li><li>Emballage cadeau signature</li><li>Garantie internationale</li>
-            </ul>
+            <p className="whitespace-pre-line">{product.description?.trim() || "Description complète bientôt disponible."}</p>
           </div>
         )}
         {tab === "specs" && (
           <div className="max-w-3xl">
-            <dl className="divide-y divide-border">
-              {[["Marque", product.brand], ["Catégorie", category?.name ?? product.category], ["Référence", product.slug.toUpperCase()], ["Garantie", "2 ans internationale"]].map(([k, v]) => (
-                <div key={k} className="grid grid-cols-2 py-3 text-sm"><dt className="text-muted-foreground">{k}</dt><dd>{v}</dd></div>
-              ))}
-            </dl>
+            {specifications.length > 0 ? (
+              <dl className="divide-y divide-border">
+                {specifications.map(([key, value]) => (
+                  <div key={key} className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-4 py-3 text-sm">
+                    <dt className="text-muted-foreground">{key}</dt>
+                    <dd className="break-words">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune spécification disponible pour ce produit.</p>
+            )}
           </div>
         )}
         {tab === "reviews" && (
-          <div className="max-w-3xl space-y-6">
-            {[{ n: "Karim B.", r: 5, t: "Magnifique pièce, finitions irréprochables. Livraison rapide." },
-              { n: "Salma T.", r: 5, t: "Achat de confiance. Le SAV est exceptionnel." },
-              { n: "Mehdi K.", r: 4, t: "Très belle pièce, conforme à la description." }].map((rv, i) => (
-              <div key={i} className="pb-6 border-b border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold">{rv.n}</span>
-                  <div className="flex">{Array.from({ length: 5 }).map((_, j) => <Star key={j} className={`h-3.5 w-3.5 ${j < rv.r ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}</div>
-                </div>
-                <p className="text-sm text-foreground/80">{rv.t}</p>
-              </div>
-            ))}
-          </div>
+          <ProductReviewsPanel slug={product.slug} onSummaryChange={setReviewSummary} />
         )}
       </section>
 
@@ -290,5 +288,266 @@ function PromoCountdown() {
       <CountdownInline target={target} className="text-foreground" />
     </div>
   );
+}
+
+function ProductReviewsPanel({ slug, onSummaryChange }: { slug: string; onSummaryChange?: (summary: { total: number; averageRating: number }) => void }) {
+  const [page, setPage] = useState(1);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [averageRating, setAverageRating] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [myReviewId, setMyReviewId] = useState<string | null>(null);
+  const [form, setForm] = useState({ rating: 5, title: "", content: "" });
+  const [saving, setSaving] = useState(false);
+  const [formMessage, setFormMessage] = useState("");
+
+  const loadReviews = useCallback(async (nextPage: number) => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await getProductReviews(slug, { page: nextPage, pageSize: 5 });
+      setReviews(response.reviews);
+      setTotalPages(response.pagination.totalPages);
+      setTotal(response.summary.total);
+      setAverageRating(response.summary.averageRating);
+      onSummaryChange?.(response.summary);
+    } catch (reviewError) {
+      setError(reviewError instanceof Error ? reviewError.message : "Impossible de charger les avis.");
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
+  const loadMyReview = useCallback(async () => {
+    try {
+      const session = await getSession();
+      setIsAuthenticated(Boolean(session?.accessToken));
+      if (!session?.accessToken) return;
+
+      const response = await getMyProductReview(slug);
+      setMyReviewId(response.review?.id ?? null);
+      if (response.review) {
+        setForm({
+          rating: response.review.rating,
+          title: response.review.title ?? "",
+          content: response.review.content,
+        });
+      }
+    } catch {
+      setIsAuthenticated(false);
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    void loadReviews(page);
+  }, [loadReviews, page]);
+
+  useEffect(() => {
+    void loadMyReview();
+  }, [loadMyReview]);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!form.content.trim()) {
+      setFormMessage("Votre avis ne peut pas être vide.");
+      return;
+    }
+
+    setSaving(true);
+    setFormMessage("");
+    try {
+      const input = {
+        rating: form.rating,
+        title: form.title.trim() || undefined,
+        content: form.content.trim(),
+      };
+      const response = myReviewId
+        ? await updateProductReview(slug, myReviewId, input)
+        : await createProductReview(slug, input);
+      setMyReviewId(response.review?.id ?? myReviewId);
+      setFormMessage(myReviewId ? "Votre avis a été mis à jour." : "Votre avis a été publié.");
+      setPage(1);
+      await loadReviews(1);
+    } catch (submitError) {
+      setFormMessage(submitError instanceof Error ? submitError.message : "Impossible d'enregistrer votre avis.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!myReviewId) return;
+    setSaving(true);
+    setFormMessage("");
+    try {
+      await deleteProductReview(slug, myReviewId);
+      setMyReviewId(null);
+      setForm({ rating: 5, title: "", content: "" });
+      setFormMessage("Votre avis a été supprimé.");
+      await loadReviews(1);
+      setPage(1);
+    } catch (deleteError) {
+      setFormMessage(deleteError instanceof Error ? deleteError.message : "Impossible de supprimer votre avis.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="max-w-3xl space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="font-display text-2xl font-bold">{total} avis</p>
+          <p className="text-sm text-muted-foreground">Note moyenne : {averageRating ? `${averageRating}/5` : "aucune note"}</p>
+        </div>
+        <StarRating value={Math.round(averageRating)} />
+      </div>
+
+      {isAuthenticated ? (
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-sm border border-border p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <label className="text-sm font-semibold">Votre note</label>
+            <select
+              value={form.rating}
+              onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
+              className="h-10 rounded-sm border border-border bg-background px-3 text-sm"
+            >
+              {[5, 4, 3, 2, 1].map((rating) => (
+                <option key={rating} value={rating}>{rating} étoile{rating > 1 ? "s" : ""}</option>
+              ))}
+            </select>
+          </div>
+          <input
+            value={form.title}
+            onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+            maxLength={80}
+            placeholder="Titre de votre avis (optionnel)"
+            className="h-11 w-full rounded-sm border border-border bg-background px-3 text-sm"
+          />
+          <textarea
+            value={form.content}
+            onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
+            maxLength={800}
+            rows={4}
+            placeholder="Partagez votre expérience avec ce produit"
+            className="w-full resize-none rounded-sm border border-border bg-background px-3 py-3 text-sm"
+          />
+          {formMessage && <p className="text-sm text-muted-foreground">{formMessage}</p>}
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-sm bg-gold px-5 text-[12px] font-bold uppercase tracking-[0.18em] text-ink transition hover:bg-ink hover:text-gold disabled:opacity-60"
+            >
+              <Pencil className="h-4 w-4" /> {saving ? "Enregistrement..." : myReviewId ? "Modifier mon avis" : "Publier mon avis"}
+            </button>
+            {myReviewId && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleDelete}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-sm border border-border px-5 text-[12px] font-bold uppercase tracking-[0.18em] transition hover:border-destructive hover:text-destructive disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" /> Supprimer
+              </button>
+            )}
+          </div>
+        </form>
+      ) : (
+        <div className="rounded-sm border border-border p-4 text-sm text-muted-foreground">
+          <p className="mb-3">Connectez-vous ou créez un compte pour laisser votre avis.</p>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/login" className="inline-flex h-10 items-center rounded-sm bg-gold px-4 text-xs font-bold uppercase tracking-widest text-ink">Se connecter</Link>
+            <Link to="/register" className="inline-flex h-10 items-center rounded-sm border border-border px-4 text-xs font-bold uppercase tracking-widest text-foreground">S'inscrire</Link>
+          </div>
+        </div>
+      )}
+
+      {loading && <p className="text-sm text-muted-foreground">Chargement des avis...</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {!loading && !error && reviews.length === 0 && (
+        <p className="text-sm text-muted-foreground">Aucun avis pour le moment. Soyez le premier à partager votre expérience.</p>
+      )}
+      {!loading && !error && reviews.map((review) => (
+        <article key={review.id} className="pb-6 border-b border-border">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+            <div>
+              <span className="font-semibold">{review.authorName}</span>
+              <p className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString("fr-FR")}</p>
+            </div>
+            <StarRating value={review.rating} />
+          </div>
+          {review.title && <p className="mb-1 text-sm font-semibold">{review.title}</p>}
+          <p className="text-sm text-foreground/80 whitespace-pre-line">{review.content}</p>
+        </article>
+      ))}
+
+      {!loading && !error && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            className="h-10 rounded-sm border border-border px-4 text-sm disabled:opacity-40"
+          >
+            Précédent
+          </button>
+          <span className="text-sm text-muted-foreground">Page {page} / {totalPages}</span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            className="h-10 rounded-sm border border-border px-4 text-sm disabled:opacity-40"
+          >
+            Suivant
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StarRating({ value }: { value: number }) {
+  return (
+    <div className="flex">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <Star key={index} className={`h-4 w-4 ${index < value ? "fill-gold text-gold" : "text-muted-foreground"}`} />
+      ))}
+    </div>
+  );
+}
+
+function buildSpecifications(product: Product, categoryName: string): Array<[string, string]> {
+  const hiddenKeys = new Set(["couleur", "color", "taille", "size"]);
+  const dynamicSpecs = Object.entries(product.attributes ?? {})
+    .filter(([key]) => !hiddenKeys.has(normalizeSpecKey(key)))
+    .map(([key, values]) => [formatSpecLabel(key), values.join(", ")] as [string, string])
+    .filter(([, value]) => value.trim().length > 0);
+
+  return [
+    ["Marque", product.brand],
+    ["Catégorie", categoryName],
+    ["Référence", product.slug.toUpperCase()],
+    ...dynamicSpecs,
+  ];
+}
+
+function normalizeSpecKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function formatSpecLabel(value: string) {
+  return value
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^./, (firstLetter) => firstLetter.toUpperCase());
 }
 

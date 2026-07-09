@@ -55,6 +55,47 @@ export type CreatedOrder = {
   }>;
 };
 
+export type ProductReview = {
+  id: string;
+  rating: number;
+  title?: string | null;
+  content: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProductReviewsResponse = {
+  reviews: ProductReview[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  summary: {
+    total: number;
+    averageRating: number;
+  };
+};
+
+export type MyProductReviewResponse = {
+  review: {
+    id: string;
+    rating: number;
+    title?: string | null;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type ProductReviewInput = {
+  rating: number;
+  title?: string;
+  content: string;
+};
+
 const numberValue = (value: string | number | null | undefined) => Number(value ?? 0);
 
 export function mapApiProduct(product: ApiProduct): Product {
@@ -102,5 +143,44 @@ export async function createCodOrder(input: CreateCodOrderInput) {
   return apiFetch<CreatedOrder>("/orders", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export async function createCustomerCodOrder(input: CreateCodOrderInput) {
+  return apiFetch<CreatedOrder>("/orders/customer", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getProductReviews(slug: string, params: { page?: number; pageSize?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.page) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+
+  return apiFetch<ProductReviewsResponse>(`/catalog/products/${slug}/reviews${search.size ? `?${search}` : ""}`);
+}
+
+export async function getMyProductReview(slug: string) {
+  return apiFetch<MyProductReviewResponse>(`/catalog/products/${slug}/reviews/me`);
+}
+
+export async function createProductReview(slug: string, input: ProductReviewInput) {
+  return apiFetch<MyProductReviewResponse>(`/catalog/products/${slug}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateProductReview(slug: string, reviewId: string, input: ProductReviewInput) {
+  return apiFetch<MyProductReviewResponse>(`/catalog/products/${slug}/reviews/${reviewId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteProductReview(slug: string, reviewId: string) {
+  return apiFetch<{ success: boolean }>(`/catalog/products/${slug}/reviews/${reviewId}`, {
+    method: "DELETE",
   });
 }
