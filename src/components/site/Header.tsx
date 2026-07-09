@@ -202,6 +202,23 @@ export function Header() {
                 </Link>
               </li>
             </ul>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center justify-center h-11 px-4 border border-gold text-gold text-[11px] uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-gold hover:text-ink transition"
+              >
+                Se connecter
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center justify-center h-11 px-4 bg-gold text-ink text-[11px] uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-ink hover:text-gold transition"
+              >
+                S'inscrire
+              </Link>
+            </div>
           </div>
         </nav>
       )}
