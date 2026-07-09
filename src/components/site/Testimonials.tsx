@@ -92,7 +92,7 @@ export function Testimonials() {
               ))}
             </div>
           </div>
-          <div className="mt-5 flex items-center justify-center gap-2">
+          <div className="mt-5 hidden items-center justify-center gap-2 sm:flex">
             {testimonials.map((_, idx) => (
               <button
                 key={idx}
