@@ -1,17 +1,26 @@
+import { useEffect, useState } from "react";
 import { ShieldCheck, Truck, Lock, Headphones } from "lucide-react";
 
 const ITEMS = [
   { Icon: ShieldCheck, title: "Produits 100% Authentiques", sub: "Sourcing officiel et certifié" },
   { Icon: Truck, title: "Livraison Rapide", sub: "Livraison sur toute la Tunisie sous 48h" },
-  { Icon: Lock, title: "Paiement Sécurisé", sub: "Paiement par carte bancaire ou en espèces à la livraison" },
+  { Icon: Lock, title: "Paiement Sécurisé", sub: "Par carte bancaire ou en espèces à la livraison" },
   { Icon: Headphones, title: "Service Client 7J/7", sub: "À votre écoute" },
 ];
 
 export function TrustBar() {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % ITEMS.length), 3500);
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <section className="bg-white border-y border-border/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
+      {/* Desktop / tablet */}
+      <div className="hidden sm:block container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+        <ul className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
           {ITEMS.map(({ Icon, title, sub }, i) => (
             <li
               key={title}
@@ -30,6 +39,41 @@ export function TrustBar() {
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* Mobile carousel — one badge at a time */}
+      <div className="sm:hidden overflow-hidden">
+        <div
+          className="flex transition-transform duration-700 ease-out"
+          style={{ transform: `translateX(-${idx * 100}%)` }}
+        >
+          {ITEMS.map(({ Icon, title, sub }) => (
+            <div
+              key={title}
+              className="min-w-full flex items-center justify-center gap-3 px-4 py-5"
+            >
+              <Icon className="h-8 w-8 shrink-0 text-gold" strokeWidth={1.25} />
+              <div className="min-w-0 text-left">
+                <p className="text-[11px] font-medium tracking-[0.12em] uppercase text-foreground truncate">
+                  {title}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 font-light truncate">
+                  {sub}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-center gap-1.5 pb-3">
+          {ITEMS.map((_, i) => (
+            <button
+              key={i}
+              aria-label={`Badge ${i + 1}`}
+              onClick={() => setIdx(i)}
+              className={`h-1 rounded-full transition-all ${i === idx ? "w-4 bg-gold" : "w-1 bg-foreground/25"}`}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
