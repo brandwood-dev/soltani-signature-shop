@@ -92,14 +92,14 @@ export function Testimonials() {
               ))}
             </div>
           </div>
-          <div className="mt-5 flex items-center justify-center gap-1.5">
+          <div className="mt-5 flex items-center justify-center gap-1">
             {testimonials.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setI(idx)}
                 aria-label={`Témoignage ${idx + 1}`}
                 className={`rounded-full transition-all duration-500 ${
-                  idx === i ? "h-1.5 w-4 bg-gold" : "h-1.5 w-1.5 bg-foreground/30"
+                  idx === i ? "h-[3px] w-3 bg-gold" : "h-[3px] w-[3px] bg-foreground/30"
                 }`}
               />
             ))}
