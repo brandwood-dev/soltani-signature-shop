@@ -46,7 +46,7 @@ export function ProductCarousel({ items, autoPlay = true, autoPlayInterval = 400
   }, [updateButtons]);
 
   useEffect(() => {
-    if (!autoPlay) return;
+    if (!autoPlay || !inView || reducedMotion) return;
     const id = window.setInterval(() => {
       if (pausedRef.current) return;
       const el = scrollerRef.current;
@@ -58,7 +58,7 @@ export function ProductCarousel({ items, autoPlay = true, autoPlayInterval = 400
       }
     }, autoPlayInterval);
     return () => window.clearInterval(id);
-  }, [autoPlay, autoPlayInterval, scrollByCard]);
+  }, [autoPlay, autoPlayInterval, scrollByCard, inView, reducedMotion]);
 
   return (
     <div
