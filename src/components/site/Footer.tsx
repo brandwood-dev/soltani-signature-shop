@@ -1,4 +1,4 @@
-import { Instagram, Facebook, Twitter, Youtube } from "lucide-react";
+import { Instagram, Facebook } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 
@@ -72,12 +72,18 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               {[
-                { Icon: Instagram, label: "Suivez-nous sur Instagram" },
-                { Icon: Facebook, label: "Suivez-nous sur Facebook" },
-                { Icon: Twitter, label: "Suivez-nous sur Twitter" },
-                { Icon: Youtube, label: "Suivez-nous sur YouTube" },
-              ].map(({ Icon, label }) => (
-                <a key={label} href="#" aria-label={label} className="grid h-10 w-10 place-items-center border border-gold/40 text-gold hover:bg-gold hover:text-ink transition rounded-sm">
+                {
+                  Icon: Instagram,
+                  label: "Suivez-nous sur Instagram",
+                  href: "https://www.instagram.com/soltanisignature/",
+                },
+                {
+                  Icon: Facebook,
+                  label: "Suivez-nous sur Facebook",
+                  href: "https://www.facebook.com/soltani.signature",
+                },
+              ].map(({ Icon, label, href }) => (
+                <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="grid h-10 w-10 place-items-center border border-gold/40 text-gold hover:bg-gold hover:text-ink transition rounded-sm">
                   <Icon className="h-4 w-4" />
                 </a>
               ))}
