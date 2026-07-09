@@ -70,6 +70,9 @@ export function Hero() {
             alt={slide.title}
             width={1920}
             height={1080}
+            loading={index === 0 ? "eager" : "lazy"}
+            decoding="async"
+            {...(index === 0 ? { fetchpriority: "high" as const } : {})}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
