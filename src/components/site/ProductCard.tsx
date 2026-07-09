@@ -54,6 +54,7 @@ export function ProductCard({ p }: { p: Product }) {
             src={p.image}
             alt={p.name}
             loading="lazy"
+            decoding="async"
             onError={(event) => {
               event.currentTarget.src = "/placeholder.svg";
             }}
