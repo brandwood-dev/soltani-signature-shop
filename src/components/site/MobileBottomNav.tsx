@@ -52,7 +52,7 @@ export function MobileBottomNav() {
             return (
               <li key={to}>
                 <Link
-                  to={to}
+                  to={to as never}
                   className={`relative flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium tracking-wide transition-colors ${
                     active ? "text-gold" : "text-foreground/70"
                   }`}
