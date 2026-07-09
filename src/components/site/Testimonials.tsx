@@ -38,6 +38,9 @@ function Card({ t }: { t: Testimonial }) {
 export function Testimonials() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [i, setI] = useState(0);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const inView = useInViewport(sectionRef);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     getPublicTestimonials()
@@ -46,10 +49,10 @@ export function Testimonials() {
   }, []);
 
   useEffect(() => {
-    if (testimonials.length <= 1) return;
+    if (testimonials.length <= 1 || !inView || reducedMotion) return;
     const id = setInterval(() => setI((v) => (v + 1) % testimonials.length), 5000);
     return () => clearInterval(id);
-  }, [testimonials.length]);
+  }, [testimonials.length, inView, reducedMotion]);
 
   useEffect(() => {
     setI(0);
