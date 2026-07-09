@@ -164,6 +164,7 @@ function RootComponent() {
       <Outlet />
       <Toaster />
       {!isAdmin && <FloatingButtons />}
+      {!isAdmin && <MobileBottomNav />}
     </QueryClientProvider>
   );
 }
