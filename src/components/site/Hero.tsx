@@ -1,13 +1,17 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { HeroSlide } from "@/lib/hero-api";
 import { getActiveHeroSlides } from "@/lib/hero-api";
+import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 
 export function Hero() {
   const [index, setIndex] = useState(0);
   const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const inView = useInViewport(sectionRef, "200px");
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     getActiveHeroSlides()
@@ -21,11 +25,21 @@ export function Hero() {
   }, []);
 
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (slides.length <= 1 || !inView || reducedMotion) return;
 
     const timer = setInterval(() => setIndex((current) => (current + 1) % slides.length), 6000);
     return () => clearInterval(timer);
-  }, [slides.length]);
+  }, [slides.length, inView, reducedMotion]);
+
+  // Preload the next slide's image so the swap is instant without loading them all upfront.
+  useEffect(() => {
+    if (slides.length <= 1 || typeof Image === "undefined") return;
+    const next = slides[(index + 1) % slides.length];
+    if (next?.image) {
+      const img = new Image();
+      img.src = next.image;
+    }
+  }, [index, slides]);
 
   const slide = slides[index] ?? slides[0];
 
