@@ -135,7 +135,7 @@ function ProductPage() {
     window.setTimeout(() => setShareMessage(""), 2500);
   };
 
-  const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
+  const discount = product.isPromotion ? product.discountPercentage ?? 0 : 0;
   const specifications = useMemo(() => buildSpecifications(product, category?.name ?? product.category), [product, category]);
 
   return (
@@ -180,8 +180,8 @@ function ProductPage() {
               }}
               className="h-full w-full object-contain object-center p-3 lg:p-4 transition-transform duration-500 group-hover:scale-150 cursor-zoom-in"
             />
-            {discount > 0 && (
-              <span className="absolute top-3 left-3 lg:top-4 lg:left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">−{discount}%</span>
+            {product.isPromotion && discount > 0 && (
+              <span className="absolute top-3 left-3 lg:top-4 lg:left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">-{discount}%</span>
             )}
           </div>
         </div>
@@ -197,9 +197,9 @@ function ProductPage() {
           <div className="flex items-end gap-2 sm:gap-3 mb-6 flex-wrap">
             <span className="text-2xl sm:text-3xl font-bold tabular-nums">{product.price} DT</span>
             {product.oldPrice && <span className="text-base sm:text-lg text-muted-foreground line-through tabular-nums">{product.oldPrice} DT</span>}
-            {product.oldPrice && <span className="text-xs sm:text-sm text-destructive font-semibold">Économisez {product.oldPrice - product.price} DT</span>}
+            {product.isPromotion && product.oldPrice && <span className="text-xs sm:text-sm text-destructive font-semibold">Économisez {product.oldPrice - product.price} DT</span>}
           </div>
-          {discount > 0 && (
+          {product.isPromotion && discount > 0 && (
             <PromoCountdown />
           )}
 

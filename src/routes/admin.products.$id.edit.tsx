@@ -34,9 +34,10 @@ import {
   uploadAdminProductImage,
   type AdminProduct,
 } from "@/lib/admin-products-api";
+import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 
 const CATEGORIES = ["Parfums", "Soins", "Maquillage", "Sacs", "Montres", "Accessoires"];
-const BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
+const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
   { value: "draft", label: "Brouillon" },
   { value: "active", label: "Actif" },
@@ -81,6 +82,10 @@ function AdminEditProduct() {
   const [weight, setWeight] = useState("");
   const [status, setStatus] = useState("draft");
   const [featured, setFeatured] = useState(false);
+  const [isPromotion, setIsPromotion] = useState(false);
+  const [discountPercentage, setDiscountPercentage] = useState("");
+  const [isBestSeller, setIsBestSeller] = useState(false);
+  const [brandOptions, setBrandOptions] = useState<string[]>(FALLBACK_BRANDS);
   const [trackInventory, setTrackInventory] = useState(true);
   const [images, setImages] = useState<string[]>([]);
   const [newImage, setNewImage] = useState("");
@@ -110,6 +115,9 @@ function AdminEditProduct() {
         setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
         setStatus(loaded.status);
         setFeatured(loaded.isFeatured);
+        setIsPromotion(Boolean(loaded.isPromotion));
+        setDiscountPercentage(loaded.discountPercentage ? String(loaded.discountPercentage) : "");
+        setIsBestSeller(Boolean(loaded.isBestSeller));
         setImages(loaded.images.map((image) => image.url));
         setTags(loaded.tags);
         setSeoTitle(loaded.seoTitle ?? loaded.name);
@@ -123,6 +131,20 @@ function AdminEditProduct() {
 
     void loadProduct();
   }, [id]);
+
+  useEffect(() => {
+    let active = true;
+    getAdminFeaturedBrands()
+      .then((items) => {
+        if (!active) return;
+        const names = Array.from(new Set(items.map((item) => item.name.trim()).filter(Boolean)));
+        if (names.length) setBrandOptions(names);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const addImage = () => {
     if (!newImage.trim()) return;
@@ -175,6 +197,9 @@ function AdminEditProduct() {
         seoDescription,
         status: status as "draft" | "active" | "archived",
         isFeatured: featured,
+        isPromotion,
+        discountPercentage: isPromotion ? Number(discountPercentage || 0) : null,
+        isBestSeller,
         lowStockThreshold: Number(lowStockAlert || 5),
       });
       navigate({ to: "/admin/products" });
@@ -492,6 +517,28 @@ function AdminEditProduct() {
                   <Label className="text-sm">Mettre en avant</Label>
                   <Switch checked={featured} onCheckedChange={setFeatured} />
                 </div>
+                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <Label className="text-sm">Produit en promotion</Label>
+                  <Switch checked={isPromotion} onCheckedChange={setIsPromotion} />
+                </div>
+                {isPromotion && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="discount">Pourcentage de réduction</Label>
+                    <Input
+                      id="discount"
+                      required
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={discountPercentage}
+                      onChange={(e) => setDiscountPercentage(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <Label className="text-sm">Best seller</Label>
+                  <Switch checked={isBestSeller} onCheckedChange={setIsBestSeller} />
+                </div>
                 <Button type="button" variant="outline" className="w-full" size="sm">
                   <Eye className="h-4 w-4" />
                   Aperçu
@@ -534,7 +581,7 @@ function AdminEditProduct() {
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                     <SelectContent>
-                      {BRANDS.map((b) => (
+                      {brandOptions.map((b) => (
                         <SelectItem key={b} value={b}>
                           {b}
                         </SelectItem>

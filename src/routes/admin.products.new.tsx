@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ImagePlus, X, Save, Eye } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -21,12 +21,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CATEGORY_TREE } from "@/data/catalog";
 import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
 import { createAdminProduct, uploadAdminProductImage } from "@/lib/admin-products-api";
+import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 
 export const Route = createFileRoute("/admin/products/new")({
   component: AdminNewProduct,
 });
 
-const BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
+const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
   { value: "draft", label: "Brouillon" },
   { value: "active", label: "Actif" },
@@ -61,6 +62,10 @@ function AdminNewProduct() {
   const [weight, setWeight] = useState("");
   const [status, setStatus] = useState("draft");
   const [featured, setFeatured] = useState(false);
+  const [isPromotion, setIsPromotion] = useState(false);
+  const [discountPercentage, setDiscountPercentage] = useState("");
+  const [isBestSeller, setIsBestSeller] = useState(false);
+  const [brandOptions, setBrandOptions] = useState<string[]>(FALLBACK_BRANDS);
   const [trackInventory, setTrackInventory] = useState(true);
   const [images, setImages] = useState<string[]>([]);
   const [newImage, setNewImage] = useState("");
@@ -71,6 +76,20 @@ function AdminNewProduct() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getAdminFeaturedBrands()
+      .then((items) => {
+        if (!active) return;
+        const names = Array.from(new Set(items.map((item) => item.name.trim()).filter(Boolean)));
+        if (names.length) setBrandOptions(names);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const addImage = () => {
     if (!newImage.trim()) return;
@@ -126,6 +145,9 @@ function AdminNewProduct() {
         seoDescription,
         status: status as "draft" | "active" | "archived",
         isFeatured: featured,
+        isPromotion,
+        discountPercentage: isPromotion ? Number(discountPercentage || 0) : null,
+        isBestSeller,
         lowStockThreshold: Number(lowStockAlert || 5),
       });
       navigate({ to: "/admin/products" });
@@ -528,6 +550,28 @@ function AdminNewProduct() {
                   <Label className="text-sm">Mettre en avant</Label>
                   <Switch checked={featured} onCheckedChange={setFeatured} />
                 </div>
+                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <Label className="text-sm">Produit en promotion</Label>
+                  <Switch checked={isPromotion} onCheckedChange={setIsPromotion} />
+                </div>
+                {isPromotion && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="discount">Pourcentage de réduction</Label>
+                    <Input
+                      id="discount"
+                      required
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={discountPercentage}
+                      onChange={(e) => setDiscountPercentage(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <Label className="text-sm">Best seller</Label>
+                  <Switch checked={isBestSeller} onCheckedChange={setIsBestSeller} />
+                </div>
                 <Button type="button" variant="outline" className="w-full" size="sm">
                   <Eye className="h-4 w-4" />
                   Aperçu
@@ -591,7 +635,7 @@ function AdminNewProduct() {
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                     <SelectContent>
-                      {BRANDS.map((b) => (
+                      {brandOptions.map((b) => (
                         <SelectItem key={b} value={b}>
                           {b}
                         </SelectItem>

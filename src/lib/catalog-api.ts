@@ -9,6 +9,7 @@ type ApiProduct = {
   basePrice: string | number;
   compareAtPrice?: string | number | null;
   isFeatured?: boolean;
+  tags?: string[];
   brand: { name: string; slug: string };
   category: { name: string; slug: string };
   images: Array<{ url: string; alt?: string | null }>;
@@ -97,9 +98,18 @@ export type ProductReviewInput = {
 };
 
 const numberValue = (value: string | number | null | undefined) => Number(value ?? 0);
+const PROMOTION_TAG = "__promotion";
+const BEST_SELLER_TAG = "__best_seller";
+const DISCOUNT_TAG_PREFIX = "__discount:";
 
 export function mapApiProduct(product: ApiProduct): Product {
   const variant = product.variants.find((item) => item.isActive) ?? product.variants[0];
+  const tags = product.tags ?? [];
+  const isPromotion = tags.some((tag) => tag.toLowerCase() === PROMOTION_TAG);
+  const discountTag = tags.find((tag) => tag.toLowerCase().startsWith(DISCOUNT_TAG_PREFIX));
+  const discountPercentage = Number(discountTag?.slice(DISCOUNT_TAG_PREFIX.length) ?? 0);
+  const isBestSeller =
+    Boolean(product.isFeatured) || tags.some((tag) => tag.toLowerCase() === BEST_SELLER_TAG);
   const attributes = product.attributes?.reduce<Record<string, string[]>>((acc, item) => {
     acc[item.key] = [...(acc[item.key] ?? []), item.value];
     return acc;
@@ -115,7 +125,10 @@ export function mapApiProduct(product: ApiProduct): Product {
     price: numberValue(variant?.price ?? product.basePrice),
     oldPrice: product.compareAtPrice ? numberValue(product.compareAtPrice) : undefined,
     image: product.images[0]?.url ?? "/placeholder.svg",
-    badge: product.isFeatured ? "Best Seller" : undefined,
+    badge: isBestSeller ? "Best Seller" : isPromotion ? "Promo" : undefined,
+    isPromotion,
+    discountPercentage: isPromotion && Number.isFinite(discountPercentage) && discountPercentage > 0 ? discountPercentage : undefined,
+    isBestSeller,
     rating: 5,
     variantId: variant?.id,
     variantLabel: variant?.label ?? "Standard",

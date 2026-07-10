@@ -3,8 +3,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
 
-
-
 export type Product = {
   id?: string;
   slug: string;
@@ -16,6 +14,9 @@ export type Product = {
   oldPrice?: number;
   image: string;
   badge?: "Best Seller" | "Nouveau" | "Promo";
+  isPromotion?: boolean;
+  discountPercentage?: number;
+  isBestSeller?: boolean;
   rating?: number;
   variantId?: string;
   variantLabel?: string;
@@ -30,7 +31,7 @@ export function ProductCard({ p }: { p: Product }) {
   const { add } = useCart();
   const navigate = useNavigate();
   const fav = has(p.slug);
-  const discount = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
+  const promoDiscount = p.discountPercentage;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -47,7 +48,6 @@ export function ProductCard({ p }: { p: Product }) {
 
   return (
     <article className="group relative">
-
       <Link to="/product/$slug" params={{ slug: p.slug }} className="block">
         <div className="relative aspect-square overflow-hidden bg-card shadow-sm rounded-sm">
           <img
@@ -62,9 +62,9 @@ export function ProductCard({ p }: { p: Product }) {
           />
 
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {p.badge === "Promo" || discount > 0 ? (
+            {p.isPromotion && promoDiscount ? (
               <span className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">
-                −{discount}%
+                -{promoDiscount}%
               </span>
             ) : null}
             {p.badge === "Nouveau" && (
@@ -72,7 +72,7 @@ export function ProductCard({ p }: { p: Product }) {
                 Nouveau
               </span>
             )}
-            {p.badge === "Best Seller" && (
+            {(p.isBestSeller || p.badge === "Best Seller") && (
               <span className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-foreground text-background rounded-sm">
                 Best Seller
               </span>
@@ -87,7 +87,6 @@ export function ProductCard({ p }: { p: Product }) {
           >
             <Heart className={`h-4 w-4 ${fav ? "fill-destructive" : ""}`} />
           </button>
-
 
           <div className="absolute inset-x-3 bottom-3 flex gap-2 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-500">
             <button

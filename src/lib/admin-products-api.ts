@@ -15,6 +15,9 @@ export type AdminProduct = {
   lowStockThreshold: number;
   status: AdminProductStatus;
   isFeatured: boolean;
+  isPromotion: boolean;
+  discountPercentage: number | null;
+  isBestSeller: boolean;
   brand: string;
   category: string;
   categoryName: string;
@@ -56,6 +59,9 @@ export type UpsertAdminProductInput = {
   seoDescription?: string;
   status: AdminProductStatus;
   isFeatured: boolean;
+  isPromotion?: boolean;
+  discountPercentage?: number | null;
+  isBestSeller?: boolean;
   lowStockThreshold?: number;
 };
 

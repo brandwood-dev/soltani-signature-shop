@@ -29,9 +29,9 @@ const DISCOUNT_TIERS = [
 function PromotionsPage() {
   const target = useStableDeadline(2, 14);
   const { products } = Route.useLoaderData() as { products: Product[] };
-  const allPromos = useMemo(() => products.filter((p) => p.oldPrice).map((p) => ({
+  const allPromos = useMemo(() => products.filter((p) => p.isPromotion).map((p) => ({
     ...p,
-    discount: Math.round(((p.oldPrice! - p.price) / p.oldPrice!) * 100),
+    discount: p.discountPercentage ?? 0,
   })), [products]);
 
   const brands = useMemo(() => Array.from(new Set(allPromos.map((p) => p.brand))), [allPromos]);
@@ -125,7 +125,7 @@ function PromotionsPage() {
             <p className="text-center py-20 text-muted-foreground">Aucune promotion ne correspond à vos filtres.</p>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
-              {items.map((p) => <ProductCard key={p.slug} p={{ ...p, badge: "Promo" }} />)}
+              {items.map((p) => <ProductCard key={p.slug} p={p} />)}
             </div>
           )}
         </div>
