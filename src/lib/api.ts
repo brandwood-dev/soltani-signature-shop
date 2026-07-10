@@ -20,6 +20,15 @@ export type RegisterCustomerInput = {
   phone?: string;
 };
 
+export type ContactMessageInput = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message?: string;
+};
+
 export type ApiAddress = {
   id: string;
   addressLine1: string;
@@ -258,5 +267,12 @@ export async function subscribeNewsletter(email: string) {
       email,
       source: "site_newsletter",
     }),
+  });
+}
+
+export async function sendContactMessage(input: ContactMessageInput) {
+  return apiFetch<{ success: boolean }>("/contact", {
+    method: "POST",
+    body: JSON.stringify(input),
   });
 }
