@@ -15,6 +15,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { FloatingButtons } from "@/components/site/FloatingButtons";
 import { MobileBottomNav } from "@/components/site/MobileBottomNav";
 import { Toaster } from "@/components/ui/sonner";
+import { publicEnv } from "@/lib/env";
+import { trackPageView } from "@/lib/meta-pixel";
 
 function NotFoundComponent() {
   return (
@@ -149,6 +151,15 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            src={`https://www.facebook.com/tr?id=${publicEnv.metaPixelId}&ev=PageView&noscript=1`}
+            alt=""
+          />
+        </noscript>
         <Scripts />
       </body>
     </html>
@@ -157,8 +168,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const location = useRouterState({ select: (s) => s.location });
+  const pathname = location.pathname;
   const isAdmin = pathname.startsWith("/admin");
+
+  useEffect(() => {
+    trackPageView(`${location.pathname}${location.searchStr}`);
+  }, [location.pathname, location.searchStr]);
 
   return (
     <QueryClientProvider client={queryClient}>

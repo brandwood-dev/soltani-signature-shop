@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Check, Package, Truck, MapPin, ArrowRight, Sparkles } from "lucide-react";
 import type { CartLine } from "@/hooks/useCart";
+import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 
 export const Route = createFileRoute("/order-confirmation")({
   head: () => ({ meta: [{ title: "Merci pour votre commande — Soltani Signature" }] }),
@@ -35,6 +36,21 @@ function OrderConfirmationPage() {
       navigate({ to: "/" });
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (!order) return;
+    const purchaseKey = `soltani-purchase-tracked:${order.number}`;
+    if (sessionStorage.getItem(purchaseKey)) return;
+    sessionStorage.setItem(purchaseKey, "1");
+    trackMetaPixelEvent("Purchase", {
+      content_ids: order.lines.map((line) => line.variantId),
+      content_type: "product",
+      contents: order.lines.map((line) => ({ id: line.variantId, quantity: line.qty, item_price: line.price })),
+      num_items: order.lines.reduce((sum, line) => sum + line.qty, 0),
+      value: order.total,
+      currency: "TND",
+    });
+  }, [order]);
 
   if (!order) return null;
 

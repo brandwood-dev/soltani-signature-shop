@@ -6,9 +6,9 @@ import { getActiveHeroSlides } from "@/lib/hero-api";
 import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
 
-export function Hero() {
+export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
-  const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const [slides, setSlides] = useState<HeroSlide[]>(initialSlides);
   const sectionRef = useRef<HTMLElement | null>(null);
   const inView = useInViewport(sectionRef, "200px");
   const reducedMotion = usePrefersReducedMotion();
@@ -21,7 +21,7 @@ export function Hero() {
           setIndex(0);
         }
       })
-      .catch(() => setSlides([]));
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export function Hero() {
       <AnimatePresence mode="sync">
         <motion.div
           key={slide.id}
-          initial={{ opacity: 0, scale: 1.08 }}
+          initial={index === 0 ? false : { opacity: 0, scale: 1.08 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}

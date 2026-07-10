@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, CreditCard, Lock, Truck, User } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { createCodOrder, createCustomerCodOrder, type CreateCodOrderInput } from "@/lib/catalog-api";
@@ -13,6 +13,7 @@ import {
   getPublicShopSettings,
   type ShopSettings,
 } from "@/lib/settings-api";
+import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Commande — Soltani Signature" }] }),
@@ -38,6 +39,8 @@ function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("CASH_ON_DELIVERY");
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState("new");
+  const initiatedCheckoutRef = useRef(false);
+  const addedPaymentInfoRef = useRef(false);
   const [form, setForm] = useState({
     email: "",
     firstName: "",
@@ -95,6 +98,32 @@ function CheckoutPage() {
     : settings.cardPaymentEnabled
       ? "Paiement par carte disponible."
       : "Aucun moyen de paiement disponible pour le moment.";
+
+  useEffect(() => {
+    if (initiatedCheckoutRef.current || !lines.length) return;
+    initiatedCheckoutRef.current = true;
+    trackMetaPixelEvent("InitiateCheckout", {
+      content_ids: lines.map((line) => line.variantId),
+      content_type: "product",
+      contents: lines.map((line) => ({ id: line.variantId, quantity: line.qty, item_price: line.price })),
+      num_items: lines.reduce((sum, line) => sum + line.qty, 0),
+      value: subtotal,
+      currency: "TND",
+    });
+  }, [lines, subtotal]);
+
+  useEffect(() => {
+    if (step !== 3 || addedPaymentInfoRef.current || !lines.length) return;
+    addedPaymentInfoRef.current = true;
+    trackMetaPixelEvent("AddPaymentInfo", {
+      content_ids: lines.map((line) => line.variantId),
+      content_type: "product",
+      contents: lines.map((line) => ({ id: line.variantId, quantity: line.qty, item_price: line.price })),
+      payment_method: paymentMethod,
+      value: subtotal,
+      currency: "TND",
+    });
+  }, [lines, paymentMethod, step, subtotal]);
 
   const updateField = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));

@@ -18,6 +18,7 @@ import { getSession } from "@/lib/supabase";
 import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
+import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Flame, ShoppingBag, Pencil, Trash2 } from "lucide-react";
 
 
@@ -95,9 +96,27 @@ function ProductPage() {
     };
   }, [product.slug]);
 
+  useEffect(() => {
+    trackMetaPixelEvent("ViewContent", {
+      content_ids: [product.variantId ?? product.id ?? product.slug],
+      content_name: product.name,
+      content_type: "product",
+      value: product.price,
+      currency: "TND",
+    });
+  }, [product.id, product.name, product.price, product.slug, product.variantId]);
+
   const handleAddToCart = () => {
     if (!product.variantId) return;
     add({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
+    trackMetaPixelEvent("AddToCart", {
+      content_ids: [product.variantId],
+      content_name: product.name,
+      content_type: "product",
+      contents: [{ id: product.variantId, quantity: qty, item_price: product.price }],
+      value: product.price * qty,
+      currency: "TND",
+    });
   };
 
   const handleShare = async () => {
@@ -199,7 +218,18 @@ function ProductPage() {
             </button>
             <button
               type="button"
-              onClick={() => toggle(product.slug)}
+              onClick={() => {
+                if (!isFavorite) {
+                  trackMetaPixelEvent("AddToWishlist", {
+                    content_ids: [product.variantId ?? product.id ?? product.slug],
+                    content_name: product.name,
+                    content_type: "product",
+                    value: product.price,
+                    currency: "TND",
+                  });
+                }
+                toggle(product.slug);
+              }}
               aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
               className={`h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0 ${isFavorite ? "text-destructive border-destructive/40" : ""}`}
             >

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { findCategoryName } from "@/data/catalog";
 import { getCatalogProducts } from "@/lib/catalog-api";
+import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import type { Product } from "@/components/site/ProductCard";
 
 export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
@@ -38,7 +39,13 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!q.trim()) return;
+    const query = q.trim();
+    if (!query) return;
+    trackMetaPixelEvent("Search", {
+      search_string: query,
+      content_ids: results.map((product) => product.variantId ?? product.slug).slice(0, 10),
+      content_type: "product",
+    });
     if (results[0]) {
       navigate({ to: "/product/$slug", params: { slug: results[0].slug } });
     }
@@ -47,6 +54,14 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
   };
 
   const go = (slug: string) => {
+    const query = q.trim();
+    if (query) {
+      trackMetaPixelEvent("Search", {
+        search_string: query,
+        content_ids: results.map((product) => product.variantId ?? product.slug).slice(0, 10),
+        content_type: "product",
+      });
+    }
     navigate({ to: "/product/$slug", params: { slug } });
     setOpen(false);
     setQ("");

@@ -9,6 +9,7 @@ import { ProductGrid } from "@/components/site/ProductGrid";
 import { TrustBar } from "@/components/site/TrustBar";
 import { LazySection } from "@/components/site/LazySection";
 import { getCatalogProducts } from "@/lib/catalog-api";
+import { getActiveHeroSlides, type HeroSlide } from "@/lib/hero-api";
 import type { Product } from "@/components/site/ProductCard";
 
 // Below-the-fold: split into separate chunks and mount on scroll.
@@ -37,9 +38,13 @@ const bannerBrumes =
   "https://res.cloudinary.com/dxkxiy900/image/upload/v1780604892/banner_zgtjc9.jpg";
 
 export const Route = createFileRoute("/")({
-  loader: async (): Promise<{ bestsellers: Product[]; newArrivals: Product[] }> => {
-    const products = await getCatalogProducts().catch(() => []);
+  loader: async (): Promise<{ heroSlides: HeroSlide[]; bestsellers: Product[]; newArrivals: Product[] }> => {
+    const [heroSlides, products] = await Promise.all([
+      getActiveHeroSlides().catch(() => []),
+      getCatalogProducts().catch(() => []),
+    ]);
     return {
+      heroSlides,
       bestsellers: products.slice(0, 8),
       newArrivals: products.slice(8, 16).length ? products.slice(8, 16) : products.slice(0, 8),
     };
@@ -64,7 +69,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { bestsellers, newArrivals } = Route.useLoaderData();
+  const { heroSlides, bestsellers, newArrivals } = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -72,7 +77,7 @@ function Home() {
       <CategoryNav />
       <Header />
       <main>
-        <Hero />
+        <Hero initialSlides={heroSlides} />
         <TrustBar />
         <Categories />
         <ProductGrid
