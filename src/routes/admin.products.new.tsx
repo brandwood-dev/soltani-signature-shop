@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ImagePlus, X, Save, Eye } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Save } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CATEGORY_TREE } from "@/data/catalog";
 import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
-import { createAdminProduct, uploadAdminProductImage } from "@/lib/admin-products-api";
+import { createAdminProduct, MAX_PRODUCT_IMAGE_SIZE_MB, uploadAdminProductImage } from "@/lib/admin-products-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 
 export const Route = createFileRoute("/admin/products/new")({
@@ -43,11 +43,15 @@ function slugify(s: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+function skuPreviewFor(name: string, slug: string) {
+  const base = (slug || slugify(name)).replace(/-/g, "").toUpperCase().slice(0, 14);
+  return base ? `SS-${base}-AUTO` : "Généré automatiquement";
+}
+
 function AdminNewProduct() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [sku, setSku] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
@@ -132,7 +136,6 @@ function AdminNewProduct() {
         price: Number(price),
         compareAtPrice: comparePrice ? Number(comparePrice) : null,
         stockQuantity: trackInventory ? Number(stock || 0) : 0,
-        sku,
         category,
         subcategory: subcategory || undefined,
         brand,
@@ -278,6 +281,9 @@ function AdminNewProduct() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     {uploading ? "Upload en cours…" : "Vous pouvez aussi uploader plusieurs images."}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    Taille maximale : {MAX_PRODUCT_IMAGE_SIZE_MB} Mo par image.
+                  </p>
                 </div>
                 {images.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -395,10 +401,14 @@ function AdminNewProduct() {
                     <Label htmlFor="sku">SKU</Label>
                     <Input
                       id="sku"
-                      value={sku}
-                      onChange={(e) => setSku(e.target.value)}
-                      placeholder="SKU-0001"
+                      value={skuPreviewFor(name, slug)}
+                      readOnly
+                      aria-readonly="true"
+                      className="bg-muted text-muted-foreground"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Le SKU final est généré automatiquement côté serveur et conservé après création.
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="weight">Poids (g)</Label>
@@ -572,10 +582,6 @@ function AdminNewProduct() {
                   <Label className="text-sm">Best seller</Label>
                   <Switch checked={isBestSeller} onCheckedChange={setIsBestSeller} />
                 </div>
-                <Button type="button" variant="outline" className="w-full" size="sm">
-                  <Eye className="h-4 w-4" />
-                  Aperçu
-                </Button>
               </CardContent>
             </Card>
 

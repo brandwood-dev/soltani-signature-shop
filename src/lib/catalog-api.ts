@@ -108,8 +108,8 @@ export function mapApiProduct(product: ApiProduct): Product {
   const isPromotion = tags.some((tag) => tag.toLowerCase() === PROMOTION_TAG);
   const discountTag = tags.find((tag) => tag.toLowerCase().startsWith(DISCOUNT_TAG_PREFIX));
   const discountPercentage = Number(discountTag?.slice(DISCOUNT_TAG_PREFIX.length) ?? 0);
-  const isBestSeller =
-    Boolean(product.isFeatured) || tags.some((tag) => tag.toLowerCase() === BEST_SELLER_TAG);
+  const isFeatured = Boolean(product.isFeatured);
+  const isBestSeller = tags.some((tag) => tag.toLowerCase() === BEST_SELLER_TAG);
   const attributes = product.attributes?.reduce<Record<string, string[]>>((acc, item) => {
     acc[item.key] = [...(acc[item.key] ?? []), item.value];
     return acc;
@@ -129,7 +129,7 @@ export function mapApiProduct(product: ApiProduct): Product {
     isPromotion,
     discountPercentage: isPromotion && Number.isFinite(discountPercentage) && discountPercentage > 0 ? discountPercentage : undefined,
     isBestSeller,
-    rating: 5,
+    isFeatured,
     variantId: variant?.id,
     variantLabel: variant?.label ?? "Standard",
     stockQuantity: variant?.stockQuantity ?? 0,

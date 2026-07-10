@@ -10,6 +10,7 @@ import { TrustBar } from "@/components/site/TrustBar";
 import { LazySection } from "@/components/site/LazySection";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { getActiveHeroSlides, type HeroSlide } from "@/lib/hero-api";
+import { getActivePromoBanners, type PromoBanner as PromoBannerItem } from "@/lib/promo-banners-api";
 import type { Product } from "@/components/site/ProductCard";
 
 // Below-the-fold: split into separate chunks and mount on scroll.
@@ -34,19 +35,18 @@ const Footer = lazy(() =>
   import("@/components/site/Footer").then((m) => ({ default: m.Footer })),
 );
 
-const bannerBrumes =
-  "https://res.cloudinary.com/dxkxiy900/image/upload/v1780604892/banner_zgtjc9.jpg";
-
 export const Route = createFileRoute("/")({
-  loader: async (): Promise<{ heroSlides: HeroSlide[]; bestsellers: Product[]; newArrivals: Product[] }> => {
-    const [heroSlides, products] = await Promise.all([
+  loader: async (): Promise<{ heroSlides: HeroSlide[]; bestsellers: Product[]; newArrivals: Product[]; promoBanners: PromoBannerItem[] }> => {
+    const [heroSlides, products, promoBanners] = await Promise.all([
       getActiveHeroSlides().catch(() => []),
       getCatalogProducts().catch(() => []),
+      getActivePromoBanners("home").catch(() => []),
     ]);
     return {
       heroSlides,
-      bestsellers: products.slice(0, 8),
-      newArrivals: products.slice(8, 16).length ? products.slice(8, 16) : products.slice(0, 8),
+      bestsellers: products.filter((product) => product.isBestSeller).slice(0, 8),
+      newArrivals: products.filter((product) => product.isFeatured).slice(0, 8),
+      promoBanners,
     };
   },
   head: () => ({
@@ -69,7 +69,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { heroSlides, bestsellers, newArrivals } = Route.useLoaderData();
+  const { heroSlides, bestsellers, newArrivals, promoBanners } = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -103,17 +103,19 @@ function Home() {
         <LazySection minHeight={520}>
           <Packs />
         </LazySection>
-        <LazySection minHeight={420}>
-          <PromoBanner
-            eyebrow="Collection Victoria's Secret Été 2026"
-            title="Brumes Parfumées"
-            subtitle="Pour le corps & les cheveux"
-            cta="Découvrir la collection"
-            to="/promotions"
-            image={bannerBrumes}
-            align="right"
-          />
-        </LazySection>
+        {promoBanners.map((banner, index) => (
+          <LazySection key={banner.id} minHeight={420}>
+            <PromoBanner
+              eyebrow={banner.ctaLabel}
+              title={banner.title}
+              subtitle={banner.subtitle}
+              cta={banner.ctaLabel}
+              to={banner.ctaUrl}
+              image={banner.image}
+              align={index % 2 === 0 ? "right" : "left"}
+            />
+          </LazySection>
+        ))}
         <LazySection minHeight={520}>
           <Testimonials />
         </LazySection>

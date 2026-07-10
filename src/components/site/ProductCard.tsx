@@ -1,4 +1,4 @@
-import { Heart, Eye, ShoppingBag, Star } from "lucide-react";
+import { Heart, Eye, ShoppingBag } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
@@ -17,6 +17,7 @@ export type Product = {
   isPromotion?: boolean;
   discountPercentage?: number;
   isBestSeller?: boolean;
+  isFeatured?: boolean;
   rating?: number;
   variantId?: string;
   variantLabel?: string;
@@ -116,13 +117,6 @@ export function ProductCard({ p }: { p: Product }) {
               <span className="text-xs text-muted-foreground line-through tabular-nums">{p.oldPrice} DT</span>
             )}
           </div>
-          {p.rating && (
-            <div className="mt-1.5 flex items-center gap-0.5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className={`h-3 w-3 ${i < Math.floor(p.rating!) ? "fill-gold text-gold" : "text-muted-foreground"}`} />
-              ))}
-            </div>
-          )}
         </div>
       </Link>
     </article>

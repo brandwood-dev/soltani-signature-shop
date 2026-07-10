@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   getAdminProduct,
+  MAX_PRODUCT_IMAGE_SIZE_MB,
   updateAdminProduct,
   uploadAdminProductImage,
   type AdminProduct,
@@ -326,6 +327,9 @@ function AdminEditProduct() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     {uploading ? "Upload en cours…" : "Vous pouvez aussi uploader plusieurs images."}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    Taille maximale : {MAX_PRODUCT_IMAGE_SIZE_MB} Mo par image.
+                  </p>
                 </div>
                 {images.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -441,7 +445,16 @@ function AdminEditProduct() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="sku">SKU</Label>
-                    <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} />
+                    <Input
+                      id="sku"
+                      value={sku}
+                      readOnly
+                      aria-readonly="true"
+                      className="bg-muted text-muted-foreground"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Le SKU est généré automatiquement à la création et conservé.
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="weight">Poids (g)</Label>

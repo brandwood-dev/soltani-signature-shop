@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, ImagePlus, Eye, EyeOff } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -24,6 +24,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  createPromoBanner,
+  deletePromoBanner,
+  getAdminPromoBanners,
+  togglePromoBanner,
+  updatePromoBanner,
+  type PromoBanner,
+} from "@/lib/promo-banners-api";
 
 export const Route = createFileRoute("/admin/banners")({
   component: AdminBanners,
@@ -40,92 +48,8 @@ const PAGES = [
 
 type PageKey = (typeof PAGES)[number]["value"];
 
-type Banner = {
-  id: string;
-  page: PageKey;
-  image: string;
-  title: string;
-  subtitle: string;
-  ctaLabel: string;
-  ctaUrl: string;
-  active: boolean;
-};
-
-const SEED: Banner[] = [
-  {
-    id: "b1",
-    page: "home",
-    image: "https://picsum.photos/seed/ban1/800/400",
-    title: "Black Friday",
-    subtitle: "Jusqu'à -50% sur une sélection",
-    ctaLabel: "J'en profite",
-    ctaUrl: "/promotions",
-    active: true,
-  },
-  {
-    id: "b2",
-    page: "home",
-    image: "https://picsum.photos/seed/ban2/800/400",
-    title: "Coffrets cadeaux",
-    subtitle: "Idées parfaites pour les fêtes",
-    ctaLabel: "Voir les coffrets",
-    ctaUrl: "/promotions",
-    active: true,
-  },
-  {
-    id: "b3",
-    page: "femme",
-    image: "https://picsum.photos/seed/ban3/800/400",
-    title: "Édition Florale",
-    subtitle: "Les nouveaux parfums féminins",
-    ctaLabel: "Découvrir",
-    ctaUrl: "/femme",
-    active: true,
-  },
-  {
-    id: "b4",
-    page: "homme",
-    image: "https://picsum.photos/seed/ban4/800/400",
-    title: "Sport & Caractère",
-    subtitle: "La nouvelle ligne homme",
-    ctaLabel: "Voir",
-    ctaUrl: "/homme",
-    active: true,
-  },
-  {
-    id: "b5",
-    page: "enfant",
-    image: "https://picsum.photos/seed/ban5/800/400",
-    title: "Douceurs Enfant",
-    subtitle: "Soins hypoallergéniques",
-    ctaLabel: "Explorer",
-    ctaUrl: "/enfant",
-    active: true,
-  },
-  {
-    id: "b6",
-    page: "maison",
-    image: "https://picsum.photos/seed/ban6/800/400",
-    title: "Ambiance Cocooning",
-    subtitle: "Bougies & diffuseurs",
-    ctaLabel: "Découvrir",
-    ctaUrl: "/maison",
-    active: true,
-  },
-  {
-    id: "b7",
-    page: "bien-etre",
-    image: "https://picsum.photos/seed/ban7/800/400",
-    title: "Rituels Bien-être",
-    subtitle: "Soins relaxants",
-    ctaLabel: "Voir",
-    ctaUrl: "/bien-etre",
-    active: false,
-  },
-];
-
-const empty = (page: PageKey): Banner => ({
-  id: `b_${Date.now()}`,
+const empty = (page: PageKey): PromoBanner => ({
+  id: `new_${Date.now()}`,
   page,
   image: "",
   title: "",
@@ -133,39 +57,102 @@ const empty = (page: PageKey): Banner => ({
   ctaLabel: "",
   ctaUrl: "",
   active: true,
+  sortOrder: 0,
+  createdAt: "",
+  updatedAt: "",
 });
 
 function AdminBanners() {
-  const [items, setItems] = useState<Banner[]>(SEED);
+  const [items, setItems] = useState<PromoBanner[]>([]);
   const [tab, setTab] = useState<PageKey | "all">("all");
-  const [editing, setEditing] = useState<Banner | null>(null);
+  const [editing, setEditing] = useState<PromoBanner | null>(null);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      setItems(await getAdminPromoBanners());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de charger les bannières.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
 
   const filtered = useMemo(
-    () => (tab === "all" ? items : items.filter((b) => b.page === tab)),
+    () => (tab === "all" ? items : items.filter((banner) => banner.page === tab)),
     [items, tab],
   );
 
-  const remove = (id: string) => setItems((s) => s.filter((b) => b.id !== id));
-  const toggle = (id: string) =>
-    setItems((s) => s.map((b) => (b.id === id ? { ...b, active: !b.active } : b)));
+  const remove = async (id: string) => {
+    try {
+      setError("");
+      await deletePromoBanner(id);
+      setItems((current) => current.filter((banner) => banner.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    }
+  };
+
+  const toggle = async (id: string) => {
+    try {
+      setError("");
+      const updated = await togglePromoBanner(id);
+      setItems((current) => current.map((banner) => (banner.id === id ? updated : banner)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Changement de statut impossible.");
+    }
+  };
+
   const openNew = () => {
     setEditing(empty(tab === "all" ? "home" : tab));
     setOpen(true);
   };
-  const openEdit = (b: Banner) => {
-    setEditing({ ...b });
+
+  const openEdit = (banner: PromoBanner) => {
+    setEditing({ ...banner });
     setOpen(true);
   };
-  const save = () => {
+
+  const save = async () => {
     if (!editing || !editing.title.trim()) return;
-    setItems((s) =>
-      s.some((b) => b.id === editing.id)
-        ? s.map((b) => (b.id === editing.id ? editing : b))
-        : [...s, editing],
-    );
-    setOpen(false);
-    setEditing(null);
+    try {
+      setSaving(true);
+      setError("");
+      const payload = {
+        page: editing.page,
+        image: editing.image,
+        title: editing.title,
+        subtitle: editing.subtitle,
+        ctaLabel: editing.ctaLabel,
+        ctaUrl: editing.ctaUrl,
+        active: editing.active,
+        sortOrder: editing.sortOrder,
+      };
+      const saved = editing.id.startsWith("new_")
+        ? await createPromoBanner(payload)
+        : await updatePromoBanner(editing.id, payload);
+
+      setItems((current) =>
+        current.some((banner) => banner.id === saved.id)
+          ? current.map((banner) => (banner.id === saved.id ? saved : banner))
+          : [...current, saved],
+      );
+      setOpen(false);
+      setEditing(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enregistrement impossible.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -183,33 +170,37 @@ function AdminBanners() {
       />
 
       <div className="flex-1 space-y-3 p-3 sm:space-y-4 sm:p-6">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as PageKey | "all")}>
+        {error && (
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        <Tabs value={tab} onValueChange={(value) => setTab(value as PageKey | "all")}>
           <TabsList className="h-auto w-full justify-start overflow-x-auto">
             <TabsTrigger value="all">Toutes ({items.length})</TabsTrigger>
-            {PAGES.map((p) => (
-              <TabsTrigger key={p.value} value={p.value}>
-                {p.label} ({items.filter((b) => b.page === p.value).length})
+            {PAGES.map((page) => (
+              <TabsTrigger key={page.value} value={page.value}>
+                {page.label} ({items.filter((banner) => banner.page === page.value).length})
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
 
         <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-          {filtered.map((b) => (
-            <Card key={b.id} className="overflow-hidden">
+          {filtered.map((banner) => (
+            <Card key={banner.id} className="overflow-hidden">
               <div className="relative aspect-[2/1] w-full bg-muted">
-                {b.image && (
-                  <img src={b.image} alt={b.title} className="h-full w-full object-cover" />
-                )}
+                {banner.image && <img src={banner.image} alt={banner.title} className="h-full w-full object-cover" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute inset-x-3 bottom-3 text-white">
-                  <h3 className="line-clamp-1 text-sm font-semibold">{b.title}</h3>
-                  <p className="line-clamp-1 text-xs opacity-90">{b.subtitle}</p>
+                  <h3 className="line-clamp-1 text-sm font-semibold">{banner.title}</h3>
+                  <p className="line-clamp-1 text-xs opacity-90">{banner.subtitle}</p>
                 </div>
                 <span className="absolute left-3 top-3 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium capitalize text-foreground">
-                  {PAGES.find((p) => p.value === b.page)?.label}
+                  {PAGES.find((page) => page.value === banner.page)?.label}
                 </span>
-                {!b.active && (
+                {!banner.active && (
                   <span className="absolute right-3 top-3 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-medium text-destructive-foreground">
                     Inactive
                   </span>
@@ -217,38 +208,23 @@ function AdminBanners() {
               </div>
               <CardContent className="flex items-center justify-between p-3">
                 <span className="truncate text-xs text-muted-foreground">
-                  {b.ctaLabel} → {b.ctaUrl}
+                  {banner.ctaLabel} → {banner.ctaUrl}
                 </span>
                 <div className="flex shrink-0 gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => toggle(b.id)}
-                  >
-                    {b.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggle(banner.id)}>
+                    {banner.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => openEdit(b)}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(banner)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => remove(b.id)}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(banner.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
-          {filtered.length === 0 && (
+          {!loading && filtered.length === 0 && (
             <Card className="col-span-full">
               <CardContent className="p-8 text-center text-sm text-muted-foreground">
                 Aucune bannière pour cette page.
@@ -262,26 +238,21 @@ function AdminBanners() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editing && items.some((b) => b.id === editing.id)
-                ? "Modifier la bannière"
-                : "Nouvelle bannière"}
+              {editing && !editing.id.startsWith("new_") ? "Modifier la bannière" : "Nouvelle bannière"}
             </DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label>Page</Label>
-                <Select
-                  value={editing.page}
-                  onValueChange={(v) => setEditing({ ...editing, page: v as PageKey })}
-                >
+                <Select value={editing.page} onValueChange={(value) => setEditing({ ...editing, page: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PAGES.map((p) => (
-                      <SelectItem key={p.value} value={p.value}>
-                        {p.label}
+                    {PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -290,60 +261,34 @@ function AdminBanners() {
               <div className="space-y-1.5">
                 <Label>Image</Label>
                 <div className="flex gap-2">
-                  <Input
-                    value={editing.image}
-                    onChange={(e) => setEditing({ ...editing, image: e.target.value })}
-                    placeholder="URL de l'image"
-                  />
+                  <Input value={editing.image} onChange={(event) => setEditing({ ...editing, image: event.target.value })} placeholder="URL de l'image" />
                   <Button variant="outline" size="icon" className="shrink-0" aria-label="Téléverser">
                     <ImagePlus className="h-4 w-4" />
                   </Button>
                 </div>
-                {editing.image && (
-                  <img
-                    src={editing.image}
-                    alt=""
-                    className="mt-2 aspect-[2/1] w-full rounded-md object-cover"
-                  />
-                )}
+                {editing.image && <img src={editing.image} alt="" className="mt-2 aspect-[2/1] w-full rounded-md object-cover" />}
               </div>
               <div className="space-y-1.5">
                 <Label>Titre</Label>
-                <Input
-                  value={editing.title}
-                  onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                />
+                <Input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <Label>Sous-titre</Label>
-                <Textarea
-                  rows={2}
-                  value={editing.subtitle}
-                  onChange={(e) => setEditing({ ...editing, subtitle: e.target.value })}
-                />
+                <Textarea rows={2} value={editing.subtitle} onChange={(event) => setEditing({ ...editing, subtitle: event.target.value })} />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Libellé CTA</Label>
-                  <Input
-                    value={editing.ctaLabel}
-                    onChange={(e) => setEditing({ ...editing, ctaLabel: e.target.value })}
-                  />
+                  <Input value={editing.ctaLabel} onChange={(event) => setEditing({ ...editing, ctaLabel: event.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>URL CTA</Label>
-                  <Input
-                    value={editing.ctaUrl}
-                    onChange={(e) => setEditing({ ...editing, ctaUrl: e.target.value })}
-                  />
+                  <Input value={editing.ctaUrl} onChange={(event) => setEditing({ ...editing, ctaUrl: event.target.value })} />
                 </div>
               </div>
               <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                 <Label className="text-sm">Active</Label>
-                <Switch
-                  checked={editing.active}
-                  onCheckedChange={(v) => setEditing({ ...editing, active: v })}
-                />
+                <Switch checked={editing.active} onCheckedChange={(value) => setEditing({ ...editing, active: value })} />
               </div>
             </div>
           )}
@@ -351,7 +296,9 @@ function AdminBanners() {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={save}>Enregistrer</Button>
+            <Button onClick={save} disabled={saving}>
+              {saving ? "Enregistrement…" : "Enregistrer"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

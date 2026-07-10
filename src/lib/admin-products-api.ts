@@ -48,7 +48,7 @@ export type UpsertAdminProductInput = {
   price: number;
   compareAtPrice?: number | null;
   stockQuantity: number;
-  sku: string;
+  sku?: string;
   category: string;
   subcategory?: string;
   brand: string;
@@ -64,6 +64,9 @@ export type UpsertAdminProductInput = {
   isBestSeller?: boolean;
   lowStockThreshold?: number;
 };
+
+export const MAX_PRODUCT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+export const MAX_PRODUCT_IMAGE_SIZE_MB = 5;
 
 export type AdminProductsResponse = {
   products: AdminProduct[];
@@ -114,6 +117,10 @@ export async function deleteAdminProduct(id: string) {
 }
 
 export async function uploadAdminProductImage(file: File) {
+  if (file.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
+    throw new Error(`L'image "${file.name}" dépasse la taille maximale autorisée de ${MAX_PRODUCT_IMAGE_SIZE_MB} Mo.`);
+  }
+
   const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
