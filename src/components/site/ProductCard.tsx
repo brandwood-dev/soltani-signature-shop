@@ -62,7 +62,7 @@ export function ProductCard({ p }: { p: Product }) {
             className="h-full w-full object-contain object-center p-3 transition-transform duration-[900ms] ease-out group-hover:scale-105"
           />
 
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
             {p.isPromotion && promoDiscount ? (
               <span className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">
                 -{promoDiscount}%
