@@ -125,12 +125,27 @@ function AdminCategories() {
   };
 
   const handleToggle = async (id: string) => {
+    const previousCats = cats;
+    setCats((current) => current.map((category) => {
+      if (category.id === id) return { ...category, active: !category.active };
+      return {
+        ...category,
+        subs: category.subs.map((sub) => (sub.id === id ? { ...sub, active: !sub.active } : sub)),
+      };
+    }));
     try {
       setSaving(true);
       setError("");
-      await toggleAdminCategory(id);
-      await refresh();
+      const updated = await toggleAdminCategory(id);
+      setCats((current) => current.map((category) => {
+        if (category.id === updated.id) return { ...category, active: updated.isActive };
+        return {
+          ...category,
+          subs: category.subs.map((sub) => (sub.id === updated.id ? { ...sub, active: updated.isActive } : sub)),
+        };
+      }));
     } catch (err) {
+      setCats(previousCats);
       setError(err instanceof Error ? err.message : "Impossible d'activer ou désactiver cette catégorie.");
     } finally {
       setSaving(false);
@@ -189,9 +204,25 @@ function AdminCategories() {
         imageUrl: form.imageUrl.trim(),
         isActive: form.active,
       });
+      setCats((current) => current.map((category) => {
+        if (category.id === form.id) {
+          return {
+            ...category,
+            name: form.name.trim(),
+            imageUrl: form.imageUrl.trim(),
+            image: form.imageUrl.trim() || category.image,
+            active: form.active,
+          };
+        }
+        return {
+          ...category,
+          subs: category.subs.map((sub) => (sub.id === form.id
+            ? { ...sub, name: form.name.trim(), imageUrl: form.imageUrl.trim(), active: form.active }
+            : sub)),
+        };
+      }));
       setEditOpen(false);
       setForm(null);
-      await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'enregistrer la catégorie.");
     } finally {

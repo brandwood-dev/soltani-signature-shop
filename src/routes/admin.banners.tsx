@@ -98,21 +98,39 @@ function AdminBanners() {
   const filtered = useMemo(() => items, [items]);
 
   const remove = async (id: string) => {
+    const previousItems = items;
+    const previousTotal = total;
+    setItems((current) => current.filter((banner) => banner.id !== id));
+    setTotal((current) => Math.max(0, current - 1));
     try {
       setError("");
       await deletePromoBanner(id);
-      await load();
     } catch (err) {
+      setItems(previousItems);
+      setTotal(previousTotal);
       setError(err instanceof Error ? err.message : "Suppression impossible.");
     }
   };
 
   const toggle = async (id: string) => {
+    const previousItems = items;
+    const target = items.find((banner) => banner.id === id);
+    if (target) {
+      const nextActive = !target.active;
+      setItems((current) => current.map((banner) => {
+        if (banner.id === id) return { ...banner, active: nextActive };
+        return nextActive && banner.page === target.page ? { ...banner, active: false } : banner;
+      }));
+    }
     try {
       setError("");
-      await togglePromoBanner(id);
-      await load();
+      const updated = await togglePromoBanner(id);
+      setItems((current) => current.map((banner) => {
+        if (banner.id === updated.id) return updated;
+        return updated.active && banner.page === updated.page ? { ...banner, active: false } : banner;
+      }));
     } catch (err) {
+      setItems(previousItems);
       setError(err instanceof Error ? err.message : "Changement de statut impossible.");
     }
   };

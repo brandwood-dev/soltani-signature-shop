@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { Search, Mail, Phone, MoreHorizontal } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -54,6 +54,7 @@ function initials(name: string) {
 function AdminCustomers() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [customers, setCustomers] = useState<AdminCustomerListItem[]>([]);
@@ -67,7 +68,7 @@ function AdminCustomers() {
     try {
       setLoading(true);
       setError("");
-      const response = await getAdminCustomers({ query, page, pageSize });
+      const response = await getAdminCustomers({ query: deferredQuery, page, pageSize });
       setCustomers(response.customers);
       setTotal(response.pagination.total);
     } catch (err) {
@@ -81,7 +82,7 @@ function AdminCustomers() {
 
   useEffect(() => {
     refresh();
-  }, [query, page, pageSize]);
+  }, [deferredQuery, page, pageSize]);
 
   const openProfile = async (id: string) => {
     try {
@@ -94,11 +95,17 @@ function AdminCustomers() {
   };
 
   const toggleBlocked = async (customer: AdminCustomerListItem) => {
+    const previousCustomers = customers;
+    const nextStatus = customer.status === "blocked" ? "active" : "blocked";
+    setCustomers((current) => current.map((item) => (
+      item.id === customer.id ? { ...item, status: nextStatus } : item
+    )));
     try {
       setError("");
-      await updateAdminCustomerStatus(customer.id, customer.status === "blocked" ? "active" : "blocked");
-      await refresh();
+      const updated = await updateAdminCustomerStatus(customer.id, nextStatus);
+      setCustomers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (err) {
+      setCustomers(previousCustomers);
       setError(err instanceof Error ? err.message : "Impossible de modifier le statut client.");
     }
   };

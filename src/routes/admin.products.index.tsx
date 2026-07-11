@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Filter } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -44,6 +44,7 @@ export const Route = createFileRoute("/admin/products/")({
 
 function AdminProducts() {
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [status, setStatus] = useState<string>("all");
   const [category, setCategory] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -64,7 +65,7 @@ function AdminProducts() {
       setLoading(true);
       setError("");
       const response = await getAdminProducts({
-        query,
+        query: deferredQuery,
         status: status as "all" | AdminProductStatus,
         category,
         page,
@@ -83,7 +84,7 @@ function AdminProducts() {
 
   useEffect(() => {
     refresh();
-  }, [query, status, category, page, pageSize]);
+  }, [deferredQuery, status, category, page, pageSize]);
 
   const paged = products;
   const allChecked = paged.length > 0 && paged.every((p) => selected.has(p.id));

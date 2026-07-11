@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { Search, Eye, MoreHorizontal, Download } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -80,6 +80,7 @@ const EXPORT_PERIODS: Array<{ value: AdminOrderExportPeriod; label: string }> = 
 function AdminOrders() {
   const search = Route.useSearch();
   const [query, setQuery] = useState(search.query);
+  const deferredQuery = useDeferredValue(query);
   const [tab, setTab] = useState<(typeof TABS)[number]>("all");
   const [payment, setPayment] = useState("all");
   const [page, setPage] = useState(1);
@@ -100,7 +101,7 @@ function AdminOrders() {
       setLoading(true);
       setError("");
       const response = await getAdminOrders({
-        query,
+        query: deferredQuery,
         status: tab,
         payment: payment as "all" | "card" | "cod",
         page,
@@ -120,14 +121,37 @@ function AdminOrders() {
 
   useEffect(() => {
     refresh();
-  }, [query, tab, payment, page, pageSize]);
+  }, [deferredQuery, tab, payment, page, pageSize]);
 
   const setOrderStatus = async (id: string, status: AdminOrderStatus) => {
+    const previousOrders = orders;
+    const previousTotal = total;
+    const currentOrder = orders.find((order) => order.id === id);
+    if (!currentOrder || currentOrder.status === status) return;
+
+    const shouldRemainVisible = tab === "all" || tab === status;
+    setOrders((current) => current
+      .map((order) => (order.id === id ? { ...order, status } : order))
+      .filter((order) => order.id !== id || shouldRemainVisible));
+    if (!shouldRemainVisible) {
+      setTotal((current) => Math.max(0, current - 1));
+    }
+    setCounts((current) => ({
+      ...current,
+      [currentOrder.status]: Math.max(0, (current[currentOrder.status] ?? 0) - 1),
+      [status]: (current[status] ?? 0) + 1,
+    }));
     try {
       setError("");
       await updateAdminOrderStatus(id, status);
-      await refresh();
     } catch (err) {
+      setOrders(previousOrders);
+      setTotal(previousTotal);
+      setCounts((current) => ({
+        ...current,
+        [currentOrder.status]: (current[currentOrder.status] ?? 0) + 1,
+        [status]: Math.max(0, (current[status] ?? 0) - 1),
+      }));
       setError(err instanceof Error ? err.message : "Mise à jour impossible.");
     }
   };
