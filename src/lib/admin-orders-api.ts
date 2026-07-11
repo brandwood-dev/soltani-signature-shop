@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiDownload, apiFetch } from "@/lib/api";
 
 export type AdminOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 export type AdminPaymentMethod = "card" | "cod";
@@ -61,6 +61,22 @@ export type AdminOrdersQuery = {
   pageSize?: number;
 };
 
+export type AdminOrderExportPeriod =
+  | "today"
+  | "yesterday"
+  | "last_7_days"
+  | "last_14_days"
+  | "last_30_days"
+  | "this_week"
+  | "this_month"
+  | "this_year"
+  | "all";
+
+export type AdminOrdersExportQuery = {
+  period: AdminOrderExportPeriod;
+  status: "all" | AdminOrderStatus;
+};
+
 export function getAdminOrders(query: AdminOrdersQuery) {
   const params = new URLSearchParams();
   if (query.query) params.set("query", query.query);
@@ -83,4 +99,15 @@ export async function updateAdminOrderStatus(id: string, status: AdminOrderStatu
     body: JSON.stringify({ status }),
   });
   return response.order;
+}
+
+export function downloadAdminOrdersExport(query: AdminOrdersExportQuery) {
+  const params = new URLSearchParams();
+  params.set("period", query.period);
+  params.set("status", query.status);
+  return apiDownload(`/orders/admin/export?${params.toString()}`);
+}
+
+export function downloadAdminPurchaseOrder(id: string) {
+  return apiDownload(`/orders/admin/${id}/purchase-order`);
 }

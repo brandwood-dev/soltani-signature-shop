@@ -155,6 +155,51 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
   return response.json() as Promise<T>;
 }
 
+export async function apiDownload(path: string, init: RequestInit = {}) {
+  const session = typeof window === "undefined" ? null : await getSession();
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/pdf");
+
+  if (session?.accessToken) {
+    headers.set("Authorization", `Bearer ${session.accessToken}`);
+  }
+
+  const response = await fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
+    cache: "no-store",
+    ...init,
+    headers,
+  });
+
+  if (!response.ok) {
+    let message = "Téléchargement impossible.";
+    try {
+      const body = (await response.json()) as ApiErrorBody;
+      message = Array.isArray(body.message) ? body.message.join(", ") : body.message || message;
+    } catch {
+      message = response.statusText || message;
+    }
+    throw new Error(message);
+  }
+
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+  return {
+    blob: await response.blob(),
+    filename: filenameMatch?.[1] ?? "document.pdf",
+  };
+}
+
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
   let lastError: unknown;
 

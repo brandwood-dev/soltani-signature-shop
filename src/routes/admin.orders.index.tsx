@@ -8,6 +8,13 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -31,11 +38,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  downloadAdminOrdersExport,
   getAdminOrders,
   updateAdminOrderStatus,
+  type AdminOrderExportPeriod,
   type AdminOrderListItem,
   type AdminOrderStatus,
 } from "@/lib/admin-orders-api";
+import { downloadBlob } from "@/lib/api";
 import { formatDate, formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/orders/")({
@@ -55,6 +65,18 @@ const TAB_LABELS: Record<string, string> = {
   cancelled: "Annulées",
 };
 
+const EXPORT_PERIODS: Array<{ value: AdminOrderExportPeriod; label: string }> = [
+  { value: "today", label: "Aujourd’hui" },
+  { value: "yesterday", label: "Hier" },
+  { value: "last_7_days", label: "7 derniers jours" },
+  { value: "last_14_days", label: "14 derniers jours" },
+  { value: "last_30_days", label: "30 derniers jours" },
+  { value: "this_week", label: "Cette semaine" },
+  { value: "this_month", label: "Ce mois-ci" },
+  { value: "this_year", label: "Cette année" },
+  { value: "all", label: "Toutes" },
+];
+
 function AdminOrders() {
   const search = Route.useSearch();
   const [query, setQuery] = useState(search.query);
@@ -67,6 +89,11 @@ function AdminOrders() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportPeriod, setExportPeriod] = useState<AdminOrderExportPeriod>("today");
+  const [exportStatus, setExportStatus] = useState<"all" | AdminOrderStatus>("all");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const refresh = async () => {
     try {
@@ -105,13 +132,27 @@ function AdminOrders() {
     }
   };
 
+  const exportOrders = async () => {
+    try {
+      setExporting(true);
+      setExportError("");
+      const file = await downloadAdminOrdersExport({ period: exportPeriod, status: exportStatus });
+      downloadBlob(file.blob, file.filename);
+      setExportOpen(false);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Export impossible.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       <AdminHeader
         title="Commandes"
         subtitle={`${total} commandes`}
         actions={
-          <Button size="sm" variant="outline" className="h-9">
+          <Button size="sm" variant="outline" className="h-9" onClick={() => setExportOpen(true)}>
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exporter</span>
           </Button>
@@ -306,6 +347,59 @@ function AdminOrders() {
           />
         </Card>
       </div>
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exporter les commandes</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Période</label>
+              <Select value={exportPeriod} onValueChange={(value) => setExportPeriod(value as AdminOrderExportPeriod)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPORT_PERIODS.map((period) => (
+                    <SelectItem key={period.value} value={period.value}>
+                      {period.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Statut</label>
+              <Select value={exportStatus} onValueChange={(value) => setExportStatus(value as "all" | AdminOrderStatus)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TABS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {TAB_LABELS[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {exportError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {exportError}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>
+              Annuler
+            </Button>
+            <Button type="button" onClick={exportOrders} disabled={exporting}>
+              {exporting ? "Export en cours…" : "Exporter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

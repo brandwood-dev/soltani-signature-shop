@@ -10,7 +10,6 @@ import {
   MapPin,
   Package,
   Phone,
-  Printer,
   Truck,
   XCircle,
 } from "lucide-react";
@@ -36,11 +35,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  downloadAdminPurchaseOrder,
   getAdminOrder,
   updateAdminOrderStatus,
   type AdminOrderDetails,
   type AdminOrderStatus,
 } from "@/lib/admin-orders-api";
+import { downloadBlob } from "@/lib/api";
 import { formatDate, formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/orders/$id")({
@@ -53,6 +54,7 @@ function OrderDetails() {
   const [status, setStatus] = useState<AdminOrderStatus>("pending");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -129,6 +131,19 @@ function OrderDetails() {
     }
   };
 
+  const downloadPurchaseOrder = async () => {
+    try {
+      setDownloading(true);
+      setError("");
+      const file = await downloadAdminPurchaseOrder(currentOrder.id);
+      downloadBlob(file.blob, file.filename);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Téléchargement impossible.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <>
       <AdminHeader
@@ -142,13 +157,9 @@ function OrderDetails() {
                 <span className="hidden sm:inline">Retour</span>
               </Link>
             </Button>
-            <Button variant="outline" size="sm" className="h-9">
-              <Printer className="h-4 w-4" />
-              <span className="hidden sm:inline">Imprimer</span>
-            </Button>
-            <Button size="sm" className="h-9">
+            <Button size="sm" className="h-9" onClick={downloadPurchaseOrder} disabled={downloading}>
               <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Facture</span>
+              <span className="hidden sm:inline">{downloading ? "Génération…" : "Bon de commande"}</span>
             </Button>
           </div>
         }
