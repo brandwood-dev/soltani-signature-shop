@@ -7,7 +7,8 @@ import { LifestyleHero } from "@/components/site/LifestyleHero";
 import { TrustBar } from "@/components/site/TrustBar";
 import { LifestyleSection, DualBanner } from "@/components/site/LifestyleSection";
 import { PromoBanner } from "@/components/site/PromoBanner";
-import type { ReactNode } from "react";
+import { getActivePromoBanners, type PromoBanner as DynamicPromoBanner } from "@/lib/promo-banners-api";
+import { useEffect, useState, type ReactNode } from "react";
 
 type Section = {
   eyebrow?: string;
@@ -21,6 +22,7 @@ type Section = {
 import { pickProducts } from "@/lib/lifestyle";
 
 export type LifestyleConfig = {
+  page: "femme" | "homme" | "enfant" | "maison" | "bien-etre";
   hero: {
     eyebrow: string;
     title: string;
@@ -31,32 +33,36 @@ export type LifestyleConfig = {
     secondaryCta?: { label: string; href: string };
   };
   sections: Section[];
-  fullBanner?: {
-    eyebrow?: string;
-    title: string;
-    subtitle: string;
-    cta: string;
-    to: string;
-    image: string;
-    align?: "left" | "right";
-  };
-  dualBanner?: {
-    left: { eyebrow?: string; title: string; subtitle: string; cta: string; href: string; image: string };
-    right: { eyebrow?: string; title: string; subtitle: string; cta: string; href: string; image: string };
-  };
-  bottomBanner?: {
-    eyebrow?: string;
-    title: string;
-    subtitle: string;
-    cta: string;
-    to: string;
-    image: string;
-    align?: "left" | "right";
+  bannerLayout?: {
+    fullAlign?: "left" | "right";
+    bottomAlign?: "left" | "right";
   };
   intro?: ReactNode;
 };
 
 export function LifestylePage({ config }: { config: LifestyleConfig }) {
+  const [banners, setBanners] = useState<DynamicPromoBanner[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getActivePromoBanners(config.page)
+      .then((items) => {
+        if (active) setBanners(items);
+      })
+      .catch(() => {
+        if (active) setBanners([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [config.page]);
+
+  const fullBanner = banners[0];
+  const dualLeftBanner = banners[1];
+  const dualRightBanner = banners[2];
+  const bottomBanner = banners[3];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar />
@@ -89,15 +95,15 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
           />
         ))}
 
-        {config.fullBanner && (
+        {fullBanner && (
           <PromoBanner
-            eyebrow={config.fullBanner.eyebrow}
-            title={config.fullBanner.title}
-            subtitle={config.fullBanner.subtitle}
-            cta={config.fullBanner.cta}
-            to={config.fullBanner.to}
-            image={config.fullBanner.image}
-            align={config.fullBanner.align}
+            eyebrow={fullBanner.ctaLabel}
+            title={fullBanner.title}
+            subtitle={fullBanner.subtitle}
+            cta={fullBanner.ctaLabel}
+            to={fullBanner.ctaUrl}
+            image={fullBanner.image}
+            align={config.bannerLayout?.fullAlign}
           />
         )}
 
@@ -113,7 +119,26 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
           />
         ))}
 
-        {config.dualBanner && <DualBanner left={config.dualBanner.left} right={config.dualBanner.right} />}
+        {dualLeftBanner && dualRightBanner && (
+          <DualBanner
+            left={{
+              eyebrow: dualLeftBanner.ctaLabel,
+              title: dualLeftBanner.title,
+              subtitle: dualLeftBanner.subtitle,
+              cta: dualLeftBanner.ctaLabel,
+              href: dualLeftBanner.ctaUrl,
+              image: dualLeftBanner.image,
+            }}
+            right={{
+              eyebrow: dualRightBanner.ctaLabel,
+              title: dualRightBanner.title,
+              subtitle: dualRightBanner.subtitle,
+              cta: dualRightBanner.ctaLabel,
+              href: dualRightBanner.ctaUrl,
+              image: dualRightBanner.image,
+            }}
+          />
+        )}
 
         {config.sections.slice(4).map((s) => (
           <LifestyleSection
@@ -127,15 +152,15 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
           />
         ))}
 
-        {config.bottomBanner && (
+        {bottomBanner && (
           <PromoBanner
-            eyebrow={config.bottomBanner.eyebrow}
-            title={config.bottomBanner.title}
-            subtitle={config.bottomBanner.subtitle}
-            cta={config.bottomBanner.cta}
-            to={config.bottomBanner.to}
-            image={config.bottomBanner.image}
-            align={config.bottomBanner.align}
+            eyebrow={bottomBanner.ctaLabel}
+            title={bottomBanner.title}
+            subtitle={bottomBanner.subtitle}
+            cta={bottomBanner.ctaLabel}
+            to={bottomBanner.ctaUrl}
+            image={bottomBanner.image}
+            align={config.bannerLayout?.bottomAlign}
           />
         )}
 

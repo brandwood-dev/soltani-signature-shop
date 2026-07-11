@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-2.jpg";
-import bannerCosmetics from "@/assets/cat-cosmetics.jpg";
-import bannerPerfumes from "@/assets/cat-perfumes.jpg";
 
 const config: LifestyleConfig = {
+  page: "bien-etre",
   hero: {
     eyebrow: "Bien-être & Sérénité",
     title: "Rituel",
@@ -57,33 +56,7 @@ const config: LifestyleConfig = {
       ctaHref: "/category/protection-solaire?audience=bien-etre",
     },
   ],
-  fullBanner: {
-    eyebrow: "Wellness",
-    title: "Cocon de sérénité",
-    subtitle: "Une parenthèse sensorielle, chez vous, chaque jour.",
-    cta: "Explorer le bien-être",
-    to: "/category/soins-visage",
-    image: bannerCosmetics,
-    align: "left",
-  },
-  dualBanner: {
-    left: {
-      eyebrow: "Essentiel",
-      title: "Synergies d'huiles",
-      subtitle: "Compositions exclusives pour le diffuseur.",
-      cta: "Découvrir",
-      href: "/category/cheveux",
-      image: bannerPerfumes,
-    },
-    right: {
-      eyebrow: "Rituel",
-      title: "Massage & Détente",
-      subtitle: "Huiles de massage et baumes nourrissants.",
-      cta: "Voir les soins",
-      href: "/category/soins-visage",
-      image: bannerCosmetics,
-    },
-  },
+  bannerLayout: { fullAlign: "left" },
 };
 
 export const Route = createFileRoute("/bien-etre")({

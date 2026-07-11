@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-2.jpg";
-import bannerWatches from "@/assets/cat-watches.jpg";
-import bannerSunglasses from "@/assets/cat-sunglasses.jpg";
-import bannerPerfumes from "@/assets/cat-perfumes.jpg";
 
 const config: LifestyleConfig = {
+  page: "homme",
   hero: {
     eyebrow: "Univers Homme",
     title: "Collection",
@@ -58,42 +56,7 @@ const config: LifestyleConfig = {
       ctaHref: "/category/bijoux?audience=homme",
     },
   ],
-  fullBanner: {
-    eyebrow: "Édition Limitée",
-    title: "Horlogerie d'exception",
-    subtitle: "Une sélection de chronographes et automatiques signés.",
-    cta: "Explorer les montres",
-    to: "/category/montres",
-    image: bannerWatches,
-    align: "left",
-  },
-  dualBanner: {
-    left: {
-      eyebrow: "Signature",
-      title: "Parfums Boisés",
-      subtitle: "Oud, vétiver, santal — l'essence du masculin.",
-      cta: "Découvrir",
-      href: "/category/parfums-fragrances",
-      image: bannerPerfumes,
-    },
-    right: {
-      eyebrow: "Iconique",
-      title: "Solaires Aviator",
-      subtitle: "Les modèles cultes des plus grandes maisons.",
-      cta: "Voir les lunettes",
-      href: "/category/lunettes",
-      image: bannerSunglasses,
-    },
-  },
-  bottomBanner: {
-    eyebrow: "Offre Limitée",
-    title: "−25% sur l'horlogerie",
-    subtitle: "Saisissez l'opportunité d'un garde-temps d'exception.",
-    cta: "Profiter de l'offre",
-    to: "/promotions",
-    image: bannerWatches,
-    align: "right",
-  },
+  bannerLayout: { fullAlign: "left", bottomAlign: "right" },
 };
 
 export const Route = createFileRoute("/homme")({

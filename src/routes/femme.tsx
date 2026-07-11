@@ -1,12 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-1.jpg";
-import bannerJewelry from "@/assets/cat-jewelry.jpg";
-import bannerBags from "@/assets/cat-bags.jpg";
-import bannerCosmetics from "@/assets/cat-cosmetics.jpg";
-import bannerPerfumes from "@/assets/cat-perfumes.jpg";
 
 const config: LifestyleConfig = {
+  page: "femme",
   hero: {
     eyebrow: "Univers Femme",
     title: "Collection",
@@ -75,42 +72,7 @@ const config: LifestyleConfig = {
       ctaHref: "/category/parfums-fragrances?audience=femme&type=cadeau",
     },
   ],
-  fullBanner: {
-    eyebrow: "Édition Limitée",
-    title: "Collection Femme Printemps",
-    subtitle: "Une sélection rare pensée pour célébrer l'élégance au féminin.",
-    cta: "Explorer la collection",
-    to: "/category/parfums-fragrances",
-    image: bannerPerfumes,
-    align: "left",
-  },
-  dualBanner: {
-    left: {
-      eyebrow: "Beauté",
-      title: "Routine Glow",
-      subtitle: "Les essentiels visage pour un éclat naturel quotidien.",
-      cta: "Composer ma routine",
-      href: "/category/soins-visage",
-      image: bannerCosmetics,
-    },
-    right: {
-      eyebrow: "Iconique",
-      title: "Sacs Signature",
-      subtitle: "Maroquinerie de luxe — l'accessoire d'une vie.",
-      cta: "Voir les sacs",
-      href: "/category/sacs-a-main",
-      image: bannerBags,
-    },
-  },
-  bottomBanner: {
-    eyebrow: "Offre Exclusive",
-    title: "−30% sur la Joaillerie",
-    subtitle: "Pour une durée limitée, redécouvrez nos pièces les plus convoitées.",
-    cta: "Profiter de l'offre",
-    to: "/promotions",
-    image: bannerJewelry,
-    align: "right",
-  },
+  bannerLayout: { fullAlign: "left", bottomAlign: "right" },
 };
 
 export const Route = createFileRoute("/femme")({

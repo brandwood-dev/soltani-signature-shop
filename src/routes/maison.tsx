@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-1.jpg";
-import bannerPerfumes from "@/assets/cat-perfumes.jpg";
-import bannerJewelry from "@/assets/cat-jewelry.jpg";
-import bannerCosmetics from "@/assets/cat-cosmetics.jpg";
 
 const config: LifestyleConfig = {
+  page: "maison",
   hero: {
     eyebrow: "Univers Maison",
     title: "L'Art",
@@ -50,33 +48,7 @@ const config: LifestyleConfig = {
       ctaHref: "/category/mode-style?audience=maison&type=textile",
     },
   ],
-  fullBanner: {
-    eyebrow: "Édition Maison",
-    title: "Rituel d'intérieur",
-    subtitle: "Composez votre univers olfactif maison avec nos signatures exclusives.",
-    cta: "Explorer l'univers",
-    to: "/category/parfums-fragrances",
-    image: bannerPerfumes,
-    align: "right",
-  },
-  dualBanner: {
-    left: {
-      eyebrow: "Bougies",
-      title: "Lumières d'hiver",
-      subtitle: "Cires précieuses et fragrances chaudes.",
-      cta: "Découvrir",
-      href: "/category/coffrets-parfum",
-      image: bannerCosmetics,
-    },
-    right: {
-      eyebrow: "Décoration",
-      title: "Objets d'art",
-      subtitle: "Pièces signées pour collectionneurs.",
-      cta: "Voir la sélection",
-      href: "/category/bijoux",
-      image: bannerJewelry,
-    },
-  },
+  bannerLayout: { fullAlign: "right" },
 };
 
 export const Route = createFileRoute("/maison")({

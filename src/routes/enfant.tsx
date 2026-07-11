@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-3.jpg";
-import bannerCosmetics from "@/assets/cat-cosmetics.jpg";
-import bannerPerfumes from "@/assets/cat-perfumes.jpg";
-import bannerBags from "@/assets/cat-bags.jpg";
 
 const config: LifestyleConfig = {
+  page: "enfant",
   hero: {
     eyebrow: "Univers Enfant",
     title: "Collection",
@@ -58,33 +56,7 @@ const config: LifestyleConfig = {
       ctaHref: "/category/parfums-fragrances?audience=enfant&type=cadeau",
     },
   ],
-  fullBanner: {
-    eyebrow: "Nouveauté",
-    title: "Univers tendresse",
-    subtitle: "Une collection pensée avec amour pour vos enfants.",
-    cta: "Explorer la collection",
-    to: "/category/soins-visage",
-    image: bannerCosmetics,
-    align: "left",
-  },
-  dualBanner: {
-    left: {
-      eyebrow: "Brumes",
-      title: "Eaux fraîches",
-      subtitle: "Délicates et hypoallergéniques.",
-      cta: "Découvrir",
-      href: "/category/brumes-parfumees",
-      image: bannerPerfumes,
-    },
-    right: {
-      eyebrow: "Cadeau",
-      title: "Petits trésors",
-      subtitle: "Des coffrets précieux à offrir.",
-      cta: "Voir les coffrets",
-      href: "/category/coffrets-parfum",
-      image: bannerBags,
-    },
-  },
+  bannerLayout: { fullAlign: "left" },
 };
 
 export const Route = createFileRoute("/enfant")({
