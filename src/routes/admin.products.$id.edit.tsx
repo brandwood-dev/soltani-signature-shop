@@ -44,6 +44,13 @@ const STATUSES = [
   { value: "active", label: "Actif" },
   { value: "archived", label: "Archivé" },
 ];
+const SECTIONS = [
+  { value: "homme", label: "Homme" },
+  { value: "femme", label: "Femme" },
+  { value: "enfant", label: "Enfant" },
+  { value: "maison", label: "Maison" },
+  { value: "bien-etre", label: "Bien-?tre" },
+] as const;
 
 function slugify(s: string) {
   return s
@@ -71,6 +78,7 @@ function AdminEditProduct() {
   const [slug, setSlug] = useState("");
   const [sku, setSku] = useState("");
   const [brand, setBrand] = useState("");
+  const [section, setSection] = useState<(typeof SECTIONS)[number]["value"]>("femme");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [description, setDescription] = useState("");
@@ -106,6 +114,7 @@ function AdminEditProduct() {
         setSlug(loaded.slug);
         setSku(loaded.sku);
         setBrand(loaded.brand);
+        setSection(loaded.section ?? "femme");
         setCategory(loaded.category);
         setSubcategory(loaded.subcategory ?? "");
         setDescription(loaded.description ?? "");
@@ -188,6 +197,7 @@ function AdminEditProduct() {
         price: Number(price),
         compareAtPrice: comparePrice ? Number(comparePrice) : null,
         stockQuantity: trackInventory ? Number(stock || 0) : 0,
+        section,
         sku,
         category,
         subcategory: subcategory || undefined,
@@ -564,6 +574,21 @@ function AdminEditProduct() {
                 <CardTitle className="text-base">Organisation</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Section *</Label>
+                  <Select value={section} onValueChange={(value) => setSection(value as typeof section)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SECTIONS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-1.5">
                   <Label>Catégorie *</Label>
                   <Select value={category} onValueChange={setCategory}>

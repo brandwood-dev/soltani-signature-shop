@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, ImagePlus, Eye, EyeOff } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { DataPagination } from "@/components/admin/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,12 +71,19 @@ function AdminBanners() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [total, setTotal] = useState(0);
+  const [countsByPage, setCountsByPage] = useState<Record<string, number>>({});
 
   const load = async () => {
     try {
       setLoading(true);
       setError("");
-      setItems(await getAdminPromoBanners());
+      const response = await getAdminPromoBanners({ page: tab, pageIndex: page, pageSize });
+      setItems(response.banners);
+      setTotal(response.pagination.total);
+      setCountsByPage(response.countsByPage ?? {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de charger les bannières.");
     } finally {
@@ -85,18 +93,15 @@ function AdminBanners() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [tab, page, pageSize]);
 
-  const filtered = useMemo(
-    () => (tab === "all" ? items : items.filter((banner) => banner.page === tab)),
-    [items, tab],
-  );
+  const filtered = useMemo(() => items, [items]);
 
   const remove = async (id: string) => {
     try {
       setError("");
       await deletePromoBanner(id);
-      setItems((current) => current.filter((banner) => banner.id !== id));
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Suppression impossible.");
     }
@@ -105,8 +110,8 @@ function AdminBanners() {
   const toggle = async (id: string) => {
     try {
       setError("");
-      const updated = await togglePromoBanner(id);
-      setItems((current) => current.map((banner) => (banner.id === id ? updated : banner)));
+      await togglePromoBanner(id);
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Changement de statut impossible.");
     }
@@ -141,13 +146,10 @@ function AdminBanners() {
         ? await createPromoBanner(payload)
         : await updatePromoBanner(editing.id, payload);
 
-      setItems((current) =>
-        current.some((banner) => banner.id === saved.id)
-          ? current.map((banner) => (banner.id === saved.id ? saved : banner))
-          : [...current, saved],
-      );
+      void saved;
       setOpen(false);
       setEditing(null);
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Enregistrement impossible.");
     } finally {
@@ -159,7 +161,7 @@ function AdminBanners() {
     <>
       <AdminHeader
         title="Bannières promotionnelles"
-        subtitle={`${items.length} bannière(s) — toutes pages confondues`}
+        subtitle={`${total} banniere(s)`}
         actions={
           <Button size="sm" className="h-9" onClick={openNew}>
             <Plus className="h-4 w-4" />
@@ -176,12 +178,18 @@ function AdminBanners() {
           </div>
         )}
 
-        <Tabs value={tab} onValueChange={(value) => setTab(value as PageKey | "all")}>
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            setTab(value as PageKey | "all");
+            setPage(1);
+          }}
+        >
           <TabsList className="h-auto w-full justify-start overflow-x-auto">
-            <TabsTrigger value="all">Toutes ({items.length})</TabsTrigger>
+            <TabsTrigger value="all">Toutes</TabsTrigger>
             {PAGES.map((page) => (
               <TabsTrigger key={page.value} value={page.value}>
-                {page.label} ({items.filter((banner) => banner.page === page.value).length})
+                {page.label} ({countsByPage[page.value] ?? 0})
               </TabsTrigger>
             ))}
           </TabsList>
@@ -232,6 +240,17 @@ function AdminBanners() {
             </Card>
           )}
         </div>
+
+        <DataPagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

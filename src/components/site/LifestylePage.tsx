@@ -7,6 +7,8 @@ import { LifestyleHero } from "@/components/site/LifestyleHero";
 import { TrustBar } from "@/components/site/TrustBar";
 import { LifestyleSection, DualBanner } from "@/components/site/LifestyleSection";
 import { PromoBanner } from "@/components/site/PromoBanner";
+import type { Product } from "@/components/site/ProductCard";
+import { getCatalogProducts } from "@/lib/catalog-api";
 import { getActivePromoBanners, type PromoBanner as DynamicPromoBanner } from "@/lib/promo-banners-api";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -18,8 +20,6 @@ type Section = {
   ctaLabel?: string;
   ctaHref?: string;
 };
-
-import { pickProducts } from "@/lib/lifestyle";
 
 export type LifestyleConfig = {
   page: "femme" | "homme" | "enfant" | "maison" | "bien-etre";
@@ -42,6 +42,7 @@ export type LifestyleConfig = {
 
 export function LifestylePage({ config }: { config: LifestyleConfig }) {
   const [banners, setBanners] = useState<DynamicPromoBanner[]>([]);
+  const [sectionProducts, setSectionProducts] = useState<Record<string, Product[]>>({});
 
   useEffect(() => {
     let active = true;
@@ -58,10 +59,34 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
     };
   }, [config.page]);
 
+  useEffect(() => {
+    let active = true;
+
+    Promise.all(
+      config.sections.map(async (section) => {
+        const slugs = Array.isArray(section.subSlugs) ? section.subSlugs : [section.subSlugs];
+        const products = await Promise.all(
+          slugs.map((slug) => getCatalogProducts({ section: config.page, category: slug }).catch(() => [])),
+        );
+        const unique = Array.from(
+          new Map(products.flat().map((product) => [product.slug, product])).values(),
+        ).slice(0, 4);
+        return [section.title, unique] as const;
+      }),
+    ).then((entries) => {
+      if (active) setSectionProducts(Object.fromEntries(entries));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [config.page, config.sections]);
+
   const fullBanner = banners[0];
   const dualLeftBanner = banners[1];
   const dualRightBanner = banners[2];
   const bottomBanner = banners[3];
+  const getSectionItems = (section: Section) => sectionProducts[section.title] ?? [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -89,7 +114,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
             eyebrow={s.eyebrow}
             title={s.title}
             kicker={s.kicker}
-            items={pickProducts(s.subSlugs, 4)}
+            items={getSectionItems(s)}
             ctaLabel={s.ctaLabel}
             ctaHref={s.ctaHref}
           />
@@ -113,7 +138,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
             eyebrow={s.eyebrow}
             title={s.title}
             kicker={s.kicker}
-            items={pickProducts(s.subSlugs, 4)}
+            items={getSectionItems(s)}
             ctaLabel={s.ctaLabel}
             ctaHref={s.ctaHref}
           />
@@ -146,7 +171,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
             eyebrow={s.eyebrow}
             title={s.title}
             kicker={s.kicker}
-            items={pickProducts(s.subSlugs, 4)}
+            items={getSectionItems(s)}
             ctaLabel={s.ctaLabel}
             ctaHref={s.ctaHref}
           />

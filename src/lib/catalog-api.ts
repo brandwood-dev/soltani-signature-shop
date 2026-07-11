@@ -9,6 +9,7 @@ type ApiProduct = {
   basePrice: string | number;
   compareAtPrice?: string | number | null;
   isFeatured?: boolean;
+  section?: string;
   tags?: string[];
   brand: { name: string; slug: string };
   category: { name: string; slug: string };
@@ -122,6 +123,7 @@ export function mapApiProduct(product: ApiProduct): Product {
     brand: product.brand.name,
     brandSlug: product.brand.slug,
     category: product.category.slug,
+    section: product.section,
     price: numberValue(variant?.price ?? product.basePrice),
     oldPrice: product.compareAtPrice ? numberValue(product.compareAtPrice) : undefined,
     image: product.images[0]?.url ?? "/placeholder.svg",
@@ -139,10 +141,11 @@ export function mapApiProduct(product: ApiProduct): Product {
   };
 }
 
-export async function getCatalogProducts(params: { category?: string; query?: string } = {}) {
+export async function getCatalogProducts(params: { category?: string; query?: string; section?: string } = {}) {
   const search = new URLSearchParams();
   if (params.category) search.set("category", params.category);
   if (params.query) search.set("q", params.query);
+  if (params.section) search.set("section", params.section);
 
   const products = await apiFetch<ApiProduct[]>(`/catalog/products${search.size ? `?${search}` : ""}`);
   return products.map(mapApiProduct);

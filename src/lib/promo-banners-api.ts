@@ -25,6 +25,17 @@ export type PromoBannerInput = {
   sortOrder?: number;
 };
 
+export type PromoBannersAdminResponse = {
+  banners: PromoBanner[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  countsByPage: Record<string, number>;
+};
+
 export async function getActivePromoBanners(page?: string) {
   const search = new URLSearchParams();
   if (page) search.set("page", page);
@@ -34,9 +45,12 @@ export async function getActivePromoBanners(page?: string) {
   return response.banners;
 }
 
-export async function getAdminPromoBanners() {
-  const response = await apiFetch<{ banners: PromoBanner[] }>("/admin/promo-banners");
-  return response.banners;
+export async function getAdminPromoBanners(params: { page?: string; pageIndex?: number; pageSize?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.page) search.set("page", params.page);
+  if (params.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  return apiFetch<PromoBannersAdminResponse>(`/admin/promo-banners${search.size ? `?${search}` : ""}`);
 }
 
 export async function createPromoBanner(input: PromoBannerInput) {

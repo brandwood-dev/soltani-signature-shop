@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api";
 
 export type AdminProductStatus = "draft" | "active" | "archived";
+export type AdminProductSection = "homme" | "femme" | "enfant" | "maison" | "bien-etre";
 
 export type AdminProduct = {
   id: string;
@@ -14,6 +15,7 @@ export type AdminProduct = {
   sku: string;
   lowStockThreshold: number;
   status: AdminProductStatus;
+  section: AdminProductSection;
   isFeatured: boolean;
   isPromotion: boolean;
   discountPercentage: number | null;
@@ -36,6 +38,7 @@ export type AdminProductsQuery = {
   query?: string;
   status?: "all" | AdminProductStatus;
   category?: string;
+  section?: AdminProductSection;
   page?: number;
   pageSize?: number;
 };
@@ -50,6 +53,7 @@ export type UpsertAdminProductInput = {
   stockQuantity: number;
   sku?: string;
   category: string;
+  section: AdminProductSection;
   subcategory?: string;
   brand: string;
   tags?: string[];
@@ -82,6 +86,7 @@ export function getAdminProducts(query: AdminProductsQuery) {
   if (query.query) params.set("query", query.query);
   if (query.status) params.set("status", query.status);
   if (query.category) params.set("category", query.category);
+  if (query.section) params.set("section", query.section);
   if (query.page) params.set("page", String(query.page));
   if (query.pageSize) params.set("pageSize", String(query.pageSize));
 

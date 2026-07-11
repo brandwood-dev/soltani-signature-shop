@@ -33,6 +33,13 @@ const STATUSES = [
   { value: "active", label: "Actif" },
   { value: "archived", label: "Archivé" },
 ];
+const SECTIONS = [
+  { value: "homme", label: "Homme" },
+  { value: "femme", label: "Femme" },
+  { value: "enfant", label: "Enfant" },
+  { value: "maison", label: "Maison" },
+  { value: "bien-etre", label: "Bien-?tre" },
+] as const;
 
 function slugify(s: string) {
   return s
@@ -53,6 +60,7 @@ function AdminNewProduct() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [brand, setBrand] = useState("");
+  const [section, setSection] = useState<(typeof SECTIONS)[number]["value"]>("femme");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [attributes, setAttributes] = useState<Record<string, string[]>>({});
@@ -136,6 +144,7 @@ function AdminNewProduct() {
         price: Number(price),
         compareAtPrice: comparePrice ? Number(comparePrice) : null,
         stockQuantity: trackInventory ? Number(stock || 0) : 0,
+        section,
         category,
         subcategory: subcategory || undefined,
         brand,
@@ -590,6 +599,21 @@ function AdminNewProduct() {
                 <CardTitle className="text-base">Organisation</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Section *</Label>
+                  <Select value={section} onValueChange={(value) => setSection(value as typeof section)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SECTIONS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-1.5">
                   <Label>Catégorie *</Label>
                   <Select
