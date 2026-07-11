@@ -1,7 +1,22 @@
 import { Link } from "@tanstack/react-router";
-import { CATEGORIES } from "@/data/catalog";
+import { useEffect, useState } from "react";
+import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 
 export function Categories() {
+  const [categories, setCategories] = useState<CategoryTree[]>(fallbackCategoryTree());
+
+  useEffect(() => {
+    let active = true;
+    loadCategoryTree()
+      .then((items) => {
+        if (active && items.length) setCategories(items);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <section id="categories" className="py-12 md:py-16 bg-background">
       <div className="container-luxe">
@@ -19,7 +34,7 @@ export function Categories() {
         {/* Mobile: horizontal scroll carousel */}
         <div className="md:hidden -mx-4 px-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <ul className="flex gap-4 snap-x snap-mandatory pb-2">
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <li key={c.slug} className="snap-start shrink-0 w-[44%]">
                 <CategoryCard slug={c.slug} name={c.name} image={c.image} />
               </li>
@@ -29,7 +44,7 @@ export function Categories() {
 
         {/* Desktop: 6-column grid */}
         <ul className="hidden md:grid grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-5">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <li key={c.slug}>
               <CategoryCard slug={c.slug} name={c.name} image={c.image} />
             </li>

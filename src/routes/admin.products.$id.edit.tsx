@@ -35,9 +35,9 @@ import {
   uploadAdminProductImage,
   type AdminProduct,
 } from "@/lib/admin-products-api";
+import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 
-const CATEGORIES = ["Parfums", "Soins", "Maquillage", "Sacs", "Montres", "Accessoires"];
 const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
   { value: "draft", label: "Brouillon" },
@@ -95,6 +95,7 @@ function AdminEditProduct() {
   const [discountPercentage, setDiscountPercentage] = useState("");
   const [isBestSeller, setIsBestSeller] = useState(false);
   const [brandOptions, setBrandOptions] = useState<string[]>(FALLBACK_BRANDS);
+  const [categoryTree, setCategoryTree] = useState<CategoryTree[]>(fallbackCategoryTree());
   const [trackInventory, setTrackInventory] = useState(true);
   const [images, setImages] = useState<string[]>([]);
   const [newImage, setNewImage] = useState("");
@@ -144,6 +145,11 @@ function AdminEditProduct() {
 
   useEffect(() => {
     let active = true;
+    loadCategoryTree()
+      .then((items) => {
+        if (active && items.length) setCategoryTree(items);
+      })
+      .catch(() => undefined);
     getAdminFeaturedBrands()
       .then((items) => {
         if (!active) return;
@@ -591,26 +597,43 @@ function AdminEditProduct() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Catégorie *</Label>
-                  <Select value={category} onValueChange={setCategory}>
+                  <Select
+                    value={category}
+                    onValueChange={(value) => {
+                      setCategory(value);
+                      setSubcategory("");
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
+                      {categoryTree.map((c) => (
+                        <SelectItem key={c.slug} value={c.slug}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sub">Sous-catégorie</Label>
-                  <Input
-                    id="sub"
+                  <Label>Sous-catégorie</Label>
+                  <Select
                     value={subcategory}
-                    onChange={(e) => setSubcategory(e.target.value)}
-                  />
+                    onValueChange={setSubcategory}
+                    disabled={!category}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => (
+                        <SelectItem key={s.slug} value={s.slug}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Marque</Label>

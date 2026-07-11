@@ -9,13 +9,21 @@ import {
 import { getFacetsForCategory, type FacetDef } from "@/data/filters";
 import { ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
+import {
+  fallbackCategoryTree,
+  findInCategoryTree,
+  findParentInTree,
+  loadCategoryTree,
+  type CategoryTree,
+} from "@/lib/categories-api";
 
 export const Route = createFileRoute("/category/$slug")({
   loader: async ({ params }) => {
-    const cat = findCategory(params.slug);
+    const categoryTree = await loadCategoryTree().catch(() => fallbackCategoryTree());
+    const cat = findInCategoryTree(params.slug, categoryTree) ?? findCategory(params.slug);
     if (!cat) throw notFound();
     const products = await getCatalogProducts({ category: params.slug }).catch((): Product[] => []);
-    return { category: cat, products };
+    return { category: cat, categoryTree, products };
   },
   head: ({ params }) => {
     const cat = findCategory(params.slug);
@@ -57,7 +65,11 @@ export const Route = createFileRoute("/category/$slug")({
 });
 
 function CategoryPage() {
-  const { category, products } = Route.useLoaderData() as { category: ReturnType<typeof findCategory> & object; products: Product[] };
+  const { category, categoryTree, products } = Route.useLoaderData() as {
+    category: ReturnType<typeof findCategory> & object;
+    categoryTree: CategoryTree[];
+    products: Product[];
+  };
   const [openFilters, setOpenFilters] = useState(false);
   const [price, setPrice] = useState(20000);
   const [brand, setBrand] = useState<string[]>([]);
@@ -66,7 +78,9 @@ function CategoryPage() {
   const [facetSel, setFacetSel] = useState<Record<string, string[]>>({});
 
   const isParent = category.kind === "parent";
-  const parent = isParent ? findParent(category.slug) : findParent(category.parent.slug);
+  const parent = isParent
+    ? findParentInTree(category.slug, categoryTree) ?? findParent(category.slug)
+    : findParentInTree(category.parent.slug, categoryTree) ?? findParent(category.parent.slug);
 
   const baseList = useMemo(() => products, [products]);
 

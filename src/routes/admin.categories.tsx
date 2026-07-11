@@ -1,20 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Plus,
   Pencil,
-  Trash2,
   ArrowUp,
   ArrowDown,
   ChevronDown,
   ChevronRight,
   Eye,
   EyeOff,
+  ImagePlus,
 } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -25,292 +24,259 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  fallbackCategoryTree,
+  generatedCategorySlug,
+  loadCategoryTree,
+  reorderAdminCategories,
+  toggleAdminCategory,
+  toCategoryTree,
+  updateAdminCategory,
+  type CategoryTree,
+} from "@/lib/categories-api";
+import { uploadAdminProductImage } from "@/lib/admin-products-api";
 
 export const Route = createFileRoute("/admin/categories")({
   component: AdminCategories,
 });
 
-type Sub = { id: string; name: string; slug: string; active: boolean };
-type Category = {
+type EditableCategory = {
   id: string;
   name: string;
   slug: string;
+  imageUrl: string;
   active: boolean;
-  subs: Sub[];
+  type: "category" | "subcategory";
 };
 
-const SEED: Category[] = [
-  {
-    id: "c1",
-    name: "Femme",
-    slug: "femme",
-    active: true,
-    subs: [
-      { id: "s11", name: "Parfums", slug: "parfums", active: true },
-      { id: "s12", name: "Soins", slug: "soins", active: true },
-      { id: "s13", name: "Maquillage", slug: "maquillage", active: true },
-    ],
-  },
-  {
-    id: "c2",
-    name: "Homme",
-    slug: "homme",
-    active: true,
-    subs: [
-      { id: "s21", name: "Parfums", slug: "parfums", active: true },
-      { id: "s22", name: "Soins", slug: "soins", active: true },
-    ],
-  },
-  {
-    id: "c3",
-    name: "Enfant",
-    slug: "enfant",
-    active: true,
-    subs: [{ id: "s31", name: "Soins doux", slug: "soins-doux", active: true }],
-  },
-  {
-    id: "c4",
-    name: "Maison",
-    slug: "maison",
-    active: true,
-    subs: [
-      { id: "s41", name: "Bougies", slug: "bougies", active: true },
-      { id: "s42", name: "Diffuseurs", slug: "diffuseurs", active: true },
-    ],
-  },
-  {
-    id: "c5",
-    name: "Bien-être",
-    slug: "bien-etre",
-    active: false,
-    subs: [],
-  },
-];
-
-type CatForm = { id: string; name: string; slug: string; active: boolean };
-type SubForm = { catId: string; sub: Sub };
-
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
 function AdminCategories() {
-  const [cats, setCats] = useState<Category[]>(SEED);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["c1"]));
+  const [cats, setCats] = useState<CategoryTree[]>([]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState<EditableCategory | null>(null);
 
-  const [catOpen, setCatOpen] = useState(false);
-  const [catForm, setCatForm] = useState<CatForm | null>(null);
+  const totalSubcategories = useMemo(
+    () => cats.reduce((total, category) => total + category.subs.length, 0),
+    [cats],
+  );
 
-  const [subOpen, setSubOpen] = useState(false);
-  const [subForm, setSubForm] = useState<SubForm | null>(null);
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const next = await loadCategoryTree({ admin: true });
+      setCats(next);
+      setExpanded((current) => current.size ? current : new Set(next.slice(0, 1).map((category) => category.id)));
+    } catch (err) {
+      setCats(fallbackCategoryTree());
+      setError(err instanceof Error ? err.message : "Connexion API momentanément indisponible.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
 
   const toggleExpand = (id: string) =>
-    setExpanded((s) => {
-      const n = new Set(s);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
+    setExpanded((current) => {
+      const next = new Set(current);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     });
 
-  const moveCat = (idx: number, dir: -1 | 1) => {
+  const applyReorder = async (ids: string[]) => {
+    try {
+      setSaving(true);
+      setError("");
+      const next = await reorderAdminCategories(ids);
+      setCats(toCategoryTree(next));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de modifier l'ordre.");
+      await refresh();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const moveCat = async (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= cats.length) return;
     const next = [...cats];
-    const t = idx + dir;
-    if (t < 0 || t >= next.length) return;
-    [next[idx], next[t]] = [next[t], next[idx]];
+    [next[idx], next[target]] = [next[target], next[idx]];
     setCats(next);
+    await applyReorder(next.map((category) => category.id));
   };
 
-  const moveSub = (catId: string, idx: number, dir: -1 | 1) => {
-    setCats((s) =>
-      s.map((c) => {
-        if (c.id !== catId) return c;
-        const subs = [...c.subs];
-        const t = idx + dir;
-        if (t < 0 || t >= subs.length) return c;
-        [subs[idx], subs[t]] = [subs[t], subs[idx]];
-        return { ...c, subs };
-      }),
-    );
+  const moveSub = async (catId: string, idx: number, dir: -1 | 1) => {
+    const category = cats.find((item) => item.id === catId);
+    if (!category) return;
+    const target = idx + dir;
+    if (target < 0 || target >= category.subs.length) return;
+    const subs = [...category.subs];
+    [subs[idx], subs[target]] = [subs[target], subs[idx]];
+    setCats((current) => current.map((item) => (item.id === catId ? { ...item, subs } : item)));
+    await applyReorder(subs.map((sub) => sub.id));
   };
 
-  const removeCat = (id: string) => setCats((s) => s.filter((c) => c.id !== id));
-  const toggleCat = (id: string) =>
-    setCats((s) => s.map((c) => (c.id === id ? { ...c, active: !c.active } : c)));
-
-  const removeSub = (catId: string, subId: string) =>
-    setCats((s) =>
-      s.map((c) =>
-        c.id === catId ? { ...c, subs: c.subs.filter((x) => x.id !== subId) } : c,
-      ),
-    );
-  const toggleSub = (catId: string, subId: string) =>
-    setCats((s) =>
-      s.map((c) =>
-        c.id === catId
-          ? {
-              ...c,
-              subs: c.subs.map((x) => (x.id === subId ? { ...x, active: !x.active } : x)),
-            }
-          : c,
-      ),
-    );
-
-  const openNewCat = () => {
-    setCatForm({ id: `c_${Date.now()}`, name: "", slug: "", active: true });
-    setCatOpen(true);
-  };
-  const openEditCat = (c: Category) => {
-    setCatForm({ id: c.id, name: c.name, slug: c.slug, active: c.active });
-    setCatOpen(true);
-  };
-  const saveCat = () => {
-    if (!catForm || !catForm.name.trim()) return;
-    const slug = catForm.slug.trim() || slugify(catForm.name);
-    setCats((s) =>
-      s.some((c) => c.id === catForm.id)
-        ? s.map((c) => (c.id === catForm.id ? { ...c, ...catForm, slug } : c))
-        : [...s, { ...catForm, slug, subs: [] }],
-    );
-    setCatOpen(false);
-    setCatForm(null);
+  const handleToggle = async (id: string) => {
+    try {
+      setSaving(true);
+      setError("");
+      await toggleAdminCategory(id);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible d'activer ou désactiver cette catégorie.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const openNewSub = (catId: string) => {
-    setSubForm({
-      catId,
-      sub: { id: `s_${Date.now()}`, name: "", slug: "", active: true },
+  const openEditCategory = (category: CategoryTree) => {
+    setForm({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      imageUrl: category.imageUrl ?? "",
+      active: category.active,
+      type: "category",
     });
-    setSubOpen(true);
+    setEditOpen(true);
   };
-  const openEditSub = (catId: string, sub: Sub) => {
-    setSubForm({ catId, sub: { ...sub } });
-    setSubOpen(true);
+
+  const openEditSubcategory = (sub: CategoryTree["subs"][number]) => {
+    setForm({
+      id: sub.id,
+      name: sub.name,
+      slug: sub.slug,
+      imageUrl: sub.imageUrl ?? "",
+      active: sub.active,
+      type: "subcategory",
+    });
+    setEditOpen(true);
   };
-  const saveSub = () => {
-    if (!subForm || !subForm.sub.name.trim()) return;
-    const sub = {
-      ...subForm.sub,
-      slug: subForm.sub.slug.trim() || slugify(subForm.sub.name),
-    };
-    setCats((s) =>
-      s.map((c) => {
-        if (c.id !== subForm.catId) return c;
-        const exists = c.subs.some((x) => x.id === sub.id);
-        return {
-          ...c,
-          subs: exists ? c.subs.map((x) => (x.id === sub.id ? sub : x)) : [...c.subs, sub],
-        };
-      }),
-    );
-    setSubOpen(false);
-    setSubForm(null);
+
+  const uploadImage = async (files: FileList | null) => {
+    if (!files?.[0] || !form) return;
+    try {
+      setUploading(true);
+      setError("");
+      const url = await uploadAdminProductImage(files[0]);
+      setForm({ ...form, imageUrl: url });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload image impossible.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveCategory = async () => {
+    if (!form || !form.name.trim()) {
+      setError("Le nom de la catégorie est obligatoire.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      await updateAdminCategory(form.id, {
+        name: form.name.trim(),
+        imageUrl: form.imageUrl.trim(),
+        isActive: form.active,
+      });
+      setEditOpen(false);
+      setForm(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible d'enregistrer la catégorie.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <>
       <AdminHeader
         title="Catégories"
-        subtitle={`${cats.length} catégories — ${cats.reduce((n, c) => n + c.subs.length, 0)} sous-catégories`}
-        actions={
-          <Button size="sm" className="h-9" onClick={openNewCat}>
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nouvelle catégorie</span>
-            <span className="sm:hidden">Ajouter</span>
-          </Button>
-        }
+        subtitle={`${cats.length} catégories — ${totalSubcategories} sous-catégories`}
       />
 
       <div className="flex-1 space-y-3 p-3 sm:p-6">
+        {error && (
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="rounded-md border border-border px-4 py-3 text-sm text-muted-foreground">
+            Chargement des catégories…
+          </div>
+        )}
+
         <Card className="overflow-hidden">
           <ul className="divide-y divide-border">
-            {cats.map((c, idx) => {
-              const isOpen = expanded.has(c.id);
+            {cats.map((category, idx) => {
+              const isOpen = expanded.has(category.id);
               return (
-                <li key={c.id}>
+                <li key={category.id}>
                   <div className="flex items-center gap-2 p-3 sm:gap-3 sm:p-4">
                     <button
-                      onClick={() => toggleExpand(c.id)}
+                      onClick={() => toggleExpand(category.id)}
                       className="shrink-0 rounded p-1 hover:bg-muted"
                       aria-label="Déplier"
                     >
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
+                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </button>
+                    <div className="hidden h-12 w-12 shrink-0 overflow-hidden rounded-sm border border-border bg-muted sm:block">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold">{c.name}</p>
-                        {!c.active && (
+                        <p className="truncate text-sm font-semibold">{category.name}</p>
+                        {!category.active && (
                           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                             Inactive
                           </span>
                         )}
                       </div>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        /{c.slug} · {c.subs.length} sous-catégorie
-                        {c.subs.length > 1 ? "s" : ""}
+                        /{category.slug} · {category.subs.length} sous-catégorie
+                        {category.subs.length > 1 ? "s" : ""}
                       </p>
                     </div>
                     <div className="hidden shrink-0 gap-1 sm:flex">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => moveCat(idx, -1)}
-                        disabled={idx === 0}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCat(idx, -1)} disabled={idx === 0 || saving}>
                         <ArrowUp className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => moveCat(idx, 1)}
-                        disabled={idx === cats.length - 1}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCat(idx, 1)} disabled={idx === cats.length - 1 || saving}>
                         <ArrowDown className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => toggleCat(c.id)}
-                    >
-                      {c.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleToggle(category.id)} disabled={saving}>
+                      {category.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => openEditCat(c)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => openEditCategory(category)}>
                       <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 text-destructive"
-                      onClick={() => removeCat(c.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
 
                   {isOpen && (
                     <div className="border-t border-border bg-muted/30 px-3 pb-3 sm:px-6">
                       <ul className="divide-y divide-border">
-                        {c.subs.map((sub, sidx) => (
-                          <li
-                            key={sub.id}
-                            className="flex items-center gap-2 py-2 pl-6 sm:gap-3"
-                          >
+                        {category.subs.map((sub, sidx) => (
+                          <li key={sub.id} className="flex items-center gap-2 py-2 pl-6 sm:gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
                                 <p className="truncate text-sm">{sub.name}</p>
@@ -321,69 +287,26 @@ function AdminCategories() {
                                 )}
                               </div>
                               <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                /{c.slug}/{sub.slug}
+                                /{category.slug}/{sub.slug}
                               </p>
                             </div>
                             <div className="hidden gap-1 sm:flex">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => moveSub(c.id, sidx, -1)}
-                                disabled={sidx === 0}
-                              >
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveSub(category.id, sidx, -1)} disabled={sidx === 0 || saving}>
                                 <ArrowUp className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => moveSub(c.id, sidx, 1)}
-                                disabled={sidx === c.subs.length - 1}
-                              >
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveSub(category.id, sidx, 1)} disabled={sidx === category.subs.length - 1 || saving}>
                                 <ArrowDown className="h-4 w-4" />
                               </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => toggleSub(c.id, sub.id)}
-                            >
-                              {sub.active ? (
-                                <Eye className="h-4 w-4" />
-                              ) : (
-                                <EyeOff className="h-4 w-4" />
-                              )}
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggle(sub.id)} disabled={saving}>
+                              {sub.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => openEditSub(c.id, sub)}
-                            >
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditSubcategory(sub)}>
                               <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => removeSub(c.id, sub.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </li>
                         ))}
                       </ul>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-6 mt-2 h-8"
-                        onClick={() => openNewSub(c.id)}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Sous-catégorie
-                      </Button>
                     </div>
                   )}
                 </li>
@@ -393,104 +316,66 @@ function AdminCategories() {
         </Card>
       </div>
 
-      <Dialog open={catOpen} onOpenChange={setCatOpen}>
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {catForm && cats.some((c) => c.id === catForm.id)
-                ? "Modifier la catégorie"
-                : "Nouvelle catégorie"}
+              {form?.type === "subcategory" ? "Modifier la sous-catégorie" : "Modifier la catégorie"}
             </DialogTitle>
           </DialogHeader>
-          {catForm && (
+          {form && (
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label>Nom</Label>
                 <Input
-                  value={catForm.name}
-                  onChange={(e) =>
-                    setCatForm({
-                      ...catForm,
-                      name: e.target.value,
-                      slug: catForm.slug || slugify(e.target.value),
-                    })
-                  }
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value, slug: generatedCategorySlug(event.target.value) })}
+                  maxLength={120}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Slug</Label>
-                <Input
-                  value={catForm.slug}
-                  onChange={(e) => setCatForm({ ...catForm, slug: e.target.value })}
-                  placeholder="auto-généré"
-                />
+                <Label>Slug généré automatiquement</Label>
+                <Input value={form.slug} readOnly aria-readonly="true" className="bg-muted text-muted-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Image de catégorie</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={form.imageUrl}
+                    onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
+                    placeholder="URL de l'image"
+                  />
+                  <Button type="button" variant="outline" disabled={uploading} asChild>
+                    <label className="cursor-pointer">
+                      <ImagePlus className="h-4 w-4" />
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="sr-only"
+                        onChange={(event) => uploadImage(event.target.files)}
+                      />
+                    </label>
+                  </Button>
+                </div>
+                {form.imageUrl && (
+                  <div className="h-24 w-full overflow-hidden rounded-md border border-border bg-muted">
+                    <img src={form.imageUrl} alt="" className="h-full w-full object-cover" />
+                  </div>
+                )}
               </div>
               <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                 <Label className="text-sm">Active</Label>
-                <Switch
-                  checked={catForm.active}
-                  onCheckedChange={(v) => setCatForm({ ...catForm, active: v })}
-                />
+                <Switch checked={form.active} onCheckedChange={(active) => setForm({ ...form, active })} />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCatOpen(false)}>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={saveCat}>Enregistrer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={subOpen} onOpenChange={setSubOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Sous-catégorie</DialogTitle>
-          </DialogHeader>
-          {subForm && (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>Nom</Label>
-                <Input
-                  value={subForm.sub.name}
-                  onChange={(e) =>
-                    setSubForm({
-                      ...subForm,
-                      sub: {
-                        ...subForm.sub,
-                        name: e.target.value,
-                        slug: subForm.sub.slug || slugify(e.target.value),
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Slug</Label>
-                <Input
-                  value={subForm.sub.slug}
-                  onChange={(e) =>
-                    setSubForm({ ...subForm, sub: { ...subForm.sub, slug: e.target.value } })
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                <Label className="text-sm">Active</Label>
-                <Switch
-                  checked={subForm.sub.active}
-                  onCheckedChange={(v) =>
-                    setSubForm({ ...subForm, sub: { ...subForm.sub, active: v } })
-                  }
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSubOpen(false)}>
-              Annuler
+            <Button onClick={saveCategory} disabled={saving || uploading}>
+              Enregistrer
             </Button>
-            <Button onClick={saveSub}>Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

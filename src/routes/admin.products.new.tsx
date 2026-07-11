@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CATEGORY_TREE } from "@/data/catalog";
 import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
 import { createAdminProduct, MAX_PRODUCT_IMAGE_SIZE_MB, uploadAdminProductImage } from "@/lib/admin-products-api";
+import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 
 export const Route = createFileRoute("/admin/products/new")({
@@ -78,6 +78,7 @@ function AdminNewProduct() {
   const [discountPercentage, setDiscountPercentage] = useState("");
   const [isBestSeller, setIsBestSeller] = useState(false);
   const [brandOptions, setBrandOptions] = useState<string[]>(FALLBACK_BRANDS);
+  const [categoryTree, setCategoryTree] = useState<CategoryTree[]>(fallbackCategoryTree());
   const [trackInventory, setTrackInventory] = useState(true);
   const [images, setImages] = useState<string[]>([]);
   const [newImage, setNewImage] = useState("");
@@ -91,6 +92,11 @@ function AdminNewProduct() {
 
   useEffect(() => {
     let active = true;
+    loadCategoryTree()
+      .then((items) => {
+        if (active && items.length) setCategoryTree(items);
+      })
+      .catch(() => undefined);
     getAdminFeaturedBrands()
       .then((items) => {
         if (!active) return;
@@ -473,7 +479,7 @@ function AdminNewProduct() {
                 : category
                 ? getFacetsForCategory(
                     category,
-                    (CATEGORY_TREE.find((c) => c.slug === category)?.subs ?? []).map((s) => s.slug),
+                    (categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => s.slug),
                   )
                 : [];
               if (!facets.length) return null;
@@ -628,7 +634,7 @@ function AdminNewProduct() {
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORY_TREE.map((c) => (
+                      {categoryTree.map((c) => (
                         <SelectItem key={c.slug} value={c.slug}>
                           {c.name}
                         </SelectItem>
@@ -650,7 +656,7 @@ function AdminNewProduct() {
                       <SelectValue placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {(CATEGORY_TREE.find((c) => c.slug === category)?.subs ?? []).map((s) => (
+                      {(categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => (
                         <SelectItem key={s.slug} value={s.slug}>
                           {s.name}
                         </SelectItem>

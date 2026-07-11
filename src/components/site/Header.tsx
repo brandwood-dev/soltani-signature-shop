@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 import { SearchBox } from "./SearchBox";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
-import { CATEGORY_TREE } from "@/data/catalog";
+import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 
 function CountBadge({ count, tone = "gold" }: { count: number; tone?: "gold" | "destructive" }) {
   if (!count) return null;
@@ -20,7 +20,7 @@ function CountBadge({ count, tone = "gold" }: { count: number; tone?: "gold" | "
   );
 }
 
-type MegaGroup = (typeof CATEGORY_TREE)[number];
+type MegaGroup = CategoryTree;
 
 function MegaTrigger({ group }: { group: MegaGroup }) {
   return (
@@ -110,6 +110,7 @@ function MobileGroup({ group, onNavigate }: { group: MegaGroup; onNavigate: () =
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [categoryTree, setCategoryTree] = useState<CategoryTree[]>(fallbackCategoryTree());
   const { count: wishlistCount } = useWishlist();
   const { count: cartCount } = useCart();
 
@@ -117,6 +118,18 @@ export function Header() {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadCategoryTree()
+      .then((items) => {
+        if (active && items.length) setCategoryTree(items);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -165,7 +178,7 @@ export function Header() {
       <nav className="hidden lg:block border-t border-border bg-secondary/40">
         <div className="container-luxe">
           <ul className="flex items-center justify-center gap-10 h-12 text-[12px] tracking-[0.15em]">
-            {CATEGORY_TREE.map((g) => (
+            {categoryTree.map((g) => (
               <MegaTrigger key={g.slug} group={g} />
             ))}
             <li>
@@ -189,7 +202,7 @@ export function Header() {
             </div>
 
             <ul className="flex flex-col">
-              {CATEGORY_TREE.map((g) => (
+              {categoryTree.map((g) => (
                 <MobileGroup key={g.slug} group={g} onNavigate={() => setOpen(false)} />
               ))}
               <li>
