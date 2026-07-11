@@ -93,10 +93,12 @@ export function ProductCard({ p }: { p: Product }) {
           <div className="absolute inset-x-3 bottom-3 flex gap-2 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-500">
             <button
               type="button"
+              aria-label="Ajouter au panier"
               onClick={handleAdd}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-10 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm"
+              className="inline-flex h-10 w-10 items-center justify-center gap-2 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm sm:w-auto sm:flex-1"
             >
-              <ShoppingBag className="h-3.5 w-3.5" /> Ajouter
+              <ShoppingBag className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Ajouter</span>
             </button>
             <button
               type="button"
