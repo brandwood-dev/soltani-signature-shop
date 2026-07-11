@@ -120,6 +120,46 @@ type ApiErrorBody = {
   message?: string | string[];
 };
 
+type CachedApiValue = {
+  expiresAt: number;
+  value: unknown;
+};
+
+const responseCache = new Map<string, CachedApiValue>();
+const inflightRequests = new Map<string, Promise<unknown>>();
+
+const ADMIN_CACHE_RULES: Array<{ prefix: string; ttlMs: number }> = [
+  { prefix: "/admin/me", ttlMs: 60_000 },
+  { prefix: "/admin/dashboard", ttlMs: 30_000 },
+  { prefix: "/admin/notifications", ttlMs: 10_000 },
+  { prefix: "/admin/customers", ttlMs: 30_000 },
+  { prefix: "/orders/admin", ttlMs: 30_000 },
+  { prefix: "/products/admin", ttlMs: 30_000 },
+  { prefix: "/admin/categories", ttlMs: 60_000 },
+  { prefix: "/admin/hero", ttlMs: 60_000 },
+  { prefix: "/admin/marquee", ttlMs: 60_000 },
+  { prefix: "/admin/featured-brands", ttlMs: 60_000 },
+  { prefix: "/admin/promo-banners", ttlMs: 30_000 },
+  { prefix: "/admin/settings", ttlMs: 60_000 },
+  { prefix: "/admin/testimonials", ttlMs: 60_000 },
+];
+
+const ADMIN_INVALIDATION_PREFIXES = [
+  "/admin/me",
+  "/admin/dashboard",
+  "/admin/notifications",
+  "/admin/customers",
+  "/orders/admin",
+  "/products/admin",
+  "/admin/categories",
+  "/admin/hero",
+  "/admin/marquee",
+  "/admin/featured-brands",
+  "/admin/promo-banners",
+  "/admin/settings",
+  "/admin/testimonials",
+];
+
 export async function apiFetch<T>(path: string, init: RequestInit = {}) {
   const session = typeof window === "undefined" ? null : await getSession();
 
@@ -132,6 +172,22 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
 
   if (session?.accessToken) {
     headers.set("Authorization", `Bearer ${session.accessToken}`);
+  }
+
+  const method = (init.method ?? "GET").toUpperCase();
+  const cacheKey = buildCacheKey(path, method, headers.get("Authorization"));
+  const ttlMs = getAdminCacheTtl(path, method);
+
+  if (ttlMs > 0) {
+    const cached = responseCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value as T;
+    }
+
+    const inflight = inflightRequests.get(cacheKey);
+    if (inflight) {
+      return inflight as Promise<T>;
+    }
   }
 
   const response = await fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
@@ -152,7 +208,29 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
     throw new Error(message);
   }
 
-  return response.json() as Promise<T>;
+  const bodyPromise = response.json() as Promise<T>;
+  if (ttlMs <= 0) {
+    const body = await bodyPromise;
+    if (method !== "GET") {
+      invalidateAdminCache(path);
+    }
+    return body;
+  }
+
+  const trackedPromise = bodyPromise
+    .then((body) => {
+      responseCache.set(cacheKey, {
+        expiresAt: Date.now() + ttlMs,
+        value: body,
+      });
+      return body;
+    })
+    .finally(() => {
+      inflightRequests.delete(cacheKey);
+    });
+
+  inflightRequests.set(cacheKey, trackedPromise);
+  return trackedPromise;
 }
 
 export async function apiDownload(path: string, init: RequestInit = {}) {
@@ -224,6 +302,33 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
   throw lastError instanceof Error
     ? new Error("Connexion API momentanément indisponible. Réessayez dans quelques secondes.")
     : new Error("Connexion API momentanément indisponible.");
+}
+
+function buildCacheKey(path: string, method: string, authorization: string | null) {
+  return `${method}:${path}:${authorization ?? "guest"}`;
+}
+
+function getAdminCacheTtl(path: string, method: string) {
+  if (method !== "GET") return 0;
+  const normalizedPath = stripQuery(path);
+  const rule = ADMIN_CACHE_RULES.find(({ prefix }) => normalizedPath.startsWith(prefix));
+  return rule?.ttlMs ?? 0;
+}
+
+function stripQuery(path: string) {
+  return path.split("?")[0] ?? path;
+}
+
+function invalidateAdminCache(path: string) {
+  const normalizedPath = stripQuery(path);
+  const matchedPrefix = ADMIN_INVALIDATION_PREFIXES.find((prefix) => normalizedPath.startsWith(prefix));
+  if (!matchedPrefix) return;
+
+  for (const key of responseCache.keys()) {
+    if (key.includes(`:${matchedPrefix}`)) {
+      responseCache.delete(key);
+    }
+  }
 }
 
 export async function getCurrentAdmin() {

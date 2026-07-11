@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   getAdminNotifications,
@@ -14,19 +15,48 @@ type AdminNotificationsContextValue = {
 
 const AdminNotificationsContext = createContext<AdminNotificationsContextValue | null>(null);
 
+const NOTIFICATIONS_QUERY_KEY = ["admin-notifications-summary"];
+const POLL_INTERVAL_MS = 30_000;
+
 export function AdminNotificationsProvider({ children }: { children: React.ReactNode }) {
-  const [unread, setUnread] = useState(0);
-  const [latest, setLatest] = useState<AdminNotification[]>([]);
+  const queryClient = useQueryClient();
   const seenIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
 
-  const refresh = async () => {
-    const response = await getAdminNotifications({ page: 1, pageSize: 5 });
-    setUnread(response.unread);
-    setLatest(response.notifications);
+  const summaryQuery = useQuery({
+    queryKey: NOTIFICATIONS_QUERY_KEY,
+    queryFn: () => getAdminNotifications({ page: 1, pageSize: 5 }),
+    staleTime: 10_000,
+    refetchInterval: () => (document.visibilityState === "visible" ? POLL_INTERVAL_MS : false),
+    refetchOnWindowFocus: true,
+  });
 
-    const incoming = response.notifications.filter((notification) => !seenIds.current.has(notification.id));
-    response.notifications.forEach((notification) => seenIds.current.add(notification.id));
+  const refresh = async () => {
+    await queryClient.fetchQuery({
+      queryKey: NOTIFICATIONS_QUERY_KEY,
+      queryFn: () => getAdminNotifications({ page: 1, pageSize: 5 }),
+      staleTime: 10_000,
+    });
+  };
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refresh().catch(() => undefined);
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!summaryQuery.data) return;
+
+    const incoming = summaryQuery.data.notifications.filter((notification) => !seenIds.current.has(notification.id));
+    summaryQuery.data.notifications.forEach((notification) => seenIds.current.add(notification.id));
 
     if (initialized.current) {
       incoming
@@ -46,18 +76,16 @@ export function AdminNotificationsProvider({ children }: { children: React.React
     }
 
     initialized.current = true;
-  };
+  }, [summaryQuery.data]);
 
-  useEffect(() => {
-    refresh().catch(() => undefined);
-    const interval = window.setInterval(() => {
-      refresh().catch(() => undefined);
-    }, 10_000);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
-  const value = useMemo(() => ({ unread, latest, refresh }), [unread, latest]);
+  const value = useMemo(
+    () => ({
+      unread: summaryQuery.data?.unread ?? 0,
+      latest: summaryQuery.data?.notifications ?? [],
+      refresh,
+    }),
+    [summaryQuery.data?.notifications, summaryQuery.data?.unread],
+  );
 
   return (
     <AdminNotificationsContext.Provider value={value}>
