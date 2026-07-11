@@ -15,11 +15,13 @@ export type CartLine = {
 };
 
 const KEY = "soltani-cart";
+const LEGACY_KEY = "soltani-cart";
+let bootstrapPromise: Promise<void> | null = null;
 
 const read = (): CartLine[] => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = sessionStorage.getItem(KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as CartLine[]).filter((line) => Boolean(line.variantId)) : [];
@@ -29,8 +31,16 @@ const read = (): CartLine[] => {
 };
 
 const write = (lines: CartLine[]) => {
-  localStorage.setItem(KEY, JSON.stringify(lines));
+  sessionStorage.setItem(KEY, JSON.stringify(lines));
   window.dispatchEvent(new Event("cart:change"));
+};
+
+const cleanupLegacyPersistentCart = () => {
+  try {
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    undefined;
+  }
 };
 
 const persistRemote = async (lines: CartLine[]) => {
@@ -51,6 +61,20 @@ const mergeCartLines = (localLines: CartLine[], remoteLines: CartLine[]) => {
   return [...merged.values()];
 };
 
+const bootstrapCart = () => {
+  if (bootstrapPromise) return bootstrapPromise;
+  bootstrapPromise = (async () => {
+    cleanupLegacyPersistentCart();
+    const session = await getSession();
+    if (!session?.accessToken) return;
+    const remoteCart = await getCustomerCart();
+    const merged = mergeCartLines(read(), remoteCart);
+    write(merged);
+    await persistRemote(merged);
+  })().catch(() => undefined);
+  return bootstrapPromise;
+};
+
 export function openCartDrawer() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("cart:open"));
 }
@@ -59,21 +83,19 @@ export function useCart() {
   const [lines, setLines] = useState<CartLine[]>([]);
 
   useEffect(() => {
+    cleanupLegacyPersistentCart();
     setLines(read());
     const sync = () => setLines(read());
+    const syncAuth = () => {
+      bootstrapPromise = null;
+      void bootstrapCart();
+    };
     window.addEventListener("cart:change", sync);
-    window.addEventListener("storage", sync);
-    void (async () => {
-      const session = await getSession();
-      if (!session?.accessToken) return;
-      const remoteCart = await getCustomerCart();
-      const merged = mergeCartLines(read(), remoteCart);
-      write(merged);
-      await persistRemote(merged);
-    })().catch(() => undefined);
+    window.addEventListener("auth:change", syncAuth);
+    void bootstrapCart();
     return () => {
       window.removeEventListener("cart:change", sync);
-      window.removeEventListener("storage", sync);
+      window.removeEventListener("auth:change", syncAuth);
     };
   }, []);
 

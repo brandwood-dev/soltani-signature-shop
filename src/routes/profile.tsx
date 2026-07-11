@@ -24,6 +24,8 @@ import { useWishlist } from "@/hooks/useWishlist";
 
 type Tab = "dashboard" | "orders" | "wishlist" | "info" | "addresses";
 type AddressFormState = AddressInput & { id?: string };
+const PROFILE_CACHE_KEY = "soltani-profile-cache";
+const PROFILE_CACHE_TTL = 60_000;
 
 const emptyAddress: AddressFormState = {
   addressLine1: "",
@@ -51,17 +53,46 @@ function ProfilePage() {
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [tab, setTab] = useState<Tab>("info");
 
-  const loadProfile = async () => {
+  const loadProfile = async (showCached: boolean) => {
+    if (showCached) {
+      const cachedProfile = readCachedProfile();
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+        setReady(true);
+      }
+    }
+
     const nextProfile = await getCustomerProfile();
-    const syncedWishlist = await syncCustomerWishlist(wishlist.slugs).catch(() => nextProfile.wishlist);
-    setProfile({ ...nextProfile, wishlist: syncedWishlist, stats: { ...nextProfile.stats, wishlist: syncedWishlist.length } });
+    setProfile(nextProfile);
+    writeCachedProfile(nextProfile);
     setReady(true);
+
+    if (wishlist.slugs.length) {
+      syncCustomerWishlist(wishlist.slugs)
+        .then((syncedWishlist) => {
+          setProfile((current) => {
+            if (!current) return current;
+            const updatedProfile = {
+              ...current,
+              wishlist: syncedWishlist,
+              stats: { ...current.stats, wishlist: syncedWishlist.length },
+            };
+            writeCachedProfile(updatedProfile);
+            return updatedProfile;
+          });
+        })
+        .catch(() => undefined);
+    }
   };
 
   useEffect(() => {
-    loadProfile().catch(() => {
-      navigate({ to: "/login" });
+    let active = true;
+    loadProfile(true).catch(() => {
+      if (active) navigate({ to: "/login" });
     });
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   const identity = useMemo(() => {
@@ -72,7 +103,14 @@ function ProfilePage() {
     return { fullName, initials };
   }, [profile]);
 
-  if (!ready || !profile) return null;
+  if (!ready || !profile) {
+    return (
+      <SiteLayout>
+        <PageHero eyebrow="Espace privé" title="Mon compte" subtitle="Chargement sécurisé de votre espace client." />
+        <ProfileSkeleton />
+      </SiteLayout>
+    );
+  }
 
   const logout = async () => {
     await signOut();
@@ -80,23 +118,38 @@ function ProfilePage() {
   };
 
   const updateProfileState = (user: ApiUser) => {
-    setProfile((current) => current ? { ...current, user } : current);
+    setProfile((current) => {
+      if (!current) return current;
+      const updatedProfile = { ...current, user };
+      writeCachedProfile(updatedProfile);
+      return updatedProfile;
+    });
   };
 
   const updateAddresses = (addresses: ApiAddress[]) => {
-    setProfile((current) => current ? {
-      ...current,
-      addresses,
-      stats: { ...current.stats, addresses: addresses.length },
-    } : current);
+    setProfile((current) => {
+      if (!current) return current;
+      const updatedProfile = {
+        ...current,
+        addresses,
+        stats: { ...current.stats, addresses: addresses.length },
+      };
+      writeCachedProfile(updatedProfile);
+      return updatedProfile;
+    });
   };
 
   const updateWishlist = (products: ApiWishlistProduct[]) => {
-    setProfile((current) => current ? {
-      ...current,
-      wishlist: products,
-      stats: { ...current.stats, wishlist: products.length },
-    } : current);
+    setProfile((current) => {
+      if (!current) return current;
+      const updatedProfile = {
+        ...current,
+        wishlist: products,
+        stats: { ...current.stats, wishlist: products.length },
+      };
+      writeCachedProfile(updatedProfile);
+      return updatedProfile;
+    });
   };
 
   const nav: { id: Tab | "logout"; label: string; icon: ComponentType<{ className?: string }> }[] = [
@@ -156,6 +209,60 @@ function ProfilePage() {
         </div>
       </section>
     </SiteLayout>
+  );
+}
+
+function readCachedProfile() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as { savedAt: number; profile: CustomerProfile };
+    if (Date.now() - cached.savedAt > PROFILE_CACHE_TTL) return null;
+    return cached.profile;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedProfile(profile: CustomerProfile) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), profile }));
+  } catch {
+    undefined;
+  }
+}
+
+function ProfileSkeleton() {
+  return (
+    <section className="container-luxe py-12 md:py-16">
+      <div className="grid lg:grid-cols-[280px_1fr] gap-8">
+        <aside className="bg-card border border-border rounded-sm p-4 h-fit">
+          <div className="flex items-center gap-3 p-3 border-b border-border mb-3">
+            <div className="h-12 w-12 rounded-full bg-secondary animate-pulse" />
+            <div className="space-y-2 flex-1">
+              <div className="h-4 w-32 bg-secondary rounded-sm animate-pulse" />
+              <div className="h-3 w-24 bg-secondary rounded-sm animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="h-10 bg-secondary/70 rounded-sm animate-pulse" />
+            ))}
+          </div>
+        </aside>
+        <div className="bg-card border border-border rounded-sm p-6 md:p-10 min-w-0">
+          <div className="h-8 w-52 bg-secondary rounded-sm animate-pulse mb-3" />
+          <div className="h-4 w-full max-w-md bg-secondary rounded-sm animate-pulse mb-10" />
+          <div className="grid md:grid-cols-2 gap-5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-12 bg-secondary/70 rounded-sm animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

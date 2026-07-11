@@ -2,6 +2,7 @@ import { publicEnv } from "@/lib/env";
 
 const STORAGE_KEY = "soltani-auth-session";
 const LEGACY_ADMIN_STORAGE_KEY = "soltani-admin-session";
+const SESSION_ONLY_KEYS = ["soltani-cart", "soltani-wishlist", "soltani-profile-cache"];
 
 export type SupabaseSession = {
   accessToken: string;
@@ -18,6 +19,22 @@ type SupabaseTokenResponse = {
 function saveSession(session: SupabaseSession) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
+}
+
+function emitAuthChange() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("auth:change"));
+  }
+}
+
+function clearSessionOnlyCommerceState() {
+  if (typeof window === "undefined") return;
+  for (const key of SESSION_ONLY_KEYS) {
+    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
+  }
+  window.dispatchEvent(new Event("cart:change"));
+  window.dispatchEvent(new Event("wishlist:change"));
 }
 
 function readStoredSession() {
@@ -61,6 +78,7 @@ export async function signInWithPassword(email: string, password: string) {
   });
   const session = toSession((await response.json()) as SupabaseTokenResponse);
   saveSession(session);
+  emitAuthChange();
   return session;
 }
 
@@ -85,6 +103,8 @@ export async function getSession() {
   } catch {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
+    clearSessionOnlyCommerceState();
+    emitAuthChange();
     return null;
   }
 }
@@ -93,6 +113,8 @@ export async function signOut() {
   const session = readStoredSession();
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
+  clearSessionOnlyCommerceState();
+  emitAuthChange();
 
   if (!session?.accessToken) {
     return;
