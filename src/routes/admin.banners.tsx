@@ -52,6 +52,7 @@ type PageKey = (typeof PAGES)[number]["value"];
 const empty = (page: PageKey): PromoBanner => ({
   id: `new_${Date.now()}`,
   page,
+  kind: "promotion",
   image: "",
   title: "",
   subtitle: "",
@@ -59,9 +60,21 @@ const empty = (page: PageKey): PromoBanner => ({
   ctaUrl: "",
   active: true,
   sortOrder: 0,
+  durationDays: null,
+  startsAt: null,
+  endsAt: null,
   createdAt: "",
   updatedAt: "",
 });
+
+const toDateTimeLocal = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+const fromDateTimeLocal = (value: string) => (value ? new Date(value).toISOString() : null);
 
 function AdminBanners() {
   const [items, setItems] = useState<PromoBanner[]>([]);
@@ -119,7 +132,7 @@ function AdminBanners() {
       const nextActive = !target.active;
       setItems((current) => current.map((banner) => {
         if (banner.id === id) return { ...banner, active: nextActive };
-        return nextActive && banner.page === target.page ? { ...banner, active: false } : banner;
+        return nextActive && banner.page === target.page && banner.kind === target.kind ? { ...banner, active: false } : banner;
       }));
     }
     try {
@@ -127,7 +140,7 @@ function AdminBanners() {
       const updated = await togglePromoBanner(id);
       setItems((current) => current.map((banner) => {
         if (banner.id === updated.id) return updated;
-        return updated.active && banner.page === updated.page ? { ...banner, active: false } : banner;
+        return updated.active && banner.page === updated.page && banner.kind === updated.kind ? { ...banner, active: false } : banner;
       }));
     } catch (err) {
       setItems(previousItems);
@@ -152,6 +165,7 @@ function AdminBanners() {
       setError("");
       const payload = {
         page: editing.page,
+        kind: editing.page === "home" ? editing.kind : "promotion",
         image: editing.image,
         title: editing.title,
         subtitle: editing.subtitle,
@@ -159,6 +173,8 @@ function AdminBanners() {
         ctaUrl: editing.ctaUrl,
         active: editing.active,
         sortOrder: editing.sortOrder,
+        durationDays: editing.kind === "limited_offer" ? editing.durationDays : null,
+        startsAt: editing.kind === "limited_offer" ? editing.startsAt : null,
       };
       const saved = editing.id.startsWith("new_")
         ? await createPromoBanner(payload)
@@ -225,6 +241,7 @@ function AdminBanners() {
                 </div>
                 <span className="absolute left-3 top-3 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium capitalize text-foreground">
                   {PAGES.find((page) => page.value === banner.page)?.label}
+                  {banner.kind === "limited_offer" ? " · Offre limitée" : ""}
                 </span>
                 {!banner.active && (
                   <span className="absolute right-3 top-3 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-medium text-destructive-foreground">
@@ -282,7 +299,16 @@ function AdminBanners() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label>Page</Label>
-                <Select value={editing.page} onValueChange={(value) => setEditing({ ...editing, page: value })}>
+                <Select
+                  value={editing.page}
+                  onValueChange={(value) =>
+                    setEditing({
+                      ...editing,
+                      page: value,
+                      kind: value === "home" ? editing.kind : "promotion",
+                    })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -295,6 +321,54 @@ function AdminBanners() {
                   </SelectContent>
                 </Select>
               </div>
+              {editing.page === "home" && (
+                <div className="space-y-1.5">
+                  <Label>Type</Label>
+                  <Select
+                    value={editing.kind ?? "promotion"}
+                    onValueChange={(value) =>
+                      setEditing({
+                        ...editing,
+                        kind: value as PromoBanner["kind"],
+                        durationDays: value === "limited_offer" ? editing.durationDays ?? 3 : null,
+                        startsAt: value === "limited_offer" ? editing.startsAt : null,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="promotion">Bannière promotionnelle</SelectItem>
+                      <SelectItem value="limited_offer">Offre limitée</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {editing.page === "home" && editing.kind === "limited_offer" && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Nombre de jours de promotion</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={editing.durationDays ?? 3}
+                      onChange={(event) =>
+                        setEditing({ ...editing, durationDays: Math.max(1, Number(event.target.value) || 1) })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Date/heure de début (Tunisie)</Label>
+                    <Input
+                      type="datetime-local"
+                      value={toDateTimeLocal(editing.startsAt)}
+                      onChange={(event) => setEditing({ ...editing, startsAt: fromDateTimeLocal(event.target.value) })}
+                    />
+                  </div>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Image</Label>
                 <div className="flex gap-2">

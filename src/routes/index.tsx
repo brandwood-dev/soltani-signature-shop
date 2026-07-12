@@ -36,17 +36,25 @@ const Footer = lazy(() =>
 );
 
 export const Route = createFileRoute("/")({
-  loader: async (): Promise<{ heroSlides: HeroSlide[]; bestsellers: Product[]; newArrivals: Product[]; promoBanners: PromoBannerItem[] }> => {
-    const [heroSlides, products, promoBanners] = await Promise.all([
+  loader: async (): Promise<{
+    heroSlides: HeroSlide[];
+    bestsellers: Product[];
+    newArrivals: Product[];
+    promoBanners: PromoBannerItem[];
+    limitedOffer: PromoBannerItem | null;
+  }> => {
+    const [heroSlides, products, promoBanners, limitedOffers] = await Promise.all([
       getActiveHeroSlides().catch(() => []),
       getCatalogProducts().catch(() => []),
-      getActivePromoBanners("home").catch(() => []),
+      getActivePromoBanners("home", "promotion").catch(() => []),
+      getActivePromoBanners("home", "limited_offer").catch(() => []),
     ]);
     return {
       heroSlides,
       bestsellers: products.filter((product) => product.isBestSeller).slice(0, 8),
       newArrivals: products.filter((product) => product.isFeatured).slice(0, 8),
       promoBanners,
+      limitedOffer: limitedOffers[0] ?? null,
     };
   },
   head: () => ({
@@ -69,7 +77,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { heroSlides, bestsellers, newArrivals, promoBanners } = Route.useLoaderData();
+  const { heroSlides, bestsellers, newArrivals, promoBanners, limitedOffer } = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -119,9 +127,11 @@ function Home() {
         <LazySection minHeight={520}>
           <Testimonials />
         </LazySection>
-        <LazySection minHeight={360}>
-          <Promo />
-        </LazySection>
+        {limitedOffer && (
+          <LazySection minHeight={360}>
+            <Promo banner={limitedOffer} />
+          </LazySection>
+        )}
         <LazySection minHeight={320}>
           <Newsletter />
         </LazySection>

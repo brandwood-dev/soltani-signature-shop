@@ -11,7 +11,7 @@ export function useStableDeadline(daysAhead = 3, hoursAhead = 8) {
   return day + daysAhead * 86400000 + hoursAhead * 3600000;
 }
 
-export function useCountdown(target: number) {
+export function useCountdown(target: number, onExpire?: () => void) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     setNow(Date.now());
@@ -19,6 +19,9 @@ export function useCountdown(target: number) {
     return () => clearInterval(id);
   }, []);
   const diff = Math.max((target - (now ?? target)), 0);
+  useEffect(() => {
+    if (now !== null && target <= now) onExpire?.();
+  }, [now, onExpire, target]);
   return {
     d: Math.floor(diff / 86400000),
     h: Math.floor((diff / 3600000) % 24),
@@ -38,8 +41,8 @@ export function CountdownInline({ target, className = "" }: { target: number; cl
   );
 }
 
-export function CountdownCells({ target }: { target: number }) {
-  const { d, h, m, s } = useCountdown(target);
+export function CountdownCells({ target, onExpire }: { target: number; onExpire?: () => void }) {
+  const { d, h, m, s } = useCountdown(target, onExpire);
   const cells = [
     { v: d, l: "Jours" },
     { v: h, l: "Heures" },

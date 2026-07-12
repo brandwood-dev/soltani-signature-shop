@@ -3,6 +3,7 @@ import { apiFetch } from "@/lib/api";
 export type PromoBanner = {
   id: string;
   page: string;
+  kind: "promotion" | "limited_offer";
   image: string;
   title: string;
   subtitle: string;
@@ -10,12 +11,16 @@ export type PromoBanner = {
   ctaUrl: string;
   active: boolean;
   sortOrder: number;
+  durationDays?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 export type PromoBannerInput = {
   page: string;
+  kind?: "promotion" | "limited_offer";
   image: string;
   title: string;
   subtitle: string;
@@ -23,6 +28,8 @@ export type PromoBannerInput = {
   ctaUrl: string;
   active: boolean;
   sortOrder?: number;
+  durationDays?: number | null;
+  startsAt?: string | null;
 };
 
 export type PromoBannersAdminResponse = {
@@ -36,9 +43,10 @@ export type PromoBannersAdminResponse = {
   countsByPage: Record<string, number>;
 };
 
-export async function getActivePromoBanners(page?: string) {
+export async function getActivePromoBanners(page?: string, kind?: PromoBanner["kind"]) {
   const search = new URLSearchParams();
   if (page) search.set("page", page);
+  if (kind) search.set("kind", kind);
   const response = await apiFetch<{ banners: PromoBanner[] }>(
     `/content/promo-banners${search.size ? `?${search}` : ""}`,
   );
