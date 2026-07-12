@@ -53,6 +53,12 @@ export async function getActivePromoBanners(page?: string, kind?: PromoBanner["k
   return response.banners;
 }
 
+export async function getActiveLimitedOffer() {
+  const banners = await getActivePromoBanners("home", "limited_offer");
+  const now = Date.now();
+  return banners.find((banner) => banner.endsAt && new Date(banner.endsAt).getTime() > now) ?? null;
+}
+
 export async function getAdminPromoBanners(params: { page?: string; pageIndex?: number; pageSize?: number } = {}) {
   const search = new URLSearchParams();
   if (params.page) search.set("page", params.page);

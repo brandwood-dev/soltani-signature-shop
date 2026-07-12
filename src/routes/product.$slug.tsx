@@ -15,7 +15,8 @@ import {
   type ProductReview,
 } from "@/lib/catalog-api";
 import { getSession } from "@/lib/supabase";
-import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
+import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
+import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
@@ -25,12 +26,15 @@ import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRigh
 
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: async ({ params }): Promise<{ product: Product; related: Product[] }> => {
+  loader: async ({ params }): Promise<{ product: Product; related: Product[]; limitedOffer: PromoBanner | null }> => {
     const product = await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
-    const apiProducts = await getCatalogProducts({ category: product.category }).catch(() => []);
+    const [apiProducts, limitedOffer] = await Promise.all([
+      getCatalogProducts({ category: product.category }).catch(() => []),
+      getActiveLimitedOffer().catch(() => null),
+    ]);
     const related = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
-    return { product, related };
+    return { product, related, limitedOffer };
   },
   head: ({ params }) => {
     const title = "Produit — Soltani Signature";
@@ -68,7 +72,7 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product, related } = Route.useLoaderData() as { product: Product; related: Product[] };
+  const { product, related, limitedOffer } = Route.useLoaderData() as { product: Product; related: Product[]; limitedOffer: PromoBanner | null };
   const gallery = product.gallery?.length ? product.gallery : [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
   const category = findCategory(product.category);
   const parentSlug = category?.kind === "sub" ? category.parent.slug : (category?.slug ?? product.category);
@@ -199,8 +203,8 @@ function ProductPage() {
             {product.oldPrice && <span className="text-base sm:text-lg text-muted-foreground line-through tabular-nums">{product.oldPrice} DT</span>}
             {product.isPromotion && product.oldPrice && <span className="text-xs sm:text-sm text-destructive font-semibold">Économisez {product.oldPrice - product.price} DT</span>}
           </div>
-          {product.isPromotion && discount > 0 && (
-            <PromoCountdown />
+          {product.isPromotion && discount > 0 && limitedOffer?.endsAt && (
+            <PromoCountdown endsAt={limitedOffer.endsAt} />
           )}
 
           <p className="text-sm text-foreground/80 mb-6 leading-relaxed">
@@ -310,12 +314,15 @@ function ProductPage() {
   );
 }
 
-function PromoCountdown() {
-  const target = useStableDeadline(1, 18);
+function PromoCountdown({ endsAt }: { endsAt: string }) {
+  const [expired, setExpired] = useState(false);
+
+  if (expired) return null;
+
   return (
     <div className="mb-6 flex items-center gap-2 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-sm text-sm">
       <Flame className="h-4 w-4 text-destructive shrink-0" />
-      <CountdownInline target={target} className="text-foreground" />
+      <LimitedOfferCountdown endsAt={endsAt} className="text-foreground" onExpire={() => setExpired(true)} />
     </div>
   );
 }

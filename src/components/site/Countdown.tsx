@@ -31,8 +31,8 @@ export function useCountdown(target: number, onExpire?: () => void) {
   };
 }
 
-export function CountdownInline({ target, className = "" }: { target: number; className?: string }) {
-  const { d, h, m, s } = useCountdown(target);
+export function CountdownInline({ target, className = "", onExpire }: { target: number; className?: string; onExpire?: () => void }) {
+  const { d, h, m, s } = useCountdown(target, onExpire);
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
     <span className={`tabular-nums ${className}`}>

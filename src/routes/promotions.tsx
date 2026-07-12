@@ -1,15 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
-import { CountdownInline, useStableDeadline } from "@/components/site/Countdown";
+import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
 import { Flame, ChevronRight } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
+import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
 
 export const Route = createFileRoute("/promotions")({
-  loader: async (): Promise<{ products: Product[] }> => {
-    const products = await getCatalogProducts().catch((): Product[] => []);
-    return { products };
+  loader: async (): Promise<{ products: Product[]; limitedOffer: PromoBanner | null }> => {
+    const [products, limitedOffer] = await Promise.all([
+      getCatalogProducts().catch((): Product[] => []),
+      getActiveLimitedOffer().catch(() => null),
+    ]);
+    return { products, limitedOffer };
   },
   head: () => ({
     meta: [
@@ -27,8 +31,8 @@ const DISCOUNT_TIERS = [
 ];
 
 function PromotionsPage() {
-  const target = useStableDeadline(2, 14);
-  const { products } = Route.useLoaderData() as { products: Product[] };
+  const { products, limitedOffer } = Route.useLoaderData() as { products: Product[]; limitedOffer: PromoBanner | null };
+  const [offerExpired, setOfferExpired] = useState(false);
   const allPromos = useMemo(() => products.filter((p) => p.isPromotion).map((p) => ({
     ...p,
     discount: p.discountPercentage ?? 0,
@@ -61,13 +65,15 @@ function PromotionsPage() {
         subtitle="Une sélection rare de pièces signées à prix exceptionnels."
       />
 
-      <div className="bg-ink text-cream py-5 border-y border-gold/20">
-        <div className="container-luxe flex flex-wrap items-center justify-center gap-3 text-sm">
-          <Flame className="h-4 w-4 text-destructive" />
-          <span className="uppercase tracking-[0.2em] text-[11px] text-cream/70">Offres en cours —</span>
-          <CountdownInline target={target} className="text-cream" />
+      {limitedOffer?.endsAt && !offerExpired && (
+        <div className="bg-ink text-cream py-5 border-y border-gold/20">
+          <div className="container-luxe flex flex-wrap items-center justify-center gap-3 text-sm">
+            <Flame className="h-4 w-4 text-destructive" />
+            <span className="uppercase tracking-[0.2em] text-[11px] text-cream/70">Offres en cours —</span>
+            <LimitedOfferCountdown endsAt={limitedOffer.endsAt} className="text-cream" onExpire={() => setOfferExpired(true)} />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="container-luxe py-6 flex items-center gap-2 text-xs text-muted-foreground">
         <Link to="/" className="hover:text-gold">Accueil</Link>
