@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  getAdminNotifications,
+  getAdminNotificationsSummary,
   type AdminNotification,
 } from "@/lib/admin-notifications-api";
 
@@ -16,7 +16,7 @@ type AdminNotificationsContextValue = {
 const AdminNotificationsContext = createContext<AdminNotificationsContextValue | null>(null);
 
 const NOTIFICATIONS_QUERY_KEY = ["admin-notifications-summary"];
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 120_000;
 
 export function AdminNotificationsProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -25,8 +25,8 @@ export function AdminNotificationsProvider({ children }: { children: React.React
 
   const summaryQuery = useQuery({
     queryKey: NOTIFICATIONS_QUERY_KEY,
-    queryFn: () => getAdminNotifications({ page: 1, pageSize: 5 }),
-    staleTime: 10_000,
+    queryFn: getAdminNotificationsSummary,
+    staleTime: 60_000,
     refetchInterval: () => (document.visibilityState === "visible" ? POLL_INTERVAL_MS : false),
     refetchOnWindowFocus: true,
   });
@@ -34,8 +34,8 @@ export function AdminNotificationsProvider({ children }: { children: React.React
   const refresh = async () => {
     await queryClient.fetchQuery({
       queryKey: NOTIFICATIONS_QUERY_KEY,
-      queryFn: () => getAdminNotifications({ page: 1, pageSize: 5 }),
-      staleTime: 10_000,
+      queryFn: getAdminNotificationsSummary,
+      staleTime: 60_000,
     });
   };
 

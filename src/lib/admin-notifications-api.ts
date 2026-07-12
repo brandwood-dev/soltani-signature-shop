@@ -32,6 +32,11 @@ export type AdminNotificationsResponse = {
   };
 };
 
+export type AdminNotificationsSummaryResponse = {
+  notifications: AdminNotification[];
+  unread: number;
+};
+
 export function getAdminNotifications(query: { page?: number; pageSize?: number; unreadOnly?: boolean } = {}) {
   const params = new URLSearchParams();
   if (query.page) params.set("page", String(query.page));
@@ -39,6 +44,10 @@ export function getAdminNotifications(query: { page?: number; pageSize?: number;
   if (query.unreadOnly) params.set("unreadOnly", "true");
 
   return apiFetch<AdminNotificationsResponse>(`/admin/notifications?${params.toString()}`);
+}
+
+export function getAdminNotificationsSummary() {
+  return apiFetch<AdminNotificationsSummaryResponse>("/admin/notifications/summary");
 }
 
 export async function markAdminNotificationRead(id: string, isRead: boolean) {
