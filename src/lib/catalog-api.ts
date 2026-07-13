@@ -141,11 +141,13 @@ export function mapApiProduct(product: ApiProduct): Product {
   };
 }
 
-export async function getCatalogProducts(params: { category?: string; query?: string; section?: string } = {}) {
+export async function getCatalogProducts(params: { category?: string; query?: string; section?: string; limit?: number; summary?: boolean } = {}) {
   const search = new URLSearchParams();
   if (params.category) search.set("category", params.category);
   if (params.query) search.set("q", params.query);
   if (params.section) search.set("section", params.section);
+  if (params.limit) search.set("limit", String(params.limit));
+  if (params.summary) search.set("summary", "1");
 
   const products = await apiFetch<ApiProduct[]>(`/catalog/products${search.size ? `?${search}` : ""}`);
   return products.map(mapApiProduct);

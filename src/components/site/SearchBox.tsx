@@ -29,8 +29,8 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
     }
 
     const timeoutId = window.setTimeout(() => {
-      getCatalogProducts({ query })
-        .then((items) => setResults(items.slice(0, 6)))
+      getCatalogProducts({ query, limit: 6, summary: true })
+        .then((items) => setResults(items))
         .catch(() => setResults([]));
     }, 250);
 
@@ -99,7 +99,7 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
           ) : (
             <ul className="max-h-[70vh] overflow-y-auto divide-y divide-border">
               {results.map((p) => {
-                const discount = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
+                const discount = p.isPromotion ? p.discountPercentage ?? 0 : 0;
                 return (
                   <li key={p.slug}>
                     <button
@@ -118,7 +118,7 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
                           )}
                         </div>
                       </div>
-                      {discount > 0 && (
+                      {p.isPromotion && discount > 0 && (
                         <span className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm shrink-0">
                           −{discount}%
                         </span>

@@ -30,8 +30,8 @@ export const Route = createFileRoute("/product/$slug")({
     const product = await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
     const [apiProducts, limitedOffer] = await Promise.all([
-      getCatalogProducts({ category: product.category }).catch(() => []),
-      getActiveLimitedOffer().catch(() => null),
+      getCatalogProducts({ category: product.category, limit: 6, summary: true }).catch(() => []),
+      product.isPromotion ? getActiveLimitedOffer().catch(() => null) : Promise.resolve(null),
     ]);
     const related = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
     return { product, related, limitedOffer };
@@ -179,6 +179,8 @@ function ProductPage() {
             <img
               src={gallery[active]}
               alt={product.name}
+              loading="eager"
+              fetchPriority="high"
               onError={(event) => {
                 event.currentTarget.src = "/placeholder.svg";
               }}
