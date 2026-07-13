@@ -1,4 +1,5 @@
 import { publicEnv } from "@/lib/env";
+import { mapHttpErrorMessage, networkErrorMessage } from "@/lib/error-messages";
 
 const STORAGE_KEY = "soltani-auth-session";
 const LEGACY_ADMIN_STORAGE_KEY = "soltani-admin-session";
@@ -55,17 +56,29 @@ function toSession(response: SupabaseTokenResponse): SupabaseSession {
 }
 
 async function authRequest(path: string, init: RequestInit) {
-  const response = await fetch(`${publicEnv.supabaseUrl}/auth/v1${path}`, {
-    ...init,
-    headers: {
-      apikey: publicEnv.supabaseAnonKey,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${publicEnv.supabaseUrl}/auth/v1${path}`, {
+      ...init,
+      headers: {
+        apikey: publicEnv.supabaseAnonKey,
+        "Content-Type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch {
+    throw new Error(networkErrorMessage());
+  }
 
   if (!response.ok) {
-    throw new Error("Supabase Auth request failed.");
+    let message = "";
+    try {
+      const body = (await response.json()) as { error_description?: string; msg?: string; message?: string; error?: string };
+      message = body.error_description ?? body.msg ?? body.message ?? body.error ?? "";
+    } catch {
+      message = response.statusText;
+    }
+    throw new Error(mapHttpErrorMessage(message, response.status));
   }
 
   return response;

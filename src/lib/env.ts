@@ -9,7 +9,8 @@ const publicEnvFallbacks = {
 function requiredPublicEnv(name: keyof typeof publicEnvFallbacks) {
   const value = import.meta.env[name] || publicEnvFallbacks[name];
   if (!value) {
-    throw new Error(`Missing public environment variable: ${name}`);
+    console.error(`[Config] Missing public environment variable: ${name}`);
+    throw new Error("Configuration momentanément indisponible. Réessayez plus tard.");
   }
 
   return value;

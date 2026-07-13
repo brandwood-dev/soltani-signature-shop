@@ -21,6 +21,7 @@ import {
 import { TUNISIA_GOVERNORATES } from "@/lib/tunisia";
 import { signOut } from "@/lib/supabase";
 import { useWishlist } from "@/hooks/useWishlist";
+import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 
 type Tab = "dashboard" | "orders" | "wishlist" | "info" | "addresses";
 type AddressFormState = AddressInput & { id?: string };
@@ -292,7 +293,7 @@ function InfoTab({ user, fullName, initials, onUpdated }: { user: ApiUser; fullN
       onUpdated(updated);
       setMessage("Informations mises à jour.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Impossible de mettre à jour le profil.");
+      setMessage(toUserFriendlyErrorMessage(error, "Impossible de mettre à jour le profil."));
     } finally {
       setSaving(false);
     }
@@ -465,7 +466,7 @@ function AddressesTab({ addresses, onChange }: { addresses: ApiAddress[]; onChan
       reset();
       setMessage(editing ? "Adresse mise à jour." : "Adresse ajoutée.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Impossible d'enregistrer l'adresse.");
+      setMessage(toUserFriendlyErrorMessage(error, "Impossible d'enregistrer l'adresse."));
     } finally {
       setSaving(false);
     }

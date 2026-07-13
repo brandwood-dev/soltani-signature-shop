@@ -5,6 +5,7 @@ import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { findCategoryName } from "@/data/catalog";
 import { ChevronRight } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
+import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 
 export const Route = createFileRoute("/brand/$slug")({
   loader: async ({ params }): Promise<{ brand: string; products: Product[] }> => {
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/brand/$slug")({
   ),
   errorComponent: ({ error }) => (
     <SiteLayout>
-      <div className="container-luxe py-32 text-center text-muted-foreground">{error.message}</div>
+      <div className="container-luxe py-32 text-center text-muted-foreground">{toUserFriendlyErrorMessage(error)}</div>
     </SiteLayout>
   ),
   component: BrandPage,

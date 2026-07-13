@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/supabase";
 import { publicEnv } from "@/lib/env";
+import { mapHttpErrorMessage, networkErrorMessage } from "@/lib/error-messages";
 
 export type ApiUser = {
   id: string;
@@ -207,7 +208,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
       message = response.statusText || message;
     }
 
-    throw new Error(message);
+    throw new Error(mapHttpErrorMessage(message, response.status));
   }
 
   const bodyPromise = response.json() as Promise<T>;
@@ -258,7 +259,7 @@ export async function apiDownload(path: string, init: RequestInit = {}) {
     } catch {
       message = response.statusText || message;
     }
-    throw new Error(message);
+    throw new Error(mapHttpErrorMessage(message, response.status));
   }
 
   const disposition = response.headers.get("Content-Disposition") ?? "";
@@ -301,9 +302,7 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
     }
   }
 
-  throw lastError instanceof Error
-    ? new Error("Connexion API momentanément indisponible. Réessayez dans quelques secondes.")
-    : new Error("Connexion API momentanément indisponible.");
+  throw new Error(networkErrorMessage());
 }
 
 function buildCacheKey(path: string, method: string, authorization: string | null) {

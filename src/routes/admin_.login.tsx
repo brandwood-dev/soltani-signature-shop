@@ -3,11 +3,12 @@ import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ShieldCheck, ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/site/Logo";
 import { signInAdmin } from "@/lib/admin/auth";
+import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 
 export const Route = createFileRoute("/admin_/login")({
   head: () => ({
     meta: [
-      { title: "Connexion Admin — Soltani Signature" },
+      { title: "Connexion Admin â€” Soltani Signature" },
       { name: "robots", content: "noindex,nofollow" },
       { name: "description", content: "Accès réservé à l'administration Soltani Signature." },
     ],
@@ -31,7 +32,7 @@ function AdminLoginPage() {
       await signInAdmin(email, password);
       await navigate({ to: "/admin" });
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Connexion impossible.");
+      setError(toUserFriendlyErrorMessage(error, "Connexion impossible."));
     } finally {
       setLoading(false);
     }
@@ -135,7 +136,7 @@ function AdminLoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   className="input-luxe pl-10 pr-10"
                 />
                 <button
@@ -150,7 +151,7 @@ function AdminLoginPage() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Session sécurisée via Supabase Auth. Ne partagez jamais vos identifiants.
+              Session sécurisée. Ne partagez jamais vos identifiants.
             </p>
 
             <button

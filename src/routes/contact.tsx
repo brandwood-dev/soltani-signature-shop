@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { MapPin, Phone, Mail, MessageCircle, Clock } from "lucide-react";
 import { sendContactMessage } from "@/lib/api";
+import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 
 const CONTACT_PHONE_DISPLAY = "+216 58 997 716";
 const CONTACT_PHONE_TEL = "+21658997716";
@@ -99,7 +100,7 @@ function ContactPage() {
     } catch (error) {
       setStatus({
         type: "error",
-        message: error instanceof Error ? error.message : "Impossible d'envoyer votre message pour le moment.",
+        message: toUserFriendlyErrorMessage(error, "Impossible d'envoyer votre message pour le moment."),
       });
     } finally {
       setSubmitting(false);

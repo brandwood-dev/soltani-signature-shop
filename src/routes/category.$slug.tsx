@@ -17,6 +17,7 @@ import {
   loadCategoryTree,
   type CategoryTree,
 } from "@/lib/categories-api";
+import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 
 export const Route = createFileRoute("/category/$slug")({
   loader: async ({ params }) => {
@@ -62,7 +63,7 @@ export const Route = createFileRoute("/category/$slug")({
   ),
   errorComponent: ({ error }) => (
     <SiteLayout>
-      <div className="container-luxe py-32 text-center text-muted-foreground">{error.message}</div>
+      <div className="container-luxe py-32 text-center text-muted-foreground">{toUserFriendlyErrorMessage(error)}</div>
     </SiteLayout>
   ),
   component: CategoryPage,
