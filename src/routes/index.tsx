@@ -40,12 +40,14 @@ export const Route = createFileRoute("/")({
     heroSlides: HeroSlide[];
     bestsellers: Product[];
     newArrivals: Product[];
+    packs: Product[];
     promoBanners: PromoBannerItem[];
     limitedOffer: PromoBannerItem | null;
   }> => {
-    const [heroSlides, products, promoBanners, limitedOffers] = await Promise.all([
+    const [heroSlides, products, packs, promoBanners, limitedOffers] = await Promise.all([
       getActiveHeroSlides().catch(() => []),
       getCatalogProducts().catch(() => []),
+      getCatalogProducts({ category: "coffrets-parfum" }).catch(() => []),
       getActivePromoBanners("home", "promotion").catch(() => []),
       getActivePromoBanners("home", "limited_offer").catch(() => []),
     ]);
@@ -53,6 +55,7 @@ export const Route = createFileRoute("/")({
       heroSlides,
       bestsellers: products.filter((product) => product.isBestSeller).slice(0, 8),
       newArrivals: products.filter((product) => product.isFeatured).slice(0, 8),
+      packs,
       promoBanners,
       limitedOffer: limitedOffers[0] ?? null,
     };
@@ -77,7 +80,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { heroSlides, bestsellers, newArrivals, promoBanners, limitedOffer } = Route.useLoaderData();
+  const { heroSlides, bestsellers, newArrivals, packs, promoBanners, limitedOffer } = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -109,7 +112,7 @@ function Home() {
           />
         </LazySection>
         <LazySection minHeight={520}>
-          <Packs />
+          <Packs items={packs} />
         </LazySection>
         {promoBanners.map((banner, index) => (
           <LazySection key={banner.id} minHeight={420}>

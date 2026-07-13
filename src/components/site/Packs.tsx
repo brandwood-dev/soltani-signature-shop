@@ -1,23 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ProductCarousel } from "./ProductCarousel";
 import type { Product } from "./ProductCard";
-import p1 from "@/assets/prod-1.jpg";
-import p2 from "@/assets/prod-2.jpg";
-import p3 from "@/assets/prod-3.jpg";
-import p4 from "@/assets/prod-4.jpg";
-import p5 from "@/assets/prod-5.jpg";
-import p6 from "@/assets/prod-6.jpg";
 
-const PACKS: Product[] = [
-  { slug: "pack-soins-visage", name: "Pack Soins Visage", brand: "Soltani Signature", category: "coffrets-parfum", price: 290, oldPrice: 350, image: p1, badge: "Nouveau", rating: 4.9 },
-  { slug: "pack-parfum-decouverte", name: "Pack Parfum Découverte", brand: "Soltani Signature", category: "coffrets-parfum", price: 320, image: p2, badge: "Best Seller", rating: 5 },
-  { slug: "pack-cheveux-rituel", name: "Pack Cheveux Rituel", brand: "Soltani Signature", category: "coffrets-parfum", price: 240, image: p3, rating: 4.8 },
-  { slug: "pack-maquillage-essentiels", name: "Pack Maquillage Essentiels", brand: "Soltani Signature", category: "coffrets-parfum", price: 380, oldPrice: 450, image: p4, badge: "Promo", rating: 4.7 },
-  { slug: "pack-pour-elle", name: "Pack Pour Elle", brand: "Soltani Signature", category: "coffrets-parfum", price: 520, image: p5, badge: "Best Seller", rating: 5 },
-  { slug: "pack-pour-lui", name: "Pack Pour Lui", brand: "Soltani Signature", category: "coffrets-parfum", price: 480, image: p6, rating: 4.9 },
-];
-
-export function Packs() {
+export function Packs({ items }: { items: Product[] }) {
   return (
     <section className="py-12 md:py-16 bg-background">
       <div className="container-luxe">
@@ -39,7 +24,13 @@ export function Packs() {
           </Link>
         </div>
 
-        <ProductCarousel items={PACKS} />
+        {items.length === 0 ? (
+          <div className="rounded-sm border border-dashed border-border bg-card/40 px-6 py-12 text-center text-sm text-muted-foreground">
+            Aucun coffret parfum disponible pour le moment.
+          </div>
+        ) : (
+          <ProductCarousel items={items} />
+        )}
       </div>
     </section>
   );

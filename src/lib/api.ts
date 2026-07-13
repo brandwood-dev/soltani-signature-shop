@@ -129,6 +129,7 @@ const responseCache = new Map<string, CachedApiValue>();
 const inflightRequests = new Map<string, Promise<unknown>>();
 
 const ADMIN_CACHE_RULES: Array<{ prefix: string; ttlMs: number }> = [
+  { prefix: "/catalog/products", ttlMs: 30_000 },
   { prefix: "/admin/me", ttlMs: 60_000 },
   { prefix: "/admin/dashboard", ttlMs: 30_000 },
   { prefix: "/admin/notifications", ttlMs: 10_000 },
@@ -145,6 +146,7 @@ const ADMIN_CACHE_RULES: Array<{ prefix: string; ttlMs: number }> = [
 ];
 
 const ADMIN_INVALIDATION_PREFIXES = [
+  "/catalog/products",
   "/admin/me",
   "/admin/dashboard",
   "/admin/notifications",
@@ -323,9 +325,13 @@ function invalidateAdminCache(path: string) {
   const normalizedPath = stripQuery(path);
   const matchedPrefix = ADMIN_INVALIDATION_PREFIXES.find((prefix) => normalizedPath.startsWith(prefix));
   if (!matchedPrefix) return;
+  const prefixesToInvalidate = new Set([matchedPrefix]);
+  if (normalizedPath.startsWith("/products/admin")) {
+    prefixesToInvalidate.add("/catalog/products");
+  }
 
   for (const key of responseCache.keys()) {
-    if (key.includes(`:${matchedPrefix}`)) {
+    if ([...prefixesToInvalidate].some((prefix) => key.includes(`:${prefix}`))) {
       responseCache.delete(key);
     }
   }
