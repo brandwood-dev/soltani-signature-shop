@@ -32,10 +32,11 @@ export function AdminNotificationsProvider({ children }: { children: React.React
   });
 
   const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     await queryClient.fetchQuery({
       queryKey: NOTIFICATIONS_QUERY_KEY,
       queryFn: getAdminNotificationsSummary,
-      staleTime: 60_000,
+      staleTime: 0,
     });
   };
 

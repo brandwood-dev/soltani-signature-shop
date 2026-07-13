@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   clearAdminNotifications,
+  deleteAdminNotification,
   getAdminNotifications,
   markAdminNotificationRead,
   type AdminNotification,
@@ -38,11 +39,14 @@ function AdminNotificationsPage() {
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   const refresh = async () => {
     try {
       setLoading(true);
       setError("");
+      setSuccess("");
       const response = await getAdminNotifications({ page, pageSize });
       setNotifications(response.notifications);
       setUnread(response.unread);
@@ -61,38 +65,107 @@ function AdminNotificationsPage() {
     refresh();
   }, [page, pageSize]);
 
+  const setPending = (id: string, isPending: boolean) => {
+    setPendingIds((current) => {
+      const next = new Set(current);
+      if (isPending) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
   const toggleRead = async (notification: AdminNotification) => {
+    const previousNotifications = notifications;
+    const previousUnread = unread;
+    const nextIsRead = !notification.isRead;
+
     try {
       setError("");
-      await markAdminNotificationRead(notification.id, !notification.isRead);
-      await refresh();
+      setSuccess("");
+      setPending(notification.id, true);
+      setNotifications((current) =>
+        current.map((item) => (item.id === notification.id ? { ...item, isRead: nextIsRead } : item)),
+      );
+      setUnread((current) => Math.max(0, current + (nextIsRead ? -1 : 1)));
+      await markAdminNotificationRead(notification.id, nextIsRead);
+      await refreshBadge();
     } catch (err) {
+      setNotifications(previousNotifications);
+      setUnread(previousUnread);
       setError(err instanceof Error ? err.message : "Mise à jour impossible.");
+    } finally {
+      setPending(notification.id, false);
+    }
+  };
+
+  const deleteOne = async (notification: AdminNotification) => {
+    const previousNotifications = notifications;
+    const previousUnread = unread;
+    const previousTotal = total;
+
+    try {
+      setError("");
+      setSuccess("");
+      setPending(notification.id, true);
+      setNotifications((current) => current.filter((item) => item.id !== notification.id));
+      setUnread((current) => Math.max(0, current - (notification.isRead ? 0 : 1)));
+      setTotal((current) => Math.max(0, current - 1));
+      await deleteAdminNotification(notification.id);
+      setSuccess("Notification supprimée.");
+      await refreshBadge();
+    } catch (err) {
+      setNotifications(previousNotifications);
+      setUnread(previousUnread);
+      setTotal(previousTotal);
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    } finally {
+      setPending(notification.id, false);
     }
   };
 
   const markAllRead = async () => {
+    const previousNotifications = notifications;
+    const previousUnread = unread;
+
     try {
       setError("");
+      setSuccess("");
+      setNotifications((current) => current.map((notification) => ({ ...notification, isRead: true })));
+      setUnread(0);
       await Promise.all(
         notifications
           .filter((notification) => !notification.isRead)
           .map((notification) => markAdminNotificationRead(notification.id, true)),
       );
-      await refresh();
+      setSuccess("Notifications marquées comme lues.");
+      await refreshBadge();
     } catch (err) {
+      setNotifications(previousNotifications);
+      setUnread(previousUnread);
       setError(err instanceof Error ? err.message : "Impossible de marquer les notifications.");
     }
   };
 
   const clearAll = async () => {
     if (!window.confirm("Supprimer toutes les notifications ?")) return;
+    const previousNotifications = notifications;
+    const previousUnread = unread;
+    const previousTotal = total;
+
     try {
       setError("");
+      setSuccess("");
+      setNotifications([]);
+      setUnread(0);
+      setTotal(0);
       await clearAdminNotifications();
       setPage(1);
-      await refresh();
+      setSuccess("Notifications supprimées.");
+      await refreshBadge();
     } catch (err) {
+      setNotifications(previousNotifications);
+      setUnread(previousUnread);
+      setTotal(previousTotal);
       setError(err instanceof Error ? err.message : "Suppression impossible.");
     }
   };
@@ -104,11 +177,11 @@ function AdminNotificationsPage() {
         subtitle={`${unread} non lue(s)`}
         actions={
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" className="h-9" onClick={markAllRead} disabled={!unread}>
+            <Button size="sm" variant="outline" className="h-9" onClick={markAllRead} disabled={!unread || pendingIds.size > 0}>
               <CheckCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Tout marquer lu</span>
             </Button>
-            <Button size="sm" variant="destructive" className="h-9" onClick={clearAll} disabled={!total}>
+            <Button size="sm" variant="destructive" className="h-9" onClick={clearAll} disabled={!total || pendingIds.size > 0}>
               <Trash2 className="h-4 w-4" />
               <span className="hidden sm:inline">Tout supprimer</span>
             </Button>
@@ -120,6 +193,11 @@ function AdminNotificationsPage() {
         {error && (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
+          </div>
+        )}
+        {success && (
+          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700">
+            {success}
           </div>
         )}
 
@@ -151,15 +229,28 @@ function AdminNotificationsPage() {
                       {formatDate(notification.createdAt)} · {new Date(notification.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => toggleRead(notification)}
-                    aria-label={notification.isRead ? "Marquer non lue" : "Marquer lue"}
-                  >
-                    {notification.isRead ? <Mail className="h-4 w-4" /> : <MailOpen className="h-4 w-4" />}
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => toggleRead(notification)}
+                      disabled={pendingIds.has(notification.id)}
+                      aria-label={notification.isRead ? "Marquer non lue" : "Marquer lue"}
+                    >
+                      {notification.isRead ? <Mail className="h-4 w-4" /> : <MailOpen className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => deleteOne(notification)}
+                      disabled={pendingIds.has(notification.id)}
+                      aria-label="Supprimer la notification"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
 

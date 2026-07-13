@@ -62,6 +62,10 @@ export function clearAdminNotifications() {
   return apiFetch<{ deleted: boolean }>("/admin/notifications", { method: "DELETE" });
 }
 
+export function deleteAdminNotification(id: string) {
+  return apiFetch<{ deleted: boolean; id: string }>(`/admin/notifications/${id}`, { method: "DELETE" });
+}
+
 export function createAdminLoginNotification() {
   return apiFetch<AdminNotification>("/admin/notifications/admin-login", { method: "POST" });
 }
