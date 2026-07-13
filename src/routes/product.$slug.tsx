@@ -558,10 +558,8 @@ function StarRating({ value }: { value: number }) {
 }
 
 function buildSpecifications(product: Product, categoryName: string): Array<[string, string]> {
-  const hiddenKeys = new Set(["couleur", "color", "taille", "size"]);
   const dynamicSpecs = Object.entries(product.attributes ?? {})
-    .filter(([key]) => !hiddenKeys.has(normalizeSpecKey(key)))
-    .map(([key, values]) => [formatSpecLabel(key), values.join(", ")] as [string, string])
+    .map(([key, values]) => [formatSpecLabel(key), values.filter(Boolean).join(", ")] as [string, string])
     .filter(([, value]) => value.trim().length > 0);
 
   return [
@@ -570,14 +568,6 @@ function buildSpecifications(product: Product, categoryName: string): Array<[str
     ["Référence", product.slug.toUpperCase()],
     ...dynamicSpecs,
   ];
-}
-
-function normalizeSpecKey(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 }
 
 function formatSpecLabel(value: string) {

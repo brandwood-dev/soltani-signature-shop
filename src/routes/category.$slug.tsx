@@ -9,6 +9,7 @@ import {
 import { getFacetsForCategory, type FacetDef } from "@/data/filters";
 import { ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
+import { getActiveFeaturedBrands } from "@/lib/featured-brands-api";
 import {
   fallbackCategoryTree,
   findInCategoryTree,
@@ -19,11 +20,14 @@ import {
 
 export const Route = createFileRoute("/category/$slug")({
   loader: async ({ params }) => {
-    const categoryTree = await loadCategoryTree().catch(() => fallbackCategoryTree());
+    const [categoryTree, activeBrands] = await Promise.all([
+      loadCategoryTree().catch(() => fallbackCategoryTree()),
+      getActiveFeaturedBrands().catch(() => []),
+    ]);
     const cat = findInCategoryTree(params.slug, categoryTree) ?? findCategory(params.slug);
     if (!cat) throw notFound();
     const products = await getCatalogProducts({ category: params.slug }).catch((): Product[] => []);
-    return { category: cat, categoryTree, products };
+    return { category: cat, categoryTree, products, brands: activeBrands.map((brand) => brand.name) };
   },
   head: ({ params }) => {
     const cat = findCategory(params.slug);
@@ -65,10 +69,11 @@ export const Route = createFileRoute("/category/$slug")({
 });
 
 function CategoryPage() {
-  const { category, categoryTree, products } = Route.useLoaderData() as {
+  const { category, categoryTree, products, brands: activeBrands } = Route.useLoaderData() as {
     category: ReturnType<typeof findCategory> & object;
     categoryTree: CategoryTree[];
     products: Product[];
+    brands: string[];
   };
   const [openFilters, setOpenFilters] = useState(false);
   const [price, setPrice] = useState(20000);
@@ -85,8 +90,8 @@ function CategoryPage() {
   const baseList = useMemo(() => products, [products]);
 
   const brands = useMemo(
-    () => Array.from(new Set(baseList.map((p) => p.brand))).sort(),
-    [baseList],
+    () => activeBrands.filter((brandName) => baseList.some((product) => product.brand === brandName)).sort(),
+    [activeBrands, baseList],
   );
 
   const facets: FacetDef[] = useMemo(() => {

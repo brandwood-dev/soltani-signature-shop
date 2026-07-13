@@ -6,14 +6,16 @@ import { Flame, ChevronRight } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
+import { getActiveFeaturedBrands } from "@/lib/featured-brands-api";
 
 export const Route = createFileRoute("/promotions")({
-  loader: async (): Promise<{ products: Product[]; limitedOffer: PromoBanner | null }> => {
-    const [products, limitedOffer] = await Promise.all([
+  loader: async (): Promise<{ products: Product[]; limitedOffer: PromoBanner | null; brands: string[] }> => {
+    const [products, limitedOffer, brands] = await Promise.all([
       getCatalogProducts().catch((): Product[] => []),
       getActiveLimitedOffer().catch(() => null),
+      getActiveFeaturedBrands().catch(() => []),
     ]);
-    return { products, limitedOffer };
+    return { products, limitedOffer, brands: brands.map((brand) => brand.name) };
   },
   head: () => ({
     meta: [
@@ -31,14 +33,17 @@ const DISCOUNT_TIERS = [
 ];
 
 function PromotionsPage() {
-  const { products, limitedOffer } = Route.useLoaderData() as { products: Product[]; limitedOffer: PromoBanner | null };
+  const { products, limitedOffer, brands: activeBrands } = Route.useLoaderData() as { products: Product[]; limitedOffer: PromoBanner | null; brands: string[] };
   const [offerExpired, setOfferExpired] = useState(false);
   const allPromos = useMemo(() => products.filter((p) => p.isPromotion).map((p) => ({
     ...p,
     discount: p.discountPercentage ?? 0,
   })), [products]);
 
-  const brands = useMemo(() => Array.from(new Set(allPromos.map((p) => p.brand))), [allPromos]);
+  const brands = useMemo(
+    () => activeBrands.filter((brandName) => allPromos.some((product) => product.brand === brandName)).sort(),
+    [activeBrands, allPromos],
+  );
 
   const [brand, setBrand] = useState<string[]>([]);
   const [minDiscount, setMinDiscount] = useState(0);

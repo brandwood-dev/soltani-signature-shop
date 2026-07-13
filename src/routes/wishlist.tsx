@@ -1,8 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useCart } from "@/hooks/useCart";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import type { Product } from "@/components/site/ProductCard";
 
@@ -18,8 +19,25 @@ export const Route = createFileRoute("/wishlist")({
 
 function WishlistPage() {
   const { slugs, remove, reconcile } = useWishlist();
+  const { add } = useCart();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const items = products.filter((p) => slugs.includes(p.slug));
+
+  const addToCartAndGo = (product: Product) => {
+    if (!product.variantId) return;
+    add({
+      id: product.variantId,
+      productSlug: product.slug,
+      variantId: product.variantId,
+      name: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.image,
+      variant: product.variantLabel ?? "Standard",
+    });
+    void navigate({ to: "/cart" });
+  };
 
   useEffect(() => {
     getCatalogProducts()
@@ -78,12 +96,14 @@ function WishlistPage() {
                       {p.oldPrice && <span className="text-xs text-muted-foreground line-through tabular-nums">{p.oldPrice} DT</span>}
                     </div>
                     <div className="mt-auto flex gap-2">
-                      <Link
-                        to="/cart"
+                      <button
+                        type="button"
+                        onClick={() => addToCartAndGo(p)}
+                        disabled={!p.variantId}
                         className="flex-1 inline-flex items-center justify-center gap-2 h-10 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm"
                       >
                         <ShoppingBag className="h-3.5 w-3.5" /> Ajouter
-                      </Link>
+                      </button>
                       <button
                         onClick={() => remove(p.slug)}
                         aria-label="Retirer"
