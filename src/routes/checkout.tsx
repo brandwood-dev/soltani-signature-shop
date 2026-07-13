@@ -14,9 +14,13 @@ import {
   type ShopSettings,
 } from "@/lib/settings-api";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({ meta: [{ title: "Commande — Soltani Signature" }] }),
+  head: () => ({
+    meta: seoMeta({ title: "Commande — Soltani Signature", description: "Finalisez votre commande Soltani Signature.", path: "/checkout", noindex: true }),
+    links: [canonicalLink("/checkout")],
+  }),
   component: CheckoutPage,
 });
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Minus, Plus, X, Tag, ShieldCheck } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 import {
   DEFAULT_SHOP_SETTINGS,
   calculateShipping,
@@ -11,7 +12,10 @@ import {
 } from "@/lib/settings-api";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Panier — Soltani Signature" }] }),
+  head: () => ({
+    meta: seoMeta({ title: "Panier — Soltani Signature", description: "Votre panier Soltani Signature.", path: "/cart", noindex: true }),
+    links: [canonicalLink("/cart")],
+  }),
   component: CartPage,
 });
 

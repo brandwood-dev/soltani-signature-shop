@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-2.jpg";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 const config: LifestyleConfig = {
   page: "homme",
@@ -61,12 +62,12 @@ const config: LifestyleConfig = {
 
 export const Route = createFileRoute("/homme")({
   head: () => ({
-    meta: [
-      { title: "Collection Homme — Soltani Signature" },
-      { name: "description", content: "Univers Homme : montres, parfums, soins, lunettes et bijoux de luxe. Sélection signature pour l'homme exigeant." },
-      { property: "og:title", content: "Collection Homme — Soltani Signature" },
-      { property: "og:description", content: "Horlogerie, parfums et accessoires d'exception pour homme." },
-    ],
+    meta: seoMeta({
+      title: "Collection Homme — Soltani Signature",
+      description: "Univers Homme : parfums, soins, montres, lunettes et accessoires lifestyle sélectionnés par Soltani Signature.",
+      path: "/homme",
+    }),
+    links: [canonicalLink("/homme")],
   }),
   component: () => <LifestylePage config={config} />,
 });

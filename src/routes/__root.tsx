@@ -17,6 +17,7 @@ import { MobileBottomNav } from "@/components/site/MobileBottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import { publicEnv } from "@/lib/env";
 import { trackPageView } from "@/lib/meta-pixel";
+import { faviconLinks, jsonLdScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -83,19 +84,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
-      { name: "description", content: "Boutique de luxe en ligne : montres, lunettes, parfums, sacs, bijoux et cosmétiques premium. Livraison gratuite dès 300 DT, paiement 3x sans frais." },
-      { property: "og:title", content: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
-      { name: "twitter:title", content: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
-      { property: "og:description", content: "Boutique de luxe en ligne : montres, lunettes, parfums, sacs, bijoux et cosmétiques premium. Livraison gratuite dès 300 DT, paiement 3x sans frais." },
-      { name: "twitter:description", content: "Boutique de luxe en ligne : montres, lunettes, parfums, sacs, bijoux et cosmétiques premium. Livraison gratuite dès 300 DT, paiement 3x sans frais." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Gqm7BUzu0mYT4yvPah1MgKQDZH03/social-images/social-1783329577667-ok.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Gqm7BUzu0mYT4yvPah1MgKQDZH03/social-images/social-1783329577667-ok.webp" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:type", content: "website" },
+      { name: "theme-color", content: "#0f0f0f" },
+      { name: "application-name", content: "Soltani Signature" },
+      { name: "apple-mobile-web-app-title", content: "Soltani" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      ...faviconLinks(),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       { rel: "preconnect", href: "https://res.cloudinary.com", crossOrigin: "" },
@@ -103,38 +100,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" },
     ],
     scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          name: "Soltani Signature",
-          url: "https://soltani-signature-shop.lovable.app",
-          potentialAction: {
-            "@type": "SearchAction",
-            target: "https://soltani-signature-shop.lovable.app/?q={search_term_string}",
-            "query-input": "required name=search_term_string",
-          },
-        }),
-      },
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "Soltani Signature",
-          url: "https://soltani-signature-shop.lovable.app",
-          logo: "https://soltani-signature-shop.lovable.app/favicon.ico",
-          sameAs: [],
-          contactPoint: {
-            "@type": "ContactPoint",
-            telephone: "+216-58-997-716",
-            contactType: "customer service",
-            areaServed: "TN",
-            availableLanguage: ["French", "Arabic"],
-          },
-        }),
-      },
+      jsonLdScript(websiteJsonLd()),
+      jsonLdScript(organizationJsonLd()),
     ],
   }),
   shellComponent: RootShell,

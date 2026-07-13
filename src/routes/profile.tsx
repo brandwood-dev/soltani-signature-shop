@@ -22,6 +22,7 @@ import { TUNISIA_GOVERNORATES } from "@/lib/tunisia";
 import { signOut } from "@/lib/supabase";
 import { useWishlist } from "@/hooks/useWishlist";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 type Tab = "dashboard" | "orders" | "wishlist" | "info" | "addresses";
 type AddressFormState = AddressInput & { id?: string };
@@ -39,10 +40,8 @@ const emptyAddress: AddressFormState = {
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
-    meta: [
-      { title: "Mon compte — Soltani Signature" },
-      { name: "description", content: "Gérez votre compte, vos commandes et vos préférences." },
-    ],
+    meta: seoMeta({ title: "Mon compte — Soltani Signature", description: "Gérez votre compte client Soltani Signature.", path: "/profile", noindex: true }),
+    links: [canonicalLink("/profile")],
   }),
   component: ProfilePage,
 });

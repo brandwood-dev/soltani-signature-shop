@@ -6,6 +6,7 @@ import { findCategoryName } from "@/data/catalog";
 import { ChevronRight } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
+import { breadcrumbJsonLd, canonicalLink, jsonLdScript, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/brand/$slug")({
   loader: async ({ params }): Promise<{ brand: string; products: Product[] }> => {
@@ -14,12 +15,20 @@ export const Route = createFileRoute("/brand/$slug")({
     const brand = brandProducts[0]?.brand ?? params.slug.replace(/-/g, " ");
     return { brand, products: brandProducts };
   },
-  head: ({ params }) => {
-    const brand = params.slug.replace(/-/g, " ");
+  head: ({ params, loaderData }) => {
+    const brand = loaderData?.brand ?? params.slug.replace(/-/g, " ");
+    const path = `/brand/${params.slug}`;
+    const title = `${brand} ? Soltani Signature`;
+    const description = `D?couvrez la collection ${brand} disponible chez Soltani Signature en Tunisie.`;
     return {
-      meta: [
-        { title: `${brand} — Soltani Signature` },
-        { name: "description", content: `Découvrez la collection ${brand} disponible chez Soltani Signature.` },
+      meta: seoMeta({ title, description, path }),
+      links: [canonicalLink(path)],
+      scripts: [
+        jsonLdScript(breadcrumbJsonLd([
+          { name: "Accueil", path: "/" },
+          { name: "Marques", path: "/#marques" },
+          { name: brand, path },
+        ])),
       ],
     };
   },

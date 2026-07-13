@@ -7,6 +7,7 @@ import { getCatalogProducts } from "@/lib/catalog-api";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
 import { getActiveFeaturedBrands } from "@/lib/featured-brands-api";
+import { breadcrumbJsonLd, canonicalLink, jsonLdScript, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/promotions")({
   loader: async (): Promise<{ products: Product[]; limitedOffer: PromoBanner | null; brands: string[] }> => {
@@ -18,9 +19,17 @@ export const Route = createFileRoute("/promotions")({
     return { products, limitedOffer, brands: brands.map((brand) => brand.name) };
   },
   head: () => ({
-    meta: [
-      { title: "Promotions — Soltani Signature" },
-      { name: "description", content: "Toutes nos offres exclusives sur les montres, parfums, sacs et bijoux de luxe." },
+    meta: seoMeta({
+      title: "Promotions ? Soltani Signature",
+      description: "Toutes les offres promotionnelles Soltani Signature : parfums, soins, maquillage, cheveux et lifestyle.",
+      path: "/promotions",
+    }),
+    links: [canonicalLink("/promotions")],
+    scripts: [
+      jsonLdScript(breadcrumbJsonLd([
+        { name: "Accueil", path: "/" },
+        { name: "Promotions", path: "/promotions" },
+      ])),
     ],
   }),
   component: PromotionsPage,

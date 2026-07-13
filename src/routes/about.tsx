@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Award, Globe, Sparkles, Users } from "lucide-react";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
-    meta: [
-      { title: "À propos — Soltani Signature" },
-      { name: "description", content: "L'histoire d'une maison tunisienne dédiée au luxe authentique." },
-    ],
+    meta: seoMeta({
+      title: "À propos — Soltani Signature",
+      description: "Découvrez l'histoire et les engagements de Soltani Signature, boutique e-commerce beauté, parfums et lifestyle en Tunisie.",
+      path: "/about",
+    }),
+    links: [canonicalLink("/about")],
   }),
   component: AboutPage,
 });

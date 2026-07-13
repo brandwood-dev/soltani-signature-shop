@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
+import { canonicalLink, jsonLdScript, seoMeta } from "@/lib/seo";
 
 const PAGES: Record<string, { title: string; eyebrow: string; sections: { h: string; p: string }[] }> = {
   cgv: {
@@ -130,9 +131,29 @@ export const Route = createFileRoute("/legal/$slug")({
     if (!page) throw notFound();
     return { page };
   },
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.page.title ?? "Légal"} — Soltani Signature` }],
-  }),
+  head: ({ params, loaderData }) => {
+    const page = loaderData?.page;
+    const path = `/legal/${params.slug}`;
+    return {
+      meta: seoMeta({
+        title: `${page?.title ?? "Informations l?gales"} ? Soltani Signature`,
+        description: page?.sections?.[0]?.p?.slice(0, 155) ?? "Informations l?gales et service client Soltani Signature.",
+        path,
+      }),
+      links: [canonicalLink(path)],
+      scripts: params.slug === "faq" && page
+        ? [jsonLdScript({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: page.sections.map((section) => ({
+              "@type": "Question",
+              name: section.h,
+              acceptedAnswer: { "@type": "Answer", text: section.p },
+            })),
+          })]
+        : [],
+    };
+  },
   notFoundComponent: () => (
     <SiteLayout>
       <PageHero title="Page introuvable" />

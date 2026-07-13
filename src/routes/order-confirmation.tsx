@@ -4,9 +4,13 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Check, Package, Truck, MapPin, ArrowRight, Sparkles } from "lucide-react";
 import type { CartLine } from "@/hooks/useCart";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/order-confirmation")({
-  head: () => ({ meta: [{ title: "Merci pour votre commande — Soltani Signature" }] }),
+  head: () => ({
+    meta: seoMeta({ title: "Merci pour votre commande — Soltani Signature", description: "Confirmation de votre commande Soltani Signature.", path: "/order-confirmation", noindex: true }),
+    links: [canonicalLink("/order-confirmation")],
+  }),
   component: OrderConfirmationPage,
 });
 

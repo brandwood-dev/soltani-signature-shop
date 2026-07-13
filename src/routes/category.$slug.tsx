@@ -18,6 +18,7 @@ import {
   type CategoryTree,
 } from "@/lib/categories-api";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
+import { breadcrumbJsonLd, canonicalLink, jsonLdScript, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/category/$slug")({
   loader: async ({ params }) => {
@@ -30,27 +31,25 @@ export const Route = createFileRoute("/category/$slug")({
     const products = await getCatalogProducts({ category: params.slug }).catch((): Product[] => []);
     return { category: cat, categoryTree, products, brands: activeBrands.map((brand) => brand.name) };
   },
-  head: ({ params }) => {
-    const cat = findCategory(params.slug);
-    const title = cat ? cat.name : "Catégorie";
-    const fullTitle = `${title} — Soltani Signature`;
+  head: ({ params, loaderData }) => {
+    const cat = loaderData?.category ?? findCategory(params.slug);
+    const title = cat ? cat.name : "Cat?gorie";
+    const fullTitle = `${title} ? Soltani Signature`;
     const description = cat
-      ? `Découvrez notre sélection ${title.toLowerCase()} de luxe chez Soltani Signature : marques d'exception, authenticité garantie, livraison rapide en Tunisie et paiement en 3 fois sans frais.`
-      : "Explorez nos catégories de luxe : parfums, montres, maroquinerie, bijoux et cosmétiques signés des plus grandes maisons.";
-    const url = `https://soltani-signature-shop.lovable.app/category/${params.slug}`;
+      ? `D?couvrez notre s?lection ${title.toLowerCase()} chez Soltani Signature : produits authentiques, livraison rapide en Tunisie et paiement ? la livraison.`
+      : "Explorez nos cat?gories beaut?, parfums, soins, mode et lifestyle chez Soltani Signature.";
+    const parent = cat?.kind === "sub" ? cat.parent : null;
+    const path = `/category/${params.slug}`;
     return {
-      meta: [
-        { title: fullTitle },
-        { name: "description", content: description },
-        { property: "og:title", content: fullTitle },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "website" },
-        { property: "og:url", content: url },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: fullTitle },
-        { name: "twitter:description", content: description },
+      meta: seoMeta({ title: fullTitle, description, path, image: cat?.image }),
+      links: [canonicalLink(path)],
+      scripts: [
+        jsonLdScript(breadcrumbJsonLd([
+          { name: "Accueil", path: "/" },
+          ...(parent ? [{ name: parent.name, path: `/category/${parent.slug}` }] : []),
+          { name: title, path },
+        ])),
       ],
-      links: [{ rel: "canonical", href: url }],
     };
   },
   notFoundComponent: () => (

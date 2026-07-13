@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-2.jpg";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 const config: LifestyleConfig = {
   page: "bien-etre",
@@ -61,12 +62,12 @@ const config: LifestyleConfig = {
 
 export const Route = createFileRoute("/bien-etre")({
   head: () => ({
-    meta: [
-      { title: "Bien-être & Sérénité — Soltani Signature" },
-      { name: "description", content: "Univers Bien-être : huiles essentielles, soins corps, compléments et aromathérapie pour un quotidien apaisé." },
-      { property: "og:title", content: "Bien-être & Sérénité — Soltani Signature" },
-      { property: "og:description", content: "L'art du rituel : huiles essentielles, aromathérapie et soins corps." },
-    ],
+    meta: seoMeta({
+      title: "Bien-être — Soltani Signature",
+      description: "Routine bien-être : soins, protection solaire, cheveux et beauté premium en Tunisie.",
+      path: "/bien-etre",
+    }),
+    links: [canonicalLink("/bien-etre")],
   }),
   component: () => <LifestylePage config={config} />,
 });

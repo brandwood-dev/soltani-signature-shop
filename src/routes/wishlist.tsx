@@ -6,13 +6,12 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import type { Product } from "@/components/site/ProductCard";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/wishlist")({
   head: () => ({
-    meta: [
-      { title: "Mes Favoris — Soltani Signature" },
-      { name: "description", content: "Retrouvez les pièces de luxe que vous avez ajoutées à vos favoris." },
-    ],
+    meta: seoMeta({ title: "Mes favoris — Soltani Signature", description: "Vos favoris Soltani Signature.", path: "/wishlist", noindex: true }),
+    links: [canonicalLink("/wishlist")],
   }),
   component: WishlistPage,
 });

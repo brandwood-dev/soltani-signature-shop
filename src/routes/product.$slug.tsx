@@ -21,39 +21,56 @@ import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
+import { breadcrumbJsonLd, canonicalLink, jsonLdScript, productJsonLd, productReviewsJsonLd, seoMeta } from "@/lib/seo";
 import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Flame, ShoppingBag, Pencil, Trash2 } from "lucide-react";
 
 
 
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: async ({ params }): Promise<{ product: Product; related: Product[]; limitedOffer: PromoBanner | null }> => {
+  loader: async ({ params }): Promise<{
+    product: Product;
+    related: Product[];
+    limitedOffer: PromoBanner | null;
+    reviewSummary: { total: number; averageRating: number };
+    reviewSamples: ProductReview[];
+  }> => {
     const product = await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
-    const [apiProducts, limitedOffer] = await Promise.all([
+    const [apiProducts, limitedOffer, reviewResponse] = await Promise.all([
       getCatalogProducts({ category: product.category, limit: 6, summary: true }).catch(() => []),
       product.isPromotion ? getActiveLimitedOffer().catch(() => null) : Promise.resolve(null),
+      getProductReviews(product.slug, { page: 1, pageSize: 3 }).catch(() => null),
     ]);
     const related = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
-    return { product, related, limitedOffer };
-  },
-  head: ({ params }) => {
-    const title = "Produit — Soltani Signature";
-    const description = "Découvrez nos produits authentiques chez Soltani Signature.";
-    const url = `https://soltanisignature.com/product/${params.slug}`;
     return {
-      meta: [
-        { title },
-        { name: "description", content: description },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "product" },
-        { property: "og:url", content: url },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: title },
-        { name: "twitter:description", content: description },
-      ],
-      links: [{ rel: "canonical", href: url }],
+      product,
+      related,
+      limitedOffer,
+      reviewSummary: reviewResponse?.summary ?? { total: 0, averageRating: 0 },
+      reviewSamples: reviewResponse?.reviews ?? [],
+    };
+  },
+  head: ({ params, loaderData }) => {
+    const product = loaderData?.product;
+    const path = `/product/${params.slug}`;
+    const title = product ? `${product.name} ? ${product.brand} | Soltani Signature` : "Produit ? Soltani Signature";
+    const description = product?.description || (product ? `${product.name} par ${product.brand}, disponible chez Soltani Signature en Tunisie.` : "D?couvrez nos produits authentiques chez Soltani Signature.");
+    const categoryName = product ? findCategory(product.category)?.name ?? "Catalogue" : "Catalogue";
+    return {
+      meta: seoMeta({ title, description, path, image: product?.image, type: "product" }),
+      links: [canonicalLink(path)],
+      scripts: product
+        ? [
+            jsonLdScript(productJsonLd(product, loaderData?.reviewSummary)),
+            ...productReviewsJsonLd(product, loaderData?.reviewSamples ?? []).map(jsonLdScript),
+            jsonLdScript(breadcrumbJsonLd([
+              { name: "Accueil", path: "/" },
+              { name: categoryName, path: `/category/${product.category}` },
+              { name: product.name, path },
+            ])),
+          ]
+        : [],
     };
   },
   notFoundComponent: () => (
@@ -73,7 +90,7 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product, related, limitedOffer } = Route.useLoaderData() as { product: Product; related: Product[]; limitedOffer: PromoBanner | null };
+  const { product, related, limitedOffer, reviewSummary: initialReviewSummary } = Route.useLoaderData() as { product: Product; related: Product[]; limitedOffer: PromoBanner | null; reviewSummary: { total: number; averageRating: number } };
   const gallery = product.gallery?.length ? product.gallery : [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
   const category = findCategory(product.category);
   const parentSlug = category?.kind === "sub" ? category.parent.slug : (category?.slug ?? product.category);
@@ -82,7 +99,7 @@ function ProductPage() {
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
   const [shareMessage, setShareMessage] = useState("");
-  const [reviewSummary, setReviewSummary] = useState({ total: 0, averageRating: 0 });
+  const [reviewSummary, setReviewSummary] = useState(initialReviewSummary);
   const { add } = useCart();
   const { has, toggle } = useWishlist();
   const isFavorite = has(product.slug);

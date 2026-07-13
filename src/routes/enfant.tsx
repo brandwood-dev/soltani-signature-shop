@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LifestylePage, type LifestyleConfig } from "@/components/site/LifestylePage";
 import hero from "@/assets/hero-3.jpg";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 const config: LifestyleConfig = {
   page: "enfant",
@@ -61,12 +62,12 @@ const config: LifestyleConfig = {
 
 export const Route = createFileRoute("/enfant")({
   head: () => ({
-    meta: [
-      { title: "Collection Enfant — Soltani Signature" },
-      { name: "description", content: "Univers Enfant : soins doux, parfums délicats, protection solaire et accessoires pour les plus jeunes." },
-      { property: "og:title", content: "Collection Enfant — Soltani Signature" },
-      { property: "og:description", content: "Une sélection tendre et précieuse pour les enfants." },
-    ],
+    meta: seoMeta({
+      title: "Collection Enfant — Soltani Signature",
+      description: "Sélection enfant : parfums, soins doux et idées cadeaux lifestyle par Soltani Signature.",
+      path: "/enfant",
+    }),
+    links: [canonicalLink("/enfant")],
   }),
   component: () => <LifestylePage config={config} />,
 });

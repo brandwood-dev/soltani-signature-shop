@@ -12,6 +12,7 @@ import { getCatalogProducts } from "@/lib/catalog-api";
 import { getActiveHeroSlides, type HeroSlide } from "@/lib/hero-api";
 import { getActivePromoBanners, type PromoBanner as PromoBannerItem } from "@/lib/promo-banners-api";
 import type { Product } from "@/components/site/ProductCard";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 // Below-the-fold: split into separate chunks and mount on scroll.
 const CollectionBanners = lazy(() =>
@@ -61,20 +62,13 @@ export const Route = createFileRoute("/")({
     };
   },
   head: () => ({
-    meta: [
-      { title: "Soltani Signature — Montres, Parfums & Luxe en Tunisie" },
-      {
-        name: "description",
-        content:
-          "Boutique de luxe en ligne : montres, lunettes, parfums, sacs, bijoux et cosmétiques premium. Livraison gratuite dès 300 DT, paiement 3x sans frais.",
-      },
-      { property: "og:title", content: "Soltani Signature — L'art du luxe" },
-      {
-        property: "og:description",
-        content: "Sélection rare de marques d'exception. Service signature en Tunisie.",
-      },
-      { property: "og:type", content: "website" },
-    ],
+    meta: seoMeta({
+      title: "Soltani Signature — Beauté, parfums & lifestyle en Tunisie",
+      description:
+        "Découvrez Soltani Signature : parfums, maquillage, soins, cheveux, protection solaire et mode lifestyle. Livraison rapide en Tunisie.",
+      path: "/",
+    }),
+    links: [canonicalLink("/")],
   }),
   component: Home,
 });

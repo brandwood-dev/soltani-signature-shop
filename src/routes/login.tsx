@@ -5,13 +5,12 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Logo } from "@/components/site/Logo";
 import { getCurrentUser } from "@/lib/api";
 import { signInWithPassword } from "@/lib/supabase";
+import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [
-      { title: "Connexion — Soltani Signature" },
-      { name: "description", content: "Connectez-vous à votre compte Soltani Signature." },
-    ],
+    meta: seoMeta({ title: "Connexion — Soltani Signature", description: "Connectez-vous à votre compte Soltani Signature.", path: "/login", noindex: true }),
+    links: [canonicalLink("/login")],
   }),
   component: LoginPage,
 });
