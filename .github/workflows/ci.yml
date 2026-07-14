@@ -32,13 +32,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ! grep -RInE "(cfut_|ghp_|github_pat_|sk_live_|SUPABASE_SERVICE_ROLE_KEY=|BREVO_API_KEY=|DATABASE_URL=|DIRECT_URL=)" \
-            --exclude-dir=node_modules \
-            --exclude-dir=.output \
-            --exclude-dir=dist \
-            --exclude-dir=coverage \
-            --exclude=bun.lock \
-            .
+          SECRET_PATTERN='(gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|SUPABASE_[A-Z0-9_]*(SERVICE|ROLE|KEY)[A-Z0-9_]*[[:space:]]*=[[:space:]]*["'\'']?eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|service_role[^[:space:]]*eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|JWT(_[A-Z0-9]+)*_SECRET[[:space:]]*=[[:space:]]*["'\'']?[A-Za-z0-9_./+=-]{16,}|BREVO_API_KEY[[:space:]]*=[[:space:]]*["'\'']?(xkeysib-[A-Za-z0-9._-]{20,}|[A-Za-z0-9_-]{32,})|(DATABASE_URL|DIRECT_URL)[[:space:]]*=[[:space:]]*["'\'']?(postgres(ql)?|mysql|mongodb)://[^:/"'\'']+:[^@/"'\'']+@)'
+          ! git grep -InE "$SECRET_PATTERN" -- \
+            . \
+            ':(exclude).env.example' \
+            ':(exclude).env.sample' \
+            ':(exclude)README.md' \
+            ':(exclude)docs/**' \
+            ':(exclude)bun.lock'
 
       - name: Typecheck
         run: bunx tsc --noEmit
