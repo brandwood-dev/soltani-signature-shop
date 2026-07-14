@@ -1,11 +1,11 @@
-﻿import { Bell, Search } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAdminNotifications } from "@/components/admin/AdminNotificationsProvider";
 import { markAdminRouteVisible } from "@/lib/admin-performance";
 
 type Props = {
@@ -15,8 +15,19 @@ type Props = {
 };
 
 export function AdminHeader({ title, subtitle, actions }: Props) {
-  const { unread } = useAdminNotifications();
   const navigate = useNavigate();
+  const notificationsSummary = useQuery({
+    queryKey: ["admin-notifications-summary"],
+    queryFn: async () => {
+      const { getAdminNotificationsSummary } = await import("@/lib/admin-notifications-api");
+      return getAdminNotificationsSummary();
+    },
+    staleTime: 60_000,
+    refetchInterval: typeof document !== "undefined" && document.visibilityState === "visible" ? 300_000 : false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const unread = notificationsSummary.data?.unread ?? 0;
 
   useEffect(() => {
     markAdminRouteVisible(title);

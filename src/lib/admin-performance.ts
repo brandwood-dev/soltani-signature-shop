@@ -30,11 +30,9 @@ export function markAdminRouteVisible(routeName: string) {
       end: performance.now(),
     });
 
-    console.info("[admin-perf]", {
-      route: routeName,
-      target: start.to,
-      clickToVisibleMs: duration,
-    });
+    console.info(
+      `[admin-perf] route="${routeName}" target="${start.to ?? ""}" clickToVisibleMs=${duration}`,
+    );
   } catch {
     // Instrumentation must stay silent if Performance API is unavailable.
   }

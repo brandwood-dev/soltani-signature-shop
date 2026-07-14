@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Bell, CheckCheck, Trash2, MailOpen, Mail } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { DataPagination } from "@/components/admin/DataPagination";
-import { useAdminNotifications } from "@/components/admin/AdminNotificationsProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -31,7 +31,8 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function AdminNotificationsPage() {
-  const { refresh: refreshBadge } = useAdminNotifications();
+  const queryClient = useQueryClient();
+  const refreshBadge = () => queryClient.invalidateQueries({ queryKey: ["admin-notifications-summary"] });
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
