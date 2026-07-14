@@ -144,6 +144,8 @@ type CachedApiValue = {
 
 const responseCache = new Map<string, CachedApiValue>();
 const inflightRequests = new Map<string, Promise<unknown>>();
+let accessTokenCache: { token: string | null; expiresAt: number } | null = null;
+let accessTokenPromise: Promise<string | null> | null = null;
 
 const ADMIN_CACHE_RULES: Array<{ prefix: string; ttlMs: number }> = [
   { prefix: "/catalog/products", ttlMs: 30_000 },
@@ -179,7 +181,7 @@ const ADMIN_INVALIDATION_PREFIXES = [
 ];
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}) {
-  const accessToken = typeof window === "undefined" ? null : await getAccessToken();
+  const accessToken = typeof window === "undefined" ? null : await getCachedAccessToken();
 
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
@@ -209,7 +211,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
   }
 
   const response = await measureApiFetch(path, method, () =>
-    fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
+    fetchWithRetry(buildApiUrl(path), {
       cache: "no-store",
       ...init,
       headers,
@@ -254,7 +256,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
 }
 
 export async function apiDownload(path: string, init: RequestInit = {}) {
-  const accessToken = typeof window === "undefined" ? null : await getAccessToken();
+  const accessToken = typeof window === "undefined" ? null : await getCachedAccessToken();
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/pdf");
 
@@ -264,7 +266,7 @@ export async function apiDownload(path: string, init: RequestInit = {}) {
 
   const method = (init.method ?? "GET").toUpperCase();
   const response = await measureApiFetch(path, method, () =>
-    fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
+    fetchWithRetry(buildApiUrl(path), {
       cache: "no-store",
       ...init,
       headers,
@@ -299,6 +301,42 @@ export function downloadBlob(blob: Blob, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+async function getCachedAccessToken() {
+  if (accessTokenCache && accessTokenCache.expiresAt > Date.now()) {
+    return accessTokenCache.token;
+  }
+
+  if (accessTokenPromise) {
+    return accessTokenPromise;
+  }
+
+  accessTokenPromise = getAccessToken()
+    .then((token) => {
+      accessTokenCache = {
+        token,
+        expiresAt: Date.now() + 30_000,
+      };
+      return token;
+    })
+    .finally(() => {
+      accessTokenPromise = null;
+    });
+
+  return accessTokenPromise;
+}
+
+function buildApiUrl(path: string) {
+  if (typeof window !== "undefined" && isProductionStorefrontHost(window.location.hostname)) {
+    return `/api/v1${path}`;
+  }
+
+  return `${publicEnv.apiUrl}${path}`;
+}
+
+function isProductionStorefrontHost(hostname: string) {
+  return hostname === "soltanisignature.com" || hostname === "www.soltanisignature.com";
 }
 
 async function fetchWithRetry(url: string, init: RequestInit, options: { path: string; method: string }) {
@@ -395,6 +433,13 @@ function invalidateAdminCache(path: string) {
       responseCache.delete(key);
     }
   }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("auth:change", () => {
+    accessTokenCache = null;
+    accessTokenPromise = null;
+  });
 }
 
 export async function getCurrentAdmin() {

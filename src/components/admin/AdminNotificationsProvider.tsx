@@ -16,7 +16,7 @@ type AdminNotificationsContextValue = {
 const AdminNotificationsContext = createContext<AdminNotificationsContextValue | null>(null);
 
 const NOTIFICATIONS_QUERY_KEY = ["admin-notifications-summary"];
-const POLL_INTERVAL_MS = 240_000;
+const POLL_INTERVAL_MS = 300_000;
 
 export function AdminNotificationsProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -32,10 +32,10 @@ export function AdminNotificationsProvider({ children }: { children: React.React
     staleTime: 60_000,
     refetchInterval: isVisible ? POLL_INTERVAL_MS : false,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     await queryClient.fetchQuery({
       queryKey: NOTIFICATIONS_QUERY_KEY,
       queryFn: getAdminNotificationsSummary,
