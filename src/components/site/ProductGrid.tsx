@@ -2,7 +2,15 @@ import { Link } from "@tanstack/react-router";
 import { type Product } from "./ProductCard";
 import { ProductCarousel } from "./ProductCarousel";
 
-export function ProductGrid({ title, eyebrow, items, kicker }: { title: string; eyebrow: string; items: Product[]; kicker?: string }) {
+type ProductGridProps = {
+  title: string;
+  eyebrow: string;
+  items: Product[];
+  kicker?: string;
+  viewAllTo?: "/meilleures-ventes" | "/nouvelles-arrivees";
+};
+
+export function ProductGrid({ title, eyebrow, items, kicker, viewAllTo }: ProductGridProps) {
   return (
     <section className="py-12 md:py-16 bg-background">
       <div className="container-luxe">
@@ -15,9 +23,22 @@ export function ProductGrid({ title, eyebrow, items, kicker }: { title: string; 
             <h2 className="font-display text-4xl md:text-5xl font-medium text-foreground">{title}</h2>
             {kicker && <p className="text-muted-foreground mt-3 max-w-md">{kicker}</p>}
           </div>
-          <Link to="/category/$slug" params={{ slug: "montres" }} className="text-[11px] uppercase tracking-[0.3em] text-gold hover:text-cream transition underline-offset-4 hover:underline">
-            Voir tout →
-          </Link>
+          {viewAllTo ? (
+            <Link
+              to={viewAllTo}
+              className="text-[11px] uppercase tracking-[0.3em] text-gold hover:text-cream transition underline-offset-4 hover:underline"
+            >
+              Voir tout →
+            </Link>
+          ) : (
+            <Link
+              to="/category/$slug"
+              params={{ slug: "montres" }}
+              className="text-[11px] uppercase tracking-[0.3em] text-gold hover:text-cream transition underline-offset-4 hover:underline"
+            >
+              Voir tout →
+            </Link>
+          )}
         </div>
         {items.length === 0 ? (
           <div className="rounded-sm border border-dashed border-border bg-card/40 px-6 py-12 text-center text-sm text-muted-foreground">

@@ -13,8 +13,7 @@ const PAGE_SIZE = 24;
 export const Route = createFileRoute("/nouvelles-arrivees")({
   loader: async (): Promise<{ products: Product[]; brands: string[] }> => {
     const [products, brands] = await Promise.all([
-      getCatalogProducts({ section: "new-arrivals" })
-        .catch(() => getCatalogProducts().catch((): Product[] => [])),
+      getCatalogProducts({ featured: true, summary: true }).catch((): Product[] => []),
       getActiveFeaturedBrands().catch(() => []),
     ]);
     return { products, brands: brands.map((brand) => brand.name) };
@@ -45,12 +44,7 @@ function NewArrivalsPage() {
     brands: string[];
   };
 
-  const baseList = useMemo(() => {
-    const marked = products.filter(
-      (p) => p.section === "new-arrivals" || p.badge === "Nouveau",
-    );
-    return marked.length > 0 ? marked : products;
-  }, [products]);
+  const baseList = useMemo(() => products.filter((p) => p.isFeatured), [products]);
 
   const brands = useMemo(
     () => activeBrands.filter((b) => baseList.some((p) => p.brand === b)).sort(),

@@ -13,8 +13,7 @@ const PAGE_SIZE = 24;
 export const Route = createFileRoute("/meilleures-ventes")({
   loader: async (): Promise<{ products: Product[]; brands: string[] }> => {
     const [products, brands] = await Promise.all([
-      getCatalogProducts({ section: "best-sellers" })
-        .catch(() => getCatalogProducts().catch((): Product[] => [])),
+      getCatalogProducts({ bestSeller: true, summary: true }).catch((): Product[] => []),
       getActiveFeaturedBrands().catch(() => []),
     ]);
     return { products, brands: brands.map((brand) => brand.name) };
@@ -45,10 +44,7 @@ function BestSellersPage() {
     brands: string[];
   };
 
-  const baseList = useMemo(() => {
-    const bs = products.filter((p) => p.isBestSeller);
-    return bs.length > 0 ? bs : products;
-  }, [products]);
+  const baseList = useMemo(() => products.filter((p) => p.isBestSeller), [products]);
 
   const brands = useMemo(
     () => activeBrands.filter((b) => baseList.some((p) => p.brand === b)).sort(),

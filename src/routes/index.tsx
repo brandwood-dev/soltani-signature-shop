@@ -14,7 +14,6 @@ import { getActivePromoBanners, type PromoBanner as PromoBannerItem } from "@/li
 import type { Product } from "@/components/site/ProductCard";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 
-// Below-the-fold: split into separate chunks and mount on scroll.
 const CollectionBanners = lazy(() =>
   import("@/components/site/CollectionBanners").then((m) => ({ default: m.CollectionBanners })),
 );
@@ -45,17 +44,18 @@ export const Route = createFileRoute("/")({
     promoBanners: PromoBannerItem[];
     limitedOffer: PromoBannerItem | null;
   }> => {
-    const [heroSlides, products, packs, promoBanners, limitedOffers] = await Promise.all([
+    const [heroSlides, bestsellers, newArrivals, packs, promoBanners, limitedOffers] = await Promise.all([
       getActiveHeroSlides().catch(() => []),
-      getCatalogProducts().catch(() => []),
+      getCatalogProducts({ bestSeller: true, limit: 8, summary: true }).catch(() => []),
+      getCatalogProducts({ featured: true, limit: 8, summary: true }).catch(() => []),
       getCatalogProducts({ category: "coffrets-parfum" }).catch(() => []),
       getActivePromoBanners("home", "promotion").catch(() => []),
       getActivePromoBanners("home", "limited_offer").catch(() => []),
     ]);
     return {
       heroSlides,
-      bestsellers: products.filter((product) => product.isBestSeller).slice(0, 8),
-      newArrivals: products.filter((product) => product.isFeatured).slice(0, 8),
+      bestsellers,
+      newArrivals,
       packs,
       promoBanners,
       limitedOffer: limitedOffers[0] ?? null,
@@ -90,6 +90,7 @@ function Home() {
           title="Meilleures Ventes"
           items={bestsellers}
           kicker="Les pièces les plus convoitées par notre clientèle."
+          viewAllTo="/meilleures-ventes"
         />
         <LazySection minHeight={520}>
           <CollectionBanners />
@@ -103,6 +104,7 @@ function Home() {
             title="Nouvelles Arrivées"
             items={newArrivals}
             kicker="Les dernières créations des maisons que nous distribuons."
+            viewAllTo="/nouvelles-arrivees"
           />
         </LazySection>
         <LazySection minHeight={520}>
