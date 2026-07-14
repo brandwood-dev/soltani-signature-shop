@@ -45,7 +45,7 @@ export function initMetaPixel() {
       } else {
         fbq.queue?.push(args);
       }
-    } as Window["fbq"];
+    } as NonNullable<Window["fbq"]>;
 
     fbq.push = fbq;
     fbq.loaded = true;
