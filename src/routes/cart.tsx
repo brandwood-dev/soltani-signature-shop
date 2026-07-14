@@ -88,7 +88,7 @@ function CartPage() {
           <div className="p-3 bg-background border border-gold/30 rounded-sm mb-4">
             <p className="text-xs text-foreground/80">{paymentMessage}</p>
           </div>
-          <Link to="/checkout" className="block w-full text-center h-12 leading-[3rem] bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
+          <Link to="/checkout" search={{ quick: undefined }} className="block w-full text-center h-12 leading-[3rem] bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
             Passer commande
           </Link>
           <p className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">

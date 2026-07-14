@@ -196,7 +196,7 @@ export function ProductReviewsPanel({ slug, onSummaryChange }: Props) {
           <p className="mb-3">Connectez-vous ou créez un compte pour laisser votre avis.</p>
           <div className="flex flex-wrap gap-2">
             <Link to="/login" className="inline-flex h-10 items-center rounded-sm bg-gold px-4 text-xs font-bold uppercase tracking-widest text-ink">Se connecter</Link>
-            <Link to="/register" className="inline-flex h-10 items-center rounded-sm border border-border px-4 text-xs font-bold uppercase tracking-widest text-foreground">S'inscrire</Link>
+            <Link to="/register" search={{ reason: undefined }} className="inline-flex h-10 items-center rounded-sm border border-border px-4 text-xs font-bold uppercase tracking-widest text-foreground">S'inscrire</Link>
           </div>
         </div>
       )}

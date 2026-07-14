@@ -1,0 +1,49 @@
+name: Critical Frontend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-critical:
+    name: Frontend critical checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      - name: Build frontend
+        run: bun run build
+
+      - name: Production smoke tests
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          home_status="$(curl -sS -o /tmp/home.html -w "%{http_code}" "https://www.soltanisignature.com/")"
+          test "$home_status" = "200"
+          grep -qi "Soltani" /tmp/home.html
+
+          promotions_status="$(curl -sS -o /tmp/promotions.html -w "%{http_code}" "https://www.soltanisignature.com/promotions")"
+          test "$promotions_status" = "200"
+          ! grep -q "selectedPriceRange is not defined" /tmp/promotions.html
+          ! grep -q "Something went wrong on our end" /tmp/promotions.html

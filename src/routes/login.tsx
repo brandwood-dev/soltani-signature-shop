@@ -43,7 +43,7 @@ function LoginPage() {
       setSuccess("");
       await signInWithPassword(email, password);
       await getCurrentUser();
-      await navigate({ to: "/profile" });
+      await navigate({ to: "/profile", search: { tab: undefined } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connexion impossible.");
     } finally {
@@ -257,7 +257,7 @@ function LoginPage() {
 
           <p className="text-center text-sm text-muted-foreground mt-8">
             Vous n'avez pas de compte ?{" "}
-            <Link to="/register" className="text-gold font-medium hover:underline">
+            <Link to="/register" search={{ reason: undefined }} className="text-gold font-medium hover:underline">
               S'inscrire
             </Link>
           </p>

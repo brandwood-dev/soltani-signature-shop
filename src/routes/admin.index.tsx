@@ -353,6 +353,7 @@ function AdminDashboard() {
             <CardTitle className="text-base">Commandes recentes</CardTitle>
             <Link
               to="/admin/orders"
+              search={{ query: "" }}
               className="text-xs font-medium text-primary hover:underline"
             >
               Tout voir

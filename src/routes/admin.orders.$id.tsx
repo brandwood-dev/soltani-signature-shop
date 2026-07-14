@@ -100,7 +100,7 @@ function OrderDetails() {
         <AdminHeader title="Commande introuvable" subtitle="Impossible de charger cette commande" />
         <div className="p-8 text-center text-sm text-muted-foreground">
           {error || "Commande introuvable."}{" "}
-          <Link to="/admin/orders" className="text-primary underline">
+          <Link to="/admin/orders" search={{ query: "" }} className="text-primary underline">
             Retour à la liste
           </Link>
         </div>
@@ -152,7 +152,7 @@ function OrderDetails() {
         actions={
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm" className="h-9">
-              <Link to="/admin/orders">
+              <Link to="/admin/orders" search={{ query: "" }}>
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">Retour</span>
               </Link>

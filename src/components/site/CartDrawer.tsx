@@ -101,6 +101,7 @@ export function CartDrawer() {
             </div>
             <Link
               to="/checkout"
+              search={{ quick: undefined }}
               onClick={close}
               className="block w-full text-center h-12 leading-[3rem] bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm"
             >

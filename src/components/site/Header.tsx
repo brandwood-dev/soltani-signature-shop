@@ -156,7 +156,7 @@ export function Header() {
         </div>
 
         <div className="ml-auto flex items-center gap-0.5 md:gap-1 text-foreground shrink-0">
-          <Link to="/profile" className="hidden lg:inline-flex p-2 md:p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
+          <Link to="/profile" search={{ tab: undefined }} className="hidden lg:inline-flex p-2 md:p-2.5 hover:text-gold transition" aria-label="Compte"><User className="h-5 w-5" /></Link>
           <Link to="/wishlist" className="relative p-2 md:p-2.5 hover:text-gold transition" aria-label="Wishlist">
             <Heart className="h-5 w-5" />
             <CountBadge count={wishlistCount} tone="destructive" />
@@ -226,6 +226,7 @@ export function Header() {
               </Link>
               <Link
                 to="/register"
+                search={{ reason: undefined }}
                 onClick={() => setOpen(false)}
                 className="inline-flex items-center justify-center h-11 px-4 bg-gold text-ink text-[11px] uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-ink hover:text-gold transition"
               >
