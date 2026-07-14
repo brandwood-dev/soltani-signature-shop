@@ -79,6 +79,7 @@ function PromotionsPage() {
       ];
     });
   }, [priceBounds.min, priceBounds.max]);
+  const selectedPriceRange: [number, number] = priceRange[1] === 0 && priceBounds.max > 0 ? [priceBounds.min, priceBounds.max] : priceRange;
   const [openFilters, setOpenFilters] = useState(false);
 
   const items = useMemo(() => {

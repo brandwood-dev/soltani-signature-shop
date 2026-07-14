@@ -4,7 +4,10 @@ const KEY = "soltani-quick-checkout";
 
 export function saveQuickCheckoutLine(line: CartLine) {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(KEY, JSON.stringify([line]));
+  try {
+    sessionStorage.setItem(KEY, JSON.stringify([line]));
+  } catch {
+  }
 }
 
 export function readQuickCheckoutLines(): CartLine[] {

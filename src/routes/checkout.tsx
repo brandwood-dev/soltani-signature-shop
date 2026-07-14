@@ -114,6 +114,11 @@ function CheckoutPage() {
       : "Aucun moyen de paiement disponible pour le moment.";
 
   useEffect(() => {
+    if (!isQuickCheckout) return;
+    setQuickLines(readQuickCheckoutLines());
+  }, [isQuickCheckout]);
+
+  useEffect(() => {
     if (initiatedCheckoutRef.current || !lines.length) return;
     initiatedCheckoutRef.current = true;
     trackMetaPixelEvent("InitiateCheckout", {
