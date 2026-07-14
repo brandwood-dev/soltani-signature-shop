@@ -16,6 +16,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrderConfirmationRouteImport } from './routes/order-confirmation'
+import { Route as NouvellesArriveesRouteImport } from './routes/nouvelles-arrivees'
 import { Route as MeilleuresVentesRouteImport } from './routes/meilleures-ventes'
 import { Route as MaisonRouteImport } from './routes/maison'
 import { Route as LoginRouteImport } from './routes/login'
@@ -85,6 +86,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const OrderConfirmationRoute = OrderConfirmationRouteImport.update({
   id: '/order-confirmation',
   path: '/order-confirmation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NouvellesArriveesRoute = NouvellesArriveesRouteImport.update({
+  id: '/nouvelles-arrivees',
+  path: '/nouvelles-arrivees',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeilleuresVentesRoute = MeilleuresVentesRouteImport.update({
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/maison': typeof MaisonRoute
   '/meilleures-ventes': typeof MeilleuresVentesRoute
+  '/nouvelles-arrivees': typeof NouvellesArriveesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -320,6 +327,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/maison': typeof MaisonRoute
   '/meilleures-ventes': typeof MeilleuresVentesRoute
+  '/nouvelles-arrivees': typeof NouvellesArriveesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -363,6 +371,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/maison': typeof MaisonRoute
   '/meilleures-ventes': typeof MeilleuresVentesRoute
+  '/nouvelles-arrivees': typeof NouvellesArriveesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -409,6 +418,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/maison'
     | '/meilleures-ventes'
+    | '/nouvelles-arrivees'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -452,6 +462,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/maison'
     | '/meilleures-ventes'
+    | '/nouvelles-arrivees'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -494,6 +505,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/maison'
     | '/meilleures-ventes'
+    | '/nouvelles-arrivees'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -539,6 +551,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MaisonRoute: typeof MaisonRoute
   MeilleuresVentesRoute: typeof MeilleuresVentesRoute
+  NouvellesArriveesRoute: typeof NouvellesArriveesRoute
   OrderConfirmationRoute: typeof OrderConfirmationRoute
   ProfileRoute: typeof ProfileRoute
   PromotionsRoute: typeof PromotionsRoute
@@ -602,6 +615,13 @@ declare module '@tanstack/react-router' {
       path: '/order-confirmation'
       fullPath: '/order-confirmation'
       preLoaderRoute: typeof OrderConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nouvelles-arrivees': {
+      id: '/nouvelles-arrivees'
+      path: '/nouvelles-arrivees'
+      fullPath: '/nouvelles-arrivees'
+      preLoaderRoute: typeof NouvellesArriveesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meilleures-ventes': {
@@ -928,6 +948,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MaisonRoute: MaisonRoute,
   MeilleuresVentesRoute: MeilleuresVentesRoute,
+  NouvellesArriveesRoute: NouvellesArriveesRoute,
   OrderConfirmationRoute: OrderConfirmationRoute,
   ProfileRoute: ProfileRoute,
   PromotionsRoute: PromotionsRoute,
