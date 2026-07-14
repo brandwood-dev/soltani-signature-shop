@@ -3,7 +3,7 @@ import { CategoryNav } from "@/components/site/CategoryNav";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Newsletter } from "@/components/site/Newsletter";
-import { LifestyleHero } from "@/components/site/LifestyleHero";
+import { PageHero } from "@/components/site/SiteLayout";
 import { TrustBar } from "@/components/site/TrustBar";
 import { LifestyleSection, DualBanner } from "@/components/site/LifestyleSection";
 import { PromoBanner } from "@/components/site/PromoBanner";
@@ -94,14 +94,10 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
       <CategoryNav />
       <Header />
       <main>
-        <LifestyleHero
+        <PageHero
           eyebrow={config.hero.eyebrow}
-          title={config.hero.title}
-          titleAccent={config.hero.titleAccent}
+          title={`${config.hero.title}${config.hero.titleAccent ? ` ${config.hero.titleAccent}` : ""}`.trim()}
           subtitle={config.hero.subtitle}
-          image={config.hero.image}
-          cta={config.hero.primaryCta}
-          secondaryCta={config.hero.secondaryCta}
         />
 
         <TrustBar />

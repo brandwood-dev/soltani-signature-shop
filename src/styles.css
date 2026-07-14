@@ -35,6 +35,14 @@
   --color-ink: var(--ink);
   --font-display: "Montserrat", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
+  --color-sidebar: var(--background);
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-sidebar-accent: var(--secondary);
+  --color-sidebar-accent-foreground: var(--secondary-foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
 }
 
 /* ============================================

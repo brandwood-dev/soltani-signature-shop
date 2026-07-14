@@ -103,7 +103,19 @@ export function Footer() {
         </div>
 
         <div className="py-8 border-t border-border grid md:grid-cols-2 gap-6 items-center">
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Soltani Signature. Tous droits réservés.</p>
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Soltani Signature. Tous droits réservés.
+            <br />
+            <span>Developed by </span>
+            <a
+              href="https://www.brandwoodandco.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-gold hover:underline"
+            >
+              Brandwood & Co
+            </a>
+          </p>
           <div className="flex md:justify-end gap-5 text-xs">
             {LEGAL.map((l) => (
               <FLink key={l.label} link={l} className="text-foreground/60 hover:text-gold transition" />

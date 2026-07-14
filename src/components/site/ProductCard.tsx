@@ -90,12 +90,12 @@ export function ProductCard({ p }: { p: Product }) {
             <Heart className={`h-4 w-4 ${fav ? "fill-destructive" : ""}`} />
           </button>
 
-          <div className="absolute inset-x-3 bottom-3 flex gap-2 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-500">
+          <div className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 sm:justify-start md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-500">
             <button
               type="button"
               aria-label="Ajouter au panier"
               onClick={handleAdd}
-              className="inline-flex h-10 w-10 items-center justify-center gap-2 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm sm:w-auto sm:flex-1"
+              className="inline-flex h-9 w-9 items-center justify-center gap-2 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm sm:h-10 sm:w-auto sm:flex-1"
             >
               <ShoppingBag className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Ajouter</span>
@@ -104,7 +104,7 @@ export function ProductCard({ p }: { p: Product }) {
               type="button"
               aria-label="Voir le produit"
               onClick={handleQuickView}
-              className="grid h-10 w-10 place-items-center bg-background/85 backdrop-blur text-foreground border border-gold/30 hover:text-gold rounded-sm"
+              className="grid h-9 w-9 place-items-center bg-background/85 backdrop-blur text-foreground border border-gold/30 hover:text-gold rounded-sm sm:h-10 sm:w-10"
             >
               <Eye className="h-4 w-4" />
             </button>
