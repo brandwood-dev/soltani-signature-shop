@@ -50,7 +50,27 @@ function AdminDashboard() {
   const series = dashboard?.series ?? [];
   const topProducts = dashboard?.topProducts ?? [];
   const recentOrders = dashboard?.recentOrders ?? [];
-  const max = Math.max(...series.map((d) => d.value), 1);
+  const hasRevenueSeries = series.some((point) => point.value > 0);
+  const chartWidth = Math.max(520, series.length * 56);
+  const chartHeight = 220;
+  const chartPadding = { top: 16, right: 18, bottom: 36, left: 58 };
+  const chartMax = Math.max(...series.map((point) => point.value), 1);
+  const chartBottom = chartHeight - chartPadding.bottom;
+  const chartPoints = series.map((point, index) => {
+    const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
+    const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
+    const x =
+      chartPadding.left +
+      (series.length <= 1 ? plotWidth / 2 : (index / (series.length - 1)) * plotWidth);
+    const y = chartPadding.top + (1 - point.value / chartMax) * plotHeight;
+    return { ...point, x, y };
+  });
+  const linePath = chartPoints
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+  const areaPath = chartPoints.length
+    ? `${linePath} L ${chartPoints[chartPoints.length - 1].x} ${chartBottom} L ${chartPoints[0].x} ${chartBottom} Z`
+    : "";
 
   useEffect(() => {
     let mounted = true;
@@ -172,33 +192,90 @@ function AdminDashboard() {
               <span className="text-xs text-muted-foreground">DT</span>
             </CardHeader>
             <CardContent>
-              <div className="flex h-48 items-end gap-1.5 overflow-x-auto sm:h-64 sm:gap-2">
-                {series.map((d, i) => (
-                  <div
-                    key={i}
-                    className="flex min-w-[28px] flex-1 flex-col items-center gap-2"
-                  >
-                    <div className="flex w-full flex-1 items-end">
-                      <div
-                        className="w-full rounded-t-md bg-gradient-to-t from-primary/30 to-primary transition-all hover:from-primary/40 hover:to-primary"
-                        style={{ height: `${(d.value / max) * 100}%` }}
-                        title={formatTND(d.value)}
-                      />
-                    </div>
-                    <span className="whitespace-nowrap text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:text-xs">
-                      {d.day}
-                    </span>
-                  </div>
-                ))}
-                {!loading && series.length === 0 && (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                    Aucune donnée de revenu sur cette période.
-                  </div>
-                )}
-                {loading && (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+              <div className="min-h-[220px] overflow-x-auto">
+                {loading ? (
+                  <div className="flex h-[220px] w-full items-center justify-center rounded-md bg-muted/30 text-sm text-muted-foreground">
                     Chargement du graphique…
                   </div>
+                ) : error ? (
+                  <div className="flex h-[220px] w-full items-center justify-center rounded-md border border-destructive/20 bg-destructive/5 px-4 text-center text-sm text-destructive">
+                    Impossible de charger les données du graphique.
+                  </div>
+                ) : !series.length || !hasRevenueSeries ? (
+                  <div className="flex h-[220px] w-full items-center justify-center rounded-md bg-muted/30 px-4 text-center text-sm text-muted-foreground">
+                    Aucune donnée de revenu sur cette période.
+                  </div>
+                ) : (
+                  <svg
+                    width={chartWidth}
+                    height={chartHeight}
+                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                    role="img"
+                    aria-label={`Chiffre d'affaires livré pour ${period.label}`}
+                    className="min-w-full"
+                  >
+                    <defs>
+                      <linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
+                      const y = chartPadding.top + tick * (chartBottom - chartPadding.top);
+                      const value = Math.round(chartMax * (1 - tick));
+                      return (
+                        <g key={tick}>
+                          <line
+                            x1={chartPadding.left}
+                            x2={chartWidth - chartPadding.right}
+                            y1={y}
+                            y2={y}
+                            stroke="hsl(var(--border))"
+                            strokeDasharray={tick === 1 ? "0" : "4 4"}
+                            strokeOpacity="0.7"
+                          />
+                          <text
+                            x={chartPadding.left - 10}
+                            y={y + 4}
+                            textAnchor="end"
+                            className="fill-muted-foreground text-[10px]"
+                          >
+                            {formatTND(value)}
+                          </text>
+                        </g>
+                      );
+                    })}
+                    <path d={areaPath} fill="url(#revenue-area)" />
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="3"
+                    />
+                    {chartPoints.map((point) => (
+                      <g key={point.date}>
+                        <circle
+                          cx={point.x}
+                          cy={point.y}
+                          r="4"
+                          className="fill-background stroke-primary"
+                          strokeWidth="2.5"
+                        >
+                          <title>{`${point.day} · ${formatTND(point.value)}`}</title>
+                        </circle>
+                        <text
+                          x={point.x}
+                          y={chartHeight - 10}
+                          textAnchor="middle"
+                          className="fill-muted-foreground text-[10px] font-medium"
+                        >
+                          {point.day}
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
                 )}
               </div>
             </CardContent>
@@ -348,3 +425,5 @@ function AdminDashboard() {
     </>
   );
 }
+
+

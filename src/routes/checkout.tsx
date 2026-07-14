@@ -31,6 +31,7 @@ const STEPS = [
 ];
 
 const SHIPPING_LABEL = "Livraison standard Tunisie";
+const EMPTY_CART_MESSAGE = "Votre panier est vide. Ajoutez au moins un produit avant de passer commande.";
 type CheckoutPaymentMethod = "CASH_ON_DELIVERY" | "CARD";
 
 function CheckoutPage() {
@@ -164,6 +165,10 @@ function CheckoutPage() {
 
   const nextStep = () => {
     setError(null);
+    if (!lines.length) {
+      setError(EMPTY_CART_MESSAGE);
+      return;
+    }
     if (step === 1 && (!form.email || !form.firstName || !form.lastName || !form.phone)) {
       setError("Merci de compléter vos coordonnées.");
       return;
@@ -177,7 +182,7 @@ function CheckoutPage() {
 
   const placeOrder = async () => {
     if (!lines.length) {
-      setError("Votre panier est vide.");
+      setError(EMPTY_CART_MESSAGE);
       return;
     }
     if (!settings.cashOnDeliveryEnabled && !settings.cardPaymentEnabled) {
@@ -354,7 +359,7 @@ function CheckoutPage() {
               {step < 3 ? (
                 <button onClick={nextStep} className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">Continuer →</button>
               ) : (
-                <button disabled={submitting || !lines.length} onClick={placeOrder} className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm inline-flex items-center gap-2 disabled:opacity-60"><Lock className="h-4 w-4" /> {submitting ? "Création..." : `Confirmer ${total} DT`}</button>
+                <button disabled={submitting || !lines.length} aria-disabled={submitting || !lines.length} onClick={placeOrder} className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm inline-flex items-center gap-2 disabled:opacity-60"><Lock className="h-4 w-4" /> {submitting ? "Création..." : `Confirmer ${total} DT`}</button>
               )}
             </div>
           </div>
@@ -363,7 +368,7 @@ function CheckoutPage() {
             <h3 className="font-display text-lg font-bold mb-5">Votre commande</h3>
             <div className="space-y-4 pb-4 border-b border-border">
               {lines.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Votre panier est vide.</p>
+                <p className="text-sm text-muted-foreground">{EMPTY_CART_MESSAGE}</p>
               ) : (
                 lines.map((line) => (
                   <div key={line.id} className="flex gap-3">

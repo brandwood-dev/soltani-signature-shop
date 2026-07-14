@@ -33,17 +33,19 @@ export function Brands() {
               <img
                 src={brand.logo}
                 alt={brand.name}
-                className="h-12 w-auto object-contain opacity-70 transition duration-300 hover:opacity-100 md:h-16"
+                className="max-h-12 max-w-[7rem] object-contain grayscale saturate-0 contrast-125 opacity-80 transition duration-300 hover:opacity-100 md:max-h-14 md:max-w-[9rem]"
                 loading="lazy"
               />
             );
+            const itemClass =
+              "flex h-16 w-32 shrink-0 items-center justify-center px-2 md:h-20 md:w-40";
 
             return brand.link ? (
-              <a key={`${brand.id}-${index}`} href={brand.link} aria-label={brand.name}>
+              <a key={`${brand.id}-${index}`} href={brand.link} aria-label={brand.name} className={itemClass}>
                 {logo}
               </a>
             ) : (
-              <div key={`${brand.id}-${index}`}>{logo}</div>
+              <div key={`${brand.id}-${index}`} className={itemClass}>{logo}</div>
             );
           })}
         </div>
