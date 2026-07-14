@@ -17,6 +17,7 @@ import {
 import { getSession } from "@/lib/supabase";
 import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
+import { saveQuickCheckoutLine } from "@/lib/quick-checkout";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
@@ -143,18 +144,7 @@ function ProductPage() {
 
   const handleBuyNow = async () => {
     if (!product.variantId) return;
-    add(
-      { id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty },
-      { openDrawer: false },
-    );
-    trackMetaPixelEvent("AddToCart", {
-      content_ids: [product.variantId],
-      content_name: product.name,
-      content_type: "product",
-      contents: [{ id: product.variantId, quantity: qty, item_price: product.price }],
-      value: product.price * qty,
-      currency: "TND",
-    });
+    saveQuickCheckoutLine({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
     trackMetaPixelEvent("InitiateCheckout", {
       content_ids: [product.variantId],
       content_name: product.name,
@@ -163,7 +153,7 @@ function ProductPage() {
       value: product.price * qty,
       currency: "TND",
     });
-    await navigate({ to: "/checkout" });
+    await navigate({ to: "/checkout", search: { quick: "1" } });
   };
   const handleShare = async () => {
     const url = window.location.href;

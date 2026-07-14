@@ -5,6 +5,7 @@ import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
 import { Flame, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
+import { PriceRangeSlider } from "@/components/site/PriceRangeSlider";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
 import { getActiveFeaturedBrands } from "@/lib/featured-brands-api";
 import { breadcrumbJsonLd, canonicalLink, jsonLdScript, seoMeta } from "@/lib/seo";
@@ -123,38 +124,12 @@ function PromotionsPage() {
       </Block>
 
       <Block title="Prix">
-        <div className="space-y-3">
-          <input
-            type="range"
-            min={priceBounds.min}
-            max={priceBounds.max}
-            step={10}
-            value={selectedPriceRange[0]}
-            disabled={priceBounds.max === 0}
-            onChange={(event) => {
-              const nextMin = Math.min(Number(event.target.value), selectedPriceRange[1]);
-              setPriceRange([nextMin, selectedPriceRange[1]]);
-            }}
-            className="w-full accent-gold"
-          />
-          <input
-            type="range"
-            min={priceBounds.min}
-            max={priceBounds.max}
-            step={10}
-            value={selectedPriceRange[1]}
-            disabled={priceBounds.max === 0}
-            onChange={(event) => {
-              const nextMax = Math.max(Number(event.target.value), selectedPriceRange[0]);
-              setPriceRange([selectedPriceRange[0], nextMax]);
-            }}
-            className="w-full accent-gold"
-          />
-        </div>
-        <div className="flex justify-between text-xs text-muted-foreground mt-2">
-          <span className="text-gold font-semibold">{selectedPriceRange[0]} DT</span>
-          <span className="text-gold font-semibold">{selectedPriceRange[1]} DT</span>
-        </div>
+        <PriceRangeSlider
+          min={priceBounds.min}
+          max={priceBounds.max}
+          value={selectedPriceRange}
+          onChange={setPriceRange}
+        />
       </Block>
     </div>
   );
@@ -184,16 +159,18 @@ function PromotionsPage() {
       </div>
 
       <div className="container-luxe pb-24 grid lg:grid-cols-[260px_1fr] gap-10">
-        <aside className="hidden lg:block">{Filters}</aside>
+        <aside className="hidden lg:block">{allPromos.length > 0 ? Filters : null}</aside>
 
         <div>
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border gap-3">
-            <button
-              onClick={() => setOpenFilters(true)}
-              className="lg:hidden inline-flex items-center gap-2 px-4 h-10 border border-border rounded-sm text-sm"
-            >
-              <SlidersHorizontal className="h-4 w-4" /> Filtres {activeCount > 0 && <span className="text-gold">({activeCount})</span>}
-            </button>
+            {allPromos.length > 0 && (
+              <button
+                onClick={() => setOpenFilters(true)}
+                className="lg:hidden inline-flex items-center gap-2 px-4 h-10 border border-border rounded-sm text-sm"
+              >
+                <SlidersHorizontal className="h-4 w-4" /> Filtres {activeCount > 0 && <span className="text-gold">({activeCount})</span>}
+              </button>
+            )}
             <p className="text-sm text-muted-foreground hidden lg:block">{items.length} offre{items.length > 1 ? "s" : ""}</p>
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-10 px-3 bg-secondary/60 border border-border text-sm rounded-sm">
               <option value="discount-desc">Meilleures réductions</option>
@@ -202,7 +179,14 @@ function PromotionsPage() {
             </select>
           </div>
 
-          {items.length === 0 ? (
+          {allPromos.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-muted-foreground mb-5">Aucune promotion en cours. Restez connecté pour profiter de nos prochaines offres.</p>
+              <Link to="/" className="inline-flex h-11 items-center justify-center rounded-sm bg-gold px-5 text-[12px] font-bold uppercase tracking-[0.2em] text-ink transition hover:bg-ink hover:text-gold">
+                Découvrir les produits
+              </Link>
+            </div>
+          ) : items.length === 0 ? (
             <p className="text-center py-20 text-muted-foreground">Aucune promotion ne correspond à vos filtres.</p>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
@@ -220,7 +204,7 @@ function PromotionsPage() {
               <h3 className="font-display text-xl font-bold">Filtres</h3>
               <button onClick={() => setOpenFilters(false)} aria-label="Fermer"><X className="h-5 w-5" /></button>
             </div>
-            {Filters}
+            {allPromos.length > 0 ? Filters : null}
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
+import { PriceRangeSlider } from "@/components/site/PriceRangeSlider";
 import {
   findCategory,
   findParent,
@@ -197,38 +198,12 @@ function CategoryPage() {
       )}
 
       <FilterBlock title="Prix">
-        <div className="space-y-3">
-          <input
-            type="range"
-            min={priceBounds.min}
-            max={priceBounds.max}
-            step={10}
-            value={selectedPriceRange[0]}
-            disabled={priceBounds.max === 0}
-            onChange={(event) => {
-              const nextMin = Math.min(Number(event.target.value), selectedPriceRange[1]);
-              setPriceRange([nextMin, selectedPriceRange[1]]);
-            }}
-            className="w-full accent-gold"
-          />
-          <input
-            type="range"
-            min={priceBounds.min}
-            max={priceBounds.max}
-            step={10}
-            value={selectedPriceRange[1]}
-            disabled={priceBounds.max === 0}
-            onChange={(event) => {
-              const nextMax = Math.max(Number(event.target.value), selectedPriceRange[0]);
-              setPriceRange([selectedPriceRange[0], nextMax]);
-            }}
-            className="w-full accent-gold"
-          />
-        </div>
-        <div className="flex justify-between text-xs text-muted-foreground mt-2">
-          <span className="text-gold font-semibold">{selectedPriceRange[0]} DT</span>
-          <span className="text-gold font-semibold">{selectedPriceRange[1]} DT</span>
-        </div>
+        <PriceRangeSlider
+          min={priceBounds.min}
+          max={priceBounds.max}
+          value={selectedPriceRange}
+          onChange={setPriceRange}
+        />
       </FilterBlock>
 
       <FilterBlock title="Marque">

@@ -6,6 +6,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { createCodOrder, createCustomerCodOrder, type CreateCodOrderInput } from "@/lib/catalog-api";
 import { getCustomerProfile, type CustomerProfile } from "@/lib/api";
 import { useCart } from "@/hooks/useCart";
+import { clearQuickCheckoutLines, readQuickCheckoutLines } from "@/lib/quick-checkout";
 import { TUNISIA_GOVERNORATES } from "@/lib/tunisia";
 import {
   DEFAULT_SHOP_SETTINGS,
@@ -17,6 +18,9 @@ import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/checkout")({
+  validateSearch: (search) => ({
+    quick: search.quick === "1" ? "1" : undefined,
+  }),
   head: () => ({
     meta: seoMeta({ title: "Commande — Soltani Signature", description: "Finalisez votre commande Soltani Signature.", path: "/checkout", noindex: true }),
     links: [canonicalLink("/checkout")],
@@ -36,7 +40,9 @@ type CheckoutPaymentMethod = "CASH_ON_DELIVERY" | "CARD";
 
 function CheckoutPage() {
   const navigate = useNavigate();
-  const { lines, subtotal, clear } = useCart();
+  const search = Route.useSearch();
+  const { lines: cartLines, subtotal: cartSubtotal, clear } = useCart();
+  const [quickLines, setQuickLines] = useState(() => (search.quick === "1" ? readQuickCheckoutLines() : []));
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +102,9 @@ function CheckoutPage() {
       .catch(() => undefined);
   }, []);
 
+  const isQuickCheckout = search.quick === "1";
+  const lines = isQuickCheckout ? quickLines : cartLines;
+  const subtotal = isQuickCheckout ? quickLines.reduce((sum, line) => sum + line.price * line.qty, 0) : cartSubtotal;
   const shipping = calculateShipping(subtotal, settings);
   const total = subtotal + shipping;
   const paymentIntro = settings.cashOnDeliveryEnabled
@@ -242,7 +251,12 @@ function CheckoutPage() {
           },
         }),
       );
-      clear();
+      if (isQuickCheckout) {
+        clearQuickCheckoutLines();
+        setQuickLines([]);
+      } else {
+        clear();
+      }
       navigate({ to: "/order-confirmation" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de créer la commande.");

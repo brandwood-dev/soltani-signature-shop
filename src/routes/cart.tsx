@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
-import { Minus, Plus, X, Tag, ShieldCheck } from "lucide-react";
+import { Minus, Plus, X, ShieldCheck } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 import {
@@ -21,7 +21,6 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { lines, update, remove, subtotal } = useCart();
-  const [code, setCode] = useState("");
   const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
 
   useEffect(() => {
@@ -78,14 +77,6 @@ function CartPage() {
 
         <aside className="bg-secondary/40 border border-border rounded-sm p-6 h-fit lg:sticky lg:top-28">
           <h3 className="font-display text-xl font-bold mb-5">Récapitulatif</h3>
-          <div className="flex gap-2 mb-5">
-            <div className="relative flex-1">
-              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code promo"
-                className="w-full h-10 pl-10 pr-3 bg-background border border-border text-sm rounded-sm" />
-            </div>
-            <button className="px-4 h-10 border border-gold text-gold text-xs uppercase tracking-widest hover:bg-gold hover:text-ink transition rounded-sm">Appliquer</button>
-          </div>
           <dl className="space-y-2 text-sm pb-4 border-b border-border">
             <div className="flex justify-between"><dt className="text-muted-foreground">Sous-total</dt><dd className="tabular-nums">{subtotal} DT</dd></div>
             <div className="flex justify-between"><dt className="text-muted-foreground">Livraison</dt><dd className="tabular-nums">{shipping === 0 ? "Offerte" : `${shipping} DT`}</dd></div>
