@@ -58,6 +58,7 @@ function PromotionsPage() {
   const [minDiscount, setMinDiscount] = useState(0);
   const [maxPrice, setMaxPrice] = useState(20000);
   const [sort, setSort] = useState("discount-desc");
+  const [openFilters, setOpenFilters] = useState(false);
 
   const items = useMemo(() => {
     let list = allPromos.filter((p) => p.discount >= minDiscount && p.price <= maxPrice);
@@ -70,6 +71,45 @@ function PromotionsPage() {
 
   const toggleBrand = (b: string) =>
     setBrand((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]));
+
+  const activeCount = brand.length + (minDiscount > 0 ? 1 : 0) + (maxPrice < 20000 ? 1 : 0);
+
+  const Filters = (
+    <div className="space-y-8">
+      <Block title="Marque">
+        <div className="space-y-2.5">
+          {brands.map((b) => (
+            <label key={b} className="flex items-center gap-3 cursor-pointer group">
+              <input type="checkbox" checked={brand.includes(b)} onChange={() => toggleBrand(b)} className="h-4 w-4 accent-gold" />
+              <span className="text-sm text-foreground/80 group-hover:text-gold transition">{b}</span>
+            </label>
+          ))}
+        </div>
+      </Block>
+
+      <Block title="Réduction">
+        <div className="space-y-2.5">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="disc" checked={minDiscount === 0} onChange={() => setMinDiscount(0)} className="accent-gold" />
+            <span className="text-sm text-foreground/80">Toutes</span>
+          </label>
+          {DISCOUNT_TIERS.map((d) => (
+            <label key={d.min} className="flex items-center gap-3 cursor-pointer">
+              <input type="radio" name="disc" checked={minDiscount === d.min} onChange={() => setMinDiscount(d.min)} className="accent-gold" />
+              <span className="text-sm text-foreground/80">−{d.label}</span>
+            </label>
+          ))}
+        </div>
+      </Block>
+
+      <Block title="Prix (max)">
+        <input type="range" min={100} max={20000} step={100} value={maxPrice} onChange={(e) => setMaxPrice(+e.target.value)} className="w-full accent-gold" />
+        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+          <span>100 DT</span><span className="text-gold font-semibold">{maxPrice} DT</span>
+        </div>
+      </Block>
+    </div>
+  );
 
   return (
     <SiteLayout>
