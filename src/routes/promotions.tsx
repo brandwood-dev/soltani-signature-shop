@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
-import { Flame, ChevronRight } from "lucide-react";
+import { Flame, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
