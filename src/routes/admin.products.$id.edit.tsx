@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,6 +83,7 @@ function AdminEditProduct() {
   const [section, setSection] = useState<(typeof SECTIONS)[number]["value"]>("femme");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
+  const [attributes, setAttributes] = useState<Record<string, string[]>>({});
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -118,6 +121,16 @@ function AdminEditProduct() {
         setSection(loaded.section ?? "femme");
         setCategory(loaded.category);
         setSubcategory(loaded.subcategory ?? "");
+        setAttributes(
+          loaded.attributes.reduce<Record<string, string[]>>((acc, attribute) => {
+            const key = attribute.key.trim();
+            const value = attribute.value.trim();
+            if (!key || !value) return acc;
+            acc[key] = acc[key] ?? [];
+            if (!acc[key].includes(value)) acc[key].push(value);
+            return acc;
+          }, {}),
+        );
         setDescription(loaded.description ?? "");
         setShortDescription(loaded.shortDescription ?? "");
         setPrice(String(loaded.price));
@@ -210,6 +223,9 @@ function AdminEditProduct() {
         brand,
         tags,
         images: images.map((url) => ({ url, alt: name })),
+        attributes: Object.entries(attributes).flatMap(([key, values]) =>
+          values.map((value) => ({ key, value })),
+        ),
         seoTitle: seoTitle || name,
         seoDescription,
         status: status as "draft" | "active" | "archived",
@@ -518,6 +534,79 @@ function AdminEditProduct() {
                 </div>
               </CardContent>
             </Card>
+
+            {(() => {
+              const facets = subcategory
+                ? FILTERS_BY_SUB[subcategory] ?? []
+                : category
+                ? getFacetsForCategory(
+                    category,
+                    (categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => s.slug),
+                  )
+                : [];
+              if (!facets.length) return null;
+              const toggle = (key: string, opt: string) => {
+                setAttributes((prev) => {
+                  const cur = prev[key] ?? [];
+                  const next = cur.includes(opt) ? cur.filter((value) => value !== opt) : [...cur, opt];
+                  return { ...prev, [key]: next };
+                });
+              };
+              return (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Attributs & filtres</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Ces attributs alimentent les filtres affichés aux clients sur la page{" "}
+                      {subcategory ? "de la sous-catégorie" : "de la catégorie"} sélectionnée.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {facets.map((f) => (
+                      <div key={f.key} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm">{f.label}</Label>
+                          {(attributes[f.key]?.length ?? 0) > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAttributes((prev) => ({ ...prev, [f.key]: [] }))}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              Effacer
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {f.options.map((opt) => {
+                            const checkboxId = `${f.key}-${opt}`;
+                            const checked = attributes[f.key]?.includes(opt) ?? false;
+                            return (
+                              <label
+                                key={checkboxId}
+                                htmlFor={checkboxId}
+                                className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
+                                  checked
+                                    ? "border-foreground bg-foreground text-background"
+                                    : "border-border hover:border-foreground/40"
+                                }`}
+                              >
+                                <Checkbox
+                                  id={checkboxId}
+                                  checked={checked}
+                                  onCheckedChange={() => toggle(f.key, opt)}
+                                  className="sr-only"
+                                />
+                                {opt}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
 
           {/* Side */}
@@ -602,6 +691,7 @@ function AdminEditProduct() {
                     onValueChange={(value) => {
                       setCategory(value);
                       setSubcategory("");
+                      setAttributes({});
                     }}
                   >
                     <SelectTrigger>
@@ -620,7 +710,10 @@ function AdminEditProduct() {
                   <Label>Sous-catégorie</Label>
                   <Select
                     value={subcategory}
-                    onValueChange={setSubcategory}
+                    onValueChange={(value) => {
+                      setSubcategory(value);
+                      setAttributes({});
+                    }}
                     disabled={!category}
                   >
                     <SelectTrigger>
