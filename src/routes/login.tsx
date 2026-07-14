@@ -169,16 +169,16 @@ function LoginPage() {
             <div>
               <label className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Email</label>
               <div className="relative mt-2">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
-                <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="vous@exemple.com" className="input-luxe pl-10" />
+                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
+                <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="vous@exemple.com" className="input-luxe input-luxe-icon-left" />
               </div>
             </div>
 
             <div>
               <label className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Mot de passe</label>
               <div className="relative mt-2">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
-                <input required type={showPwd ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" className="input-luxe pl-10 pr-10" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
+                <input required type={showPwd ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" className="input-luxe input-luxe-icon-both" />
                 <button type="button" onClick={() => setShowPwd((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gold" aria-label="Afficher le mot de passe">
                   {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -238,7 +238,7 @@ function LoginPage() {
               {resetStep === "password" && (
                 <form onSubmit={onConfirmReset} className="space-y-3">
                   <div className="relative">
-                    <input required type={showResetPwd ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Nouveau mot de passe" className="input-luxe pr-10" />
+                    <input required type={showResetPwd ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Nouveau mot de passe" className="input-luxe input-luxe-icon-right" />
                     <button type="button" onClick={() => setShowResetPwd((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gold" aria-label="Afficher le nouveau mot de passe">
                       {showResetPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>

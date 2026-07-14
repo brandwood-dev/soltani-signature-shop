@@ -39,6 +39,9 @@ const emptyAddress: AddressFormState = {
 };
 
 export const Route = createFileRoute("/profile")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: isProfileTab(search.tab) ? search.tab : undefined,
+  }),
   head: () => ({
     meta: seoMeta({ title: "Mon compte — Soltani Signature", description: "Gérez votre compte client Soltani Signature.", path: "/profile", noindex: true }),
     links: [canonicalLink("/profile")],
@@ -48,10 +51,11 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const wishlist = useWishlist();
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
-  const [tab, setTab] = useState<Tab>("info");
+  const [tab, setTab] = useState<Tab>(search.tab ?? "info");
 
   const loadProfile = async (showCached: boolean) => {
     if (showCached) {
@@ -94,6 +98,10 @@ function ProfilePage() {
       active = false;
     };
   }, [navigate]);
+
+  useEffect(() => {
+    if (search.tab) setTab(search.tab);
+  }, [search.tab]);
 
   const identity = useMemo(() => {
     if (!profile?.user) return { fullName: "", initials: "" };
@@ -210,6 +218,10 @@ function ProfilePage() {
       </section>
     </SiteLayout>
   );
+}
+
+function isProfileTab(value: unknown): value is Tab {
+  return value === "dashboard" || value === "orders" || value === "wishlist" || value === "info" || value === "addresses";
 }
 
 function readCachedProfile() {

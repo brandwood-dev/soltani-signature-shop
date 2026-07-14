@@ -8,7 +8,7 @@ import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 export const Route = createFileRoute("/admin_/login")({
   head: () => ({
     meta: [
-      { title: "Connexion Admin â€” Soltani Signature" },
+      { title: "Connexion Admin — Soltani Signature" },
       { name: "robots", content: "noindex,nofollow" },
       { name: "description", content: "Accès réservé à l'administration Soltani Signature." },
     ],
@@ -24,8 +24,8 @@ function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
     setLoading(true);
     try {
@@ -50,10 +50,7 @@ function AdminLoginPage() {
       />
 
       <div className="relative w-full max-w-md">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-muted-foreground hover:text-foreground mb-6"
-        >
+        <Link to="/" className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="h-3.5 w-3.5" /> Retour au site
         </Link>
 
@@ -67,33 +64,23 @@ function AdminLoginPage() {
               </span>
               <span className="h-px w-8 bg-gold" />
             </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-              Connexion au Backoffice
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Accès strictement réservé au personnel autorisé.
-            </p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Connexion au Backoffice</h1>
+            <p className="text-sm text-muted-foreground mt-2">Accès strictement réservé au personnel autorisé.</p>
           </div>
 
           {error && (
-            <div
-              role="alert"
-              className="mb-4 rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
+            <div role="alert" className="mb-4 rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
             </div>
           )}
 
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
             <div>
-              <label
-                htmlFor="admin-email"
-                className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground"
-              >
+              <label htmlFor="admin-email" className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                 Email administrateur
               </label>
               <div className="relative mt-2">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
+                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
                 <input
                   id="admin-email"
                   required
@@ -102,33 +89,22 @@ function AdminLoginPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="contact@soltanisignature.com"
-                  className="input-luxe pl-10"
+                  className="input-luxe input-luxe-icon-left"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between">
-                <label
-                  htmlFor="admin-pwd"
-                  className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground"
-                >
+                <label htmlFor="admin-pwd" className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                   Mot de passe
                 </label>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setError(
-                      "Contactez le super-administrateur pour réinitialiser votre mot de passe.",
-                    )
-                  }
-                  className="text-[11px] text-gold hover:underline"
-                >
+                <button type="button" onClick={() => setError("Contactez le super-administrateur pour réinitialiser votre mot de passe.")} className="text-[11px] text-gold hover:underline">
                   Oublié ?
                 </button>
               </div>
               <div className="relative mt-2">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
                 <input
                   id="admin-pwd"
                   required
@@ -136,12 +112,12 @@ function AdminLoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  className="input-luxe pl-10 pr-10"
+                  placeholder="••••••••"
+                  className="input-luxe input-luxe-icon-both"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPwd((v) => !v)}
+                  onClick={() => setShowPwd((value) => !value)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gold"
                   aria-label={showPwd ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                 >
@@ -150,31 +126,20 @@ function AdminLoginPage() {
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Session sécurisée. Ne partagez jamais vos identifiants.
-            </p>
+            <p className="text-xs text-muted-foreground">Session sécurisée. Ne partagez jamais vos identifiants.</p>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 mt-2 bg-gradient-gold text-ink font-semibold text-sm uppercase tracking-[0.2em] rounded-sm shadow-gold hover:opacity-95 transition disabled:opacity-60"
-            >
+            <button type="submit" disabled={loading} className="w-full h-11 mt-2 bg-gradient-gold text-ink font-semibold text-sm uppercase tracking-[0.2em] rounded-sm shadow-gold hover:opacity-95 transition disabled:opacity-60">
               {loading ? "Vérification…" : "Accéder au Backoffice"}
             </button>
           </form>
 
           <div className="mt-6 flex items-start gap-2 rounded-sm bg-secondary/40 border border-border p-3 text-[11px] leading-relaxed text-muted-foreground">
             <ShieldCheck className="h-4 w-4 text-gold mt-0.5 shrink-0" />
-            <p>
-              Toutes les tentatives de connexion sont journalisées. Les accès non autorisés sont
-              passibles de poursuites.
-            </p>
+            <p>Toutes les tentatives de connexion sont journalisées. Les accès non autorisés sont passibles de poursuites.</p>
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-muted-foreground mt-6">
-          © {new Date().getFullYear()} Soltani Signature — Backoffice v1.0
-        </p>
+        <p className="text-center text-[11px] text-muted-foreground mt-6">© {new Date().getFullYear()} Soltani Signature — Backoffice v1.0</p>
       </div>
     </main>
   );

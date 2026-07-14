@@ -5,6 +5,7 @@ import { Check, Package, Truck, MapPin, ArrowRight, Sparkles } from "lucide-reac
 import type { CartLine } from "@/hooks/useCart";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { canonicalLink, seoMeta } from "@/lib/seo";
+import { getSession } from "@/lib/supabase";
 
 export const Route = createFileRoute("/order-confirmation")({
   head: () => ({
@@ -57,6 +58,16 @@ function OrderConfirmationPage() {
   }, [order]);
 
   if (!order) return null;
+
+  const trackOrder = async () => {
+    const session = await getSession();
+    if (session) {
+      await navigate({ to: "/profile", search: { tab: "orders" } });
+      return;
+    }
+
+    await navigate({ to: "/register", search: { reason: "track-order" } });
+  };
 
   return (
     <SiteLayout>
@@ -151,9 +162,9 @@ function OrderConfirmationPage() {
           <Link to="/" className="inline-flex items-center justify-center gap-2 h-12 px-8 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm">
             Continuer mes achats <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link to="/legal/$slug" params={{ slug: "suivi-de-commande" }} className="inline-flex items-center justify-center gap-2 h-12 px-8 border border-gold text-gold text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-gold hover:text-ink transition rounded-sm">
+          <button type="button" onClick={trackOrder} className="inline-flex items-center justify-center gap-2 h-12 px-8 border border-gold text-gold text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-gold hover:text-ink transition rounded-sm">
             Suivre ma commande
-          </Link>
+          </button>
         </div>
       </div>
     </SiteLayout>

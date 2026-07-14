@@ -121,6 +121,9 @@
     to { transform: translateX(-50%); }
   }
   .input-luxe { width: 100%; height: 2.75rem; padding: 0 0.875rem; background: var(--background); border: 1px solid var(--border); border-radius: 2px; font-size: 0.875rem; color: var(--foreground); outline: none; transition: border-color .2s; }
+  .input-luxe-icon-left { padding-left: 2.75rem; }
+  .input-luxe-icon-right { padding-right: 2.75rem; }
+  .input-luxe-icon-both { padding-left: 2.75rem; padding-right: 2.75rem; }
   .input-luxe:focus { border-color: color-mix(in oklab, var(--primary) 70%, transparent); }
   textarea.input-luxe { height: auto; padding: 0.75rem 0.875rem; }
 }

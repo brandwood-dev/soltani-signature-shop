@@ -8,6 +8,9 @@ import { signInWithPassword } from "@/lib/supabase";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/register")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    reason: typeof search.reason === "string" ? search.reason : undefined,
+  }),
   head: () => ({
     meta: seoMeta({ title: "Inscription — Soltani Signature", description: "Créez votre compte client Soltani Signature.", path: "/register", noindex: true }),
     links: [canonicalLink("/register")],
@@ -17,6 +20,7 @@ export const Route = createFileRoute("/register")({
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [accept, setAccept] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -52,7 +56,7 @@ function RegisterPage() {
         phone: phone || undefined,
       });
       await signInWithPassword(email, password);
-      await navigate({ to: "/profile" });
+      await navigate({ to: "/profile", search: { tab: "orders" } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Création de compte impossible.");
     } finally {
@@ -74,6 +78,12 @@ function RegisterPage() {
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Créer un compte</h1>
             <p className="text-sm text-muted-foreground mt-2">Rejoignez le Cercle Signature.</p>
           </div>
+
+          {search.reason === "track-order" && (
+            <p className="mb-5 rounded-sm border border-gold/30 bg-gold/10 px-4 py-3 text-sm leading-relaxed text-foreground">
+              Créez votre compte pour suivre vos commandes, consulter votre historique et bénéficier d'une meilleure expérience.
+            </p>
+          )}
 
           <form onSubmit={onSubmit} className="space-y-4">
             <Field icon={User} label="Nom complet" type="text" placeholder="Mohamed Soltani" value={fullName} onChange={setFullName} required />
@@ -121,8 +131,8 @@ function Field({ icon: Icon, label, type, placeholder, value, onChange, required
     <div>
       <label className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{label}</label>
       <div className="relative mt-2">
-        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
-        <input required={required} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="input-luxe pl-10" />
+        <Icon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
+        <input required={required} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="input-luxe input-luxe-icon-left" />
       </div>
     </div>
   );
