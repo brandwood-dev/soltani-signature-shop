@@ -136,44 +136,17 @@ function PromotionsPage() {
       </div>
 
       <div className="container-luxe pb-24 grid lg:grid-cols-[260px_1fr] gap-10">
-        <aside className="space-y-8">
-          <Block title="Marque">
-            <div className="space-y-2.5">
-              {brands.map((b) => (
-                <label key={b} className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" checked={brand.includes(b)} onChange={() => toggleBrand(b)} className="h-4 w-4 accent-gold" />
-                  <span className="text-sm text-foreground/80 group-hover:text-gold transition">{b}</span>
-                </label>
-              ))}
-            </div>
-          </Block>
-
-          <Block title="Réduction">
-            <div className="space-y-2.5">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="radio" name="disc" checked={minDiscount === 0} onChange={() => setMinDiscount(0)} className="accent-gold" />
-                <span className="text-sm text-foreground/80">Toutes</span>
-              </label>
-              {DISCOUNT_TIERS.map((d) => (
-                <label key={d.min} className="flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="disc" checked={minDiscount === d.min} onChange={() => setMinDiscount(d.min)} className="accent-gold" />
-                  <span className="text-sm text-foreground/80">−{d.label}</span>
-                </label>
-              ))}
-            </div>
-          </Block>
-
-          <Block title="Prix (max)">
-            <input type="range" min={100} max={20000} step={100} value={maxPrice} onChange={(e) => setMaxPrice(+e.target.value)} className="w-full accent-gold" />
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>100 DT</span><span className="text-gold font-semibold">{maxPrice} DT</span>
-            </div>
-          </Block>
-        </aside>
+        <aside className="hidden lg:block">{Filters}</aside>
 
         <div>
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
-            <p className="text-sm text-muted-foreground">{items.length} offre{items.length > 1 ? "s" : ""}</p>
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border gap-3">
+            <button
+              onClick={() => setOpenFilters(true)}
+              className="lg:hidden inline-flex items-center gap-2 px-4 h-10 border border-border rounded-sm text-sm"
+            >
+              <SlidersHorizontal className="h-4 w-4" /> Filtres {activeCount > 0 && <span className="text-gold">({activeCount})</span>}
+            </button>
+            <p className="text-sm text-muted-foreground hidden lg:block">{items.length} offre{items.length > 1 ? "s" : ""}</p>
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-10 px-3 bg-secondary/60 border border-border text-sm rounded-sm">
               <option value="discount-desc">Meilleures réductions</option>
               <option value="price-asc">Prix croissant</option>
@@ -190,6 +163,19 @@ function PromotionsPage() {
           )}
         </div>
       </div>
+
+      {openFilters && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-ink/70" onClick={() => setOpenFilters(false)} />
+          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-background p-6 overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-display text-xl font-bold">Filtres</h3>
+              <button onClick={() => setOpenFilters(false)} aria-label="Fermer"><X className="h-5 w-5" /></button>
+            </div>
+            {Filters}
+          </div>
+        </div>
+      )}
     </SiteLayout>
   );
 }
