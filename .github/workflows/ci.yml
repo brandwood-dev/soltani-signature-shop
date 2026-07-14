@@ -28,6 +28,18 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Secret exposure guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -RInE "(cfut_|ghp_|github_pat_|sk_live_|SUPABASE_SERVICE_ROLE_KEY=|BREVO_API_KEY=|DATABASE_URL=|DIRECT_URL=)" \
+            --exclude-dir=node_modules \
+            --exclude-dir=.output \
+            --exclude-dir=dist \
+            --exclude-dir=coverage \
+            --exclude=bun.lock \
+            .
+
       - name: Typecheck
         run: bunx tsc --noEmit
 
