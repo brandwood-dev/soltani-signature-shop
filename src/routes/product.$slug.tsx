@@ -91,6 +91,7 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
+  const navigate = useNavigate();
   const { product, related, limitedOffer, reviewSummary: initialReviewSummary } = Route.useLoaderData() as { product: Product; related: Product[]; limitedOffer: PromoBanner | null; reviewSummary: { total: number; averageRating: number } };
   const gallery = product.gallery?.length ? product.gallery : [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
   const category = findCategory(product.category);
