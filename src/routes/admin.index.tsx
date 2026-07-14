@@ -7,7 +7,6 @@ import {
   Package,
   ArrowUpRight,
   ArrowDownRight,
-  Download,
 } from "lucide-react";
 
 
@@ -18,7 +17,6 @@ import {
   getDefaultPeriod,
   type DatePeriod,
 } from "@/components/admin/DateRangeFilter";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -131,10 +129,6 @@ function AdminDashboard() {
         actions={
           <div className="flex items-center gap-2">
             <DateRangeFilter value={period} onChange={setPeriod} />
-            <Button size="sm" variant="outline" className="h-9">
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Exporter</span>
-            </Button>
           </div>
         }
       />
