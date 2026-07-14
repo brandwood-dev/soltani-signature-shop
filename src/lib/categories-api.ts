@@ -1,5 +1,5 @@
 import { CATEGORY_TREE, type ParentCategory, slugify } from "@/data/catalog";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type ApiCategory = {
   id: string;
@@ -41,7 +41,7 @@ export type AdminCategoryInput = {
 };
 
 export async function getCatalogCategories() {
-  const categories = await apiFetch<ApiCategory[]>("/catalog/categories");
+  const categories = await publicApiFetch<ApiCategory[]>("/catalog/categories");
   return categories;
 }
 

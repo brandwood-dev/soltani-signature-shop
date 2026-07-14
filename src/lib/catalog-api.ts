@@ -22,6 +22,10 @@ type ApiProduct = {
     isActive: boolean;
   }>;
   attributes?: Array<{ key: string; value: string }>;
+  reviewSummary?: {
+    total: number;
+    averageRating: number;
+  };
 };
 
 export type CreateCodOrderInput = {
@@ -139,6 +143,7 @@ export function mapApiProduct(product: ApiProduct): Product {
     description: product.description ?? undefined,
     gallery: product.images.map((image) => image.url),
     attributes,
+    reviewSummary: product.reviewSummary,
   };
 }
 

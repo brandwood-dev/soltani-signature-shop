@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type MarqueeMessage = {
   id: string;
@@ -17,7 +17,7 @@ export type MarqueeMessageInput = {
 };
 
 export async function getActiveMarqueeMessages() {
-  const response = await apiFetch<{ messages: MarqueeMessage[] }>("/content/top-banner");
+  const response = await publicApiFetch<{ messages: MarqueeMessage[] }>("/content/top-banner");
   return response.messages;
 }
 

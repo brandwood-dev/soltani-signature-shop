@@ -8,16 +8,21 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { FloatingButtons } from "@/components/site/FloatingButtons";
-import { MobileBottomNav } from "@/components/site/MobileBottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import { publicEnv } from "@/lib/env";
 import { trackPageView } from "@/lib/meta-pixel";
 import { faviconLinks, jsonLdScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
+
+const FloatingButtons = lazy(() =>
+  import("@/components/site/FloatingButtons").then((module) => ({ default: module.FloatingButtons })),
+);
+const MobileBottomNav = lazy(() =>
+  import("@/components/site/MobileBottomNav").then((module) => ({ default: module.MobileBottomNav })),
+);
 
 function NotFoundComponent() {
   return (
@@ -148,8 +153,12 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster />
-      {!isAdmin && <FloatingButtons />}
-      {!isAdmin && <MobileBottomNav />}
+      {!isAdmin && (
+        <Suspense fallback={null}>
+          <FloatingButtons />
+          <MobileBottomNav />
+        </Suspense>
+      )}
     </QueryClientProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type PromoBanner = {
   id: string;
@@ -47,7 +47,7 @@ export async function getActivePromoBanners(page?: string, kind?: PromoBanner["k
   const search = new URLSearchParams();
   if (page) search.set("page", page);
   if (kind) search.set("kind", kind);
-  const response = await apiFetch<{ banners: PromoBanner[] }>(
+  const response = await publicApiFetch<{ banners: PromoBanner[] }>(
     `/content/promo-banners${search.size ? `?${search}` : ""}`,
   );
   return response.banners;

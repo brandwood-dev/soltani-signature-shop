@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { TopBar } from "./TopBar";
 import { CategoryNav } from "./CategoryNav";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { CartDrawer } from "./CartDrawer";
+
+const Footer = lazy(() => import("./Footer").then((module) => ({ default: module.Footer })));
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   return (
@@ -12,7 +13,9 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <CategoryNav />
       <Header />
       <main className="flex-1">{children}</main>
-      <Footer />
+      <Suspense fallback={null}>
+        <Footer />
+      </Suspense>
       <CartDrawer />
     </div>
   );

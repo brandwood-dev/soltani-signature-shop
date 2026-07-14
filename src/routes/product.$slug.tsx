@@ -32,7 +32,7 @@ export const Route = createFileRoute("/product/$slug")({
       product,
       related: [],
       limitedOffer: null,
-      reviewSummary: { total: 0, averageRating: 0 },
+      reviewSummary: product.reviewSummary ?? { total: 0, averageRating: 0 },
       reviewSamples: [],
     };
   },
@@ -92,6 +92,10 @@ function ProductPage() {
   const isFavorite = has(product.slug);
 
   useEffect(() => {
+    if (product.reviewSummary) {
+      setReviewSummary(product.reviewSummary);
+      return;
+    }
     let activeRequest = true;
     getProductReviews(product.slug, { page: 1, pageSize: 1 })
       .then((response) => {

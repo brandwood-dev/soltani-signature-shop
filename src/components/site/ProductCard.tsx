@@ -27,6 +27,10 @@ export type Product = {
   description?: string;
   gallery?: string[];
   attributes?: Record<string, string[]>;
+  reviewSummary?: {
+    total: number;
+    averageRating: number;
+  };
 };
 
 export function ProductCard({ p }: { p: Product }) {
