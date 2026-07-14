@@ -16,6 +16,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrderConfirmationRouteImport } from './routes/order-confirmation'
+import { Route as MeilleuresVentesRouteImport } from './routes/meilleures-ventes'
 import { Route as MaisonRouteImport } from './routes/maison'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HommeRouteImport } from './routes/homme'
@@ -84,6 +85,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const OrderConfirmationRoute = OrderConfirmationRouteImport.update({
   id: '/order-confirmation',
   path: '/order-confirmation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeilleuresVentesRoute = MeilleuresVentesRouteImport.update({
+  id: '/meilleures-ventes',
+  path: '/meilleures-ventes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MaisonRoute = MaisonRouteImport.update({
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/homme': typeof HommeRoute
   '/login': typeof LoginRoute
   '/maison': typeof MaisonRoute
+  '/meilleures-ventes': typeof MeilleuresVentesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -312,6 +319,7 @@ export interface FileRoutesByTo {
   '/homme': typeof HommeRoute
   '/login': typeof LoginRoute
   '/maison': typeof MaisonRoute
+  '/meilleures-ventes': typeof MeilleuresVentesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -354,6 +362,7 @@ export interface FileRoutesById {
   '/homme': typeof HommeRoute
   '/login': typeof LoginRoute
   '/maison': typeof MaisonRoute
+  '/meilleures-ventes': typeof MeilleuresVentesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
@@ -399,6 +408,7 @@ export interface FileRouteTypes {
     | '/homme'
     | '/login'
     | '/maison'
+    | '/meilleures-ventes'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -441,6 +451,7 @@ export interface FileRouteTypes {
     | '/homme'
     | '/login'
     | '/maison'
+    | '/meilleures-ventes'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -482,6 +493,7 @@ export interface FileRouteTypes {
     | '/homme'
     | '/login'
     | '/maison'
+    | '/meilleures-ventes'
     | '/order-confirmation'
     | '/profile'
     | '/promotions'
@@ -526,6 +538,7 @@ export interface RootRouteChildren {
   HommeRoute: typeof HommeRoute
   LoginRoute: typeof LoginRoute
   MaisonRoute: typeof MaisonRoute
+  MeilleuresVentesRoute: typeof MeilleuresVentesRoute
   OrderConfirmationRoute: typeof OrderConfirmationRoute
   ProfileRoute: typeof ProfileRoute
   PromotionsRoute: typeof PromotionsRoute
@@ -589,6 +602,13 @@ declare module '@tanstack/react-router' {
       path: '/order-confirmation'
       fullPath: '/order-confirmation'
       preLoaderRoute: typeof OrderConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meilleures-ventes': {
+      id: '/meilleures-ventes'
+      path: '/meilleures-ventes'
+      fullPath: '/meilleures-ventes'
+      preLoaderRoute: typeof MeilleuresVentesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/maison': {
@@ -907,6 +927,7 @@ const rootRouteChildren: RootRouteChildren = {
   HommeRoute: HommeRoute,
   LoginRoute: LoginRoute,
   MaisonRoute: MaisonRoute,
+  MeilleuresVentesRoute: MeilleuresVentesRoute,
   OrderConfirmationRoute: OrderConfirmationRoute,
   ProfileRoute: ProfileRoute,
   PromotionsRoute: PromotionsRoute,
@@ -923,13 +944,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
