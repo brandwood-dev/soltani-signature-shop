@@ -181,7 +181,15 @@ const ADMIN_INVALIDATION_PREFIXES = [
 ];
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}) {
-  const accessToken = typeof window === "undefined" ? null : await getCachedAccessToken();
+  return apiFetchInternal<T>(path, init, true);
+}
+
+export async function publicApiFetch<T>(path: string, init: RequestInit = {}) {
+  return apiFetchInternal<T>(path, init, false);
+}
+
+async function apiFetchInternal<T>(path: string, init: RequestInit = {}, includeAuth: boolean) {
+  const accessToken = includeAuth && typeof window !== "undefined" ? await getCachedAccessToken() : null;
 
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");

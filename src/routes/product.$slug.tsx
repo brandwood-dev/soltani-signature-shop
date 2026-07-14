@@ -1,20 +1,8 @@
 ﻿import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import type { FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
-import { findCategory } from "@/data/catalog";
-import {
-  createProductReview,
-  deleteProductReview,
-  getCatalogProduct,
-  getCatalogProducts,
-  getMyProductReview,
-  getProductReviews,
-  updateProductReview,
-  type ProductReview,
-} from "@/lib/catalog-api";
-import { getSession } from "@/lib/supabase";
+import { getCatalogProduct, getCatalogProducts, getProductReviews, type ProductReview } from "@/lib/catalog-api";
 import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
 import { saveQuickCheckoutLine } from "@/lib/quick-checkout";
@@ -23,10 +11,11 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 import { breadcrumbJsonLd, canonicalLink, jsonLdScript, productJsonLd, productReviewsJsonLd, seoMeta } from "@/lib/seo";
-import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Flame, ShoppingBag, Pencil, Trash2 } from "lucide-react";
+import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Flame, ShoppingBag } from "lucide-react";
 
-
-
+const ProductReviewsPanel = lazy(() =>
+  import("@/components/site/ProductReviewsPanel").then((module) => ({ default: module.ProductReviewsPanel })),
+);
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }): Promise<{
@@ -38,18 +27,13 @@ export const Route = createFileRoute("/product/$slug")({
   }> => {
     const product = await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
-    const [apiProducts, limitedOffer, reviewResponse] = await Promise.all([
-      getCatalogProducts({ category: product.category, limit: 6, summary: true }).catch(() => []),
-      product.isPromotion ? getActiveLimitedOffer().catch(() => null) : Promise.resolve(null),
-      getProductReviews(product.slug, { page: 1, pageSize: 3 }).catch(() => null),
-    ]);
-    const related = apiProducts.filter((p: Product) => p.slug !== product.slug).slice(0, 4);
+
     return {
       product,
-      related,
-      limitedOffer,
-      reviewSummary: reviewResponse?.summary ?? { total: 0, averageRating: 0 },
-      reviewSamples: reviewResponse?.reviews ?? [],
+      related: [],
+      limitedOffer: null,
+      reviewSummary: { total: 0, averageRating: 0 },
+      reviewSamples: [],
     };
   },
   head: ({ params, loaderData }) => {
@@ -57,7 +41,7 @@ export const Route = createFileRoute("/product/$slug")({
     const path = `/product/${params.slug}`;
     const title = product ? `${product.name} ? ${product.brand} | Soltani Signature` : "Produit ? Soltani Signature";
     const description = product?.description || (product ? `${product.name} par ${product.brand}, disponible chez Soltani Signature en Tunisie.` : "D?couvrez nos produits authentiques chez Soltani Signature.");
-    const categoryName = product ? findCategory(product.category)?.name ?? "Catalogue" : "Catalogue";
+    const categoryName = product ? formatCategoryName(product.categoryName ?? product.category) : "Catalogue";
     return {
       meta: seoMeta({ title, description, path, image: product?.image, type: "product" }),
       links: [canonicalLink(path)],
@@ -92,16 +76,17 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const navigate = useNavigate();
-  const { product, related, limitedOffer, reviewSummary: initialReviewSummary } = Route.useLoaderData() as { product: Product; related: Product[]; limitedOffer: PromoBanner | null; reviewSummary: { total: number; averageRating: number } };
-  const gallery = product.gallery?.length ? product.gallery : [product.image, ...related.slice(0, 3).map((r: Product) => r.image)];
-  const category = findCategory(product.category);
-  const parentSlug = category?.kind === "sub" ? category.parent.slug : (category?.slug ?? product.category);
-  const parentName = category?.kind === "sub" ? category.parent.name : (category?.name ?? "Catalogue");
+  const { product, reviewSummary: initialReviewSummary } = Route.useLoaderData() as { product: Product; reviewSummary: { total: number; averageRating: number } };
+  const gallery = product.gallery?.length ? product.gallery : [product.image];
+  const parentSlug = product.category;
+  const parentName = formatCategoryName(product.categoryName ?? product.category);
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
   const [shareMessage, setShareMessage] = useState("");
   const [reviewSummary, setReviewSummary] = useState(initialReviewSummary);
+  const [related, setRelated] = useState<Product[]>([]);
+  const [limitedOffer, setLimitedOffer] = useState<PromoBanner | null>(null);
   const { add } = useCart();
   const { has, toggle } = useWishlist();
   const isFavorite = has(product.slug);
@@ -119,6 +104,35 @@ function ProductPage() {
       activeRequest = false;
     };
   }, [product.slug]);
+
+  useEffect(() => {
+    let activeRequest = true;
+    getCatalogProducts({ category: product.category, limit: 5, summary: true })
+      .then((apiProducts) => {
+        if (activeRequest) setRelated(apiProducts.filter((item) => item.slug !== product.slug).slice(0, 4));
+      })
+      .catch(() => {
+        if (activeRequest) setRelated([]);
+      });
+    return () => {
+      activeRequest = false;
+    };
+  }, [product.category, product.slug]);
+
+  useEffect(() => {
+    if (!product.isPromotion) return;
+    let activeRequest = true;
+    getActiveLimitedOffer()
+      .then((offer) => {
+        if (activeRequest) setLimitedOffer(offer);
+      })
+      .catch(() => {
+        if (activeRequest) setLimitedOffer(null);
+      });
+    return () => {
+      activeRequest = false;
+    };
+  }, [product.isPromotion]);
 
   useEffect(() => {
     trackMetaPixelEvent("ViewContent", {
@@ -173,7 +187,7 @@ function ProductPage() {
   };
 
   const discount = product.isPromotion ? product.discountPercentage ?? 0 : 0;
-  const specifications = useMemo(() => buildSpecifications(product, category?.name ?? product.category), [product, category]);
+  const specifications = useMemo(() => buildSpecifications(product, parentName), [product, parentName]);
 
   return (
     <SiteLayout>
@@ -181,12 +195,6 @@ function ProductPage() {
         <Link to="/" className="hover:text-gold">Accueil</Link>
         <ChevronRight className="h-3 w-3" />
         <Link to="/category/$slug" params={{ slug: parentSlug }} className="hover:text-gold">{parentName}</Link>
-        {category?.kind === "sub" && (
-          <>
-            <ChevronRight className="h-3 w-3" />
-            <Link to="/category/$slug" params={{ slug: category.slug }} className="hover:text-gold">{category.name}</Link>
-          </>
-        )}
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground line-clamp-1">{product.name}</span>
       </div>
@@ -200,6 +208,9 @@ function ProductPage() {
                 <img
                   src={g}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
                   onError={(event) => {
                     event.currentTarget.src = "/placeholder.svg";
                   }}
@@ -213,6 +224,7 @@ function ProductPage() {
               src={gallery[active]}
               alt={product.name}
               loading="eager"
+              decoding="async"
               fetchPriority="high"
               onError={(event) => {
                 event.currentTarget.src = "/placeholder.svg";
@@ -333,7 +345,9 @@ function ProductPage() {
           </div>
         )}
         {tab === "reviews" && (
-          <ProductReviewsPanel slug={product.slug} onSummaryChange={setReviewSummary} />
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Chargement des avis...</p>}>
+            <ProductReviewsPanel slug={product.slug} onSummaryChange={setReviewSummary} />
+          </Suspense>
         )}
       </section>
 
@@ -362,236 +376,6 @@ function PromoCountdown({ endsAt }: { endsAt: string }) {
   );
 }
 
-function ProductReviewsPanel({ slug, onSummaryChange }: { slug: string; onSummaryChange?: (summary: { total: number; averageRating: number }) => void }) {
-  const [page, setPage] = useState(1);
-  const [reviews, setReviews] = useState<ProductReview[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [averageRating, setAverageRating] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [myReviewId, setMyReviewId] = useState<string | null>(null);
-  const [form, setForm] = useState({ rating: 5, title: "", content: "" });
-  const [saving, setSaving] = useState(false);
-  const [formMessage, setFormMessage] = useState("");
-
-  const loadReviews = useCallback(async (nextPage: number) => {
-    setLoading(true);
-    setError("");
-    try {
-      const response = await getProductReviews(slug, { page: nextPage, pageSize: 5 });
-      setReviews(response.reviews);
-      setTotalPages(response.pagination.totalPages);
-      setTotal(response.summary.total);
-      setAverageRating(response.summary.averageRating);
-      onSummaryChange?.(response.summary);
-    } catch (reviewError) {
-      setError(reviewError instanceof Error ? reviewError.message : "Impossible de charger les avis.");
-    } finally {
-      setLoading(false);
-    }
-  }, [slug]);
-
-  const loadMyReview = useCallback(async () => {
-    try {
-      const session = await getSession();
-      setIsAuthenticated(Boolean(session?.accessToken));
-      if (!session?.accessToken) return;
-
-      const response = await getMyProductReview(slug);
-      setMyReviewId(response.review?.id ?? null);
-      if (response.review) {
-        setForm({
-          rating: response.review.rating,
-          title: response.review.title ?? "",
-          content: response.review.content,
-        });
-      }
-    } catch {
-      setIsAuthenticated(false);
-    }
-  }, [slug]);
-
-  useEffect(() => {
-    void loadReviews(page);
-  }, [loadReviews, page]);
-
-  useEffect(() => {
-    void loadMyReview();
-  }, [loadMyReview]);
-
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!form.content.trim()) {
-      setFormMessage("Votre avis ne peut pas être vide.");
-      return;
-    }
-
-    setSaving(true);
-    setFormMessage("");
-    try {
-      const input = {
-        rating: form.rating,
-        title: form.title.trim() || undefined,
-        content: form.content.trim(),
-      };
-      const response = myReviewId
-        ? await updateProductReview(slug, myReviewId, input)
-        : await createProductReview(slug, input);
-      setMyReviewId(response.review?.id ?? myReviewId);
-      setFormMessage(myReviewId ? "Votre avis a été mis à jour." : "Votre avis a été publié.");
-      setPage(1);
-      await loadReviews(1);
-    } catch (submitError) {
-      setFormMessage(submitError instanceof Error ? submitError.message : "Impossible d'enregistrer votre avis.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!myReviewId) return;
-    setSaving(true);
-    setFormMessage("");
-    try {
-      await deleteProductReview(slug, myReviewId);
-      setMyReviewId(null);
-      setForm({ rating: 5, title: "", content: "" });
-      setFormMessage("Votre avis a été supprimé.");
-      await loadReviews(1);
-      setPage(1);
-    } catch (deleteError) {
-      setFormMessage(deleteError instanceof Error ? deleteError.message : "Impossible de supprimer votre avis.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="max-w-3xl space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <p className="font-display text-2xl font-bold">{total} avis</p>
-          <p className="text-sm text-muted-foreground">Note moyenne : {averageRating ? `${averageRating}/5` : "aucune note"}</p>
-        </div>
-        <StarRating value={Math.round(averageRating)} />
-      </div>
-
-      {isAuthenticated ? (
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-sm border border-border p-4 sm:p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <label className="text-sm font-semibold">Votre note</label>
-            <select
-              value={form.rating}
-              onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-              className="h-10 rounded-sm border border-border bg-background px-3 text-sm"
-            >
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <option key={rating} value={rating}>{rating} étoile{rating > 1 ? "s" : ""}</option>
-              ))}
-            </select>
-          </div>
-          <input
-            value={form.title}
-            onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-            maxLength={80}
-            placeholder="Titre de votre avis (optionnel)"
-            className="h-11 w-full rounded-sm border border-border bg-background px-3 text-sm"
-          />
-          <textarea
-            value={form.content}
-            onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
-            maxLength={800}
-            rows={4}
-            placeholder="Partagez votre expérience avec ce produit"
-            className="w-full resize-none rounded-sm border border-border bg-background px-3 py-3 text-sm"
-          />
-          {formMessage && <p className="text-sm text-muted-foreground">{formMessage}</p>}
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-sm bg-gold px-5 text-[12px] font-bold uppercase tracking-[0.18em] text-ink transition hover:bg-ink hover:text-gold disabled:opacity-60"
-            >
-              <Pencil className="h-4 w-4" /> {saving ? "Enregistrement..." : myReviewId ? "Modifier mon avis" : "Publier mon avis"}
-            </button>
-            {myReviewId && (
-              <button
-                type="button"
-                disabled={saving}
-                onClick={handleDelete}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-sm border border-border px-5 text-[12px] font-bold uppercase tracking-[0.18em] transition hover:border-destructive hover:text-destructive disabled:opacity-60"
-              >
-                <Trash2 className="h-4 w-4" /> Supprimer
-              </button>
-            )}
-          </div>
-        </form>
-      ) : (
-        <div className="rounded-sm border border-border p-4 text-sm text-muted-foreground">
-          <p className="mb-3">Connectez-vous ou créez un compte pour laisser votre avis.</p>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/login" className="inline-flex h-10 items-center rounded-sm bg-gold px-4 text-xs font-bold uppercase tracking-widest text-ink">Se connecter</Link>
-            <Link to="/register" className="inline-flex h-10 items-center rounded-sm border border-border px-4 text-xs font-bold uppercase tracking-widest text-foreground">S'inscrire</Link>
-          </div>
-        </div>
-      )}
-
-      {loading && <p className="text-sm text-muted-foreground">Chargement des avis...</p>}
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {!loading && !error && reviews.length === 0 && (
-        <p className="text-sm text-muted-foreground">Aucun avis pour le moment. Soyez le premier à partager votre expérience.</p>
-      )}
-      {!loading && !error && reviews.map((review) => (
-        <article key={review.id} className="pb-6 border-b border-border">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-            <div>
-              <span className="font-semibold">{review.authorName}</span>
-              <p className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString("fr-FR")}</p>
-            </div>
-            <StarRating value={review.rating} />
-          </div>
-          {review.title && <p className="mb-1 text-sm font-semibold">{review.title}</p>}
-          <p className="text-sm text-foreground/80 whitespace-pre-line">{review.content}</p>
-        </article>
-      ))}
-
-      {!loading && !error && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="h-10 rounded-sm border border-border px-4 text-sm disabled:opacity-40"
-          >
-            Précédent
-          </button>
-          <span className="text-sm text-muted-foreground">Page {page} / {totalPages}</span>
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-            className="h-10 rounded-sm border border-border px-4 text-sm disabled:opacity-40"
-          >
-            Suivant
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StarRating({ value }: { value: number }) {
-  return (
-    <div className="flex">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Star key={index} className={`h-4 w-4 ${index < value ? "fill-gold text-gold" : "text-muted-foreground"}`} />
-      ))}
-    </div>
-  );
-}
-
 function buildSpecifications(product: Product, categoryName: string): Array<[string, string]> {
   const dynamicSpecs = Object.entries(product.attributes ?? {})
     .map(([key, values]) => [formatSpecLabel(key), values.filter(Boolean).join(", ")] as [string, string])
@@ -611,4 +395,12 @@ function formatSpecLabel(value: string) {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^./, (firstLetter) => firstLetter.toUpperCase());
+}
+
+function formatCategoryName(value: string) {
+  return value
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
 }

@@ -1,5 +1,5 @@
 import type { Product } from "@/components/site/ProductCard";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 type ApiProduct = {
   id: string;
@@ -123,6 +123,7 @@ export function mapApiProduct(product: ApiProduct): Product {
     brand: product.brand.name,
     brandSlug: product.brand.slug,
     category: product.category.slug,
+    categoryName: product.category.name,
     section: product.section,
     price: numberValue(variant?.price ?? product.basePrice),
     oldPrice: product.compareAtPrice ? numberValue(product.compareAtPrice) : undefined,
@@ -159,12 +160,12 @@ export async function getCatalogProducts(params: {
   if (params.featured) search.set("featured", "1");
   if (params.bestSeller) search.set("bestSeller", "1");
 
-  const products = await apiFetch<ApiProduct[]>(`/catalog/products${search.size ? `?${search}` : ""}`);
+  const products = await publicApiFetch<ApiProduct[]>(`/catalog/products${search.size ? `?${search}` : ""}`);
   return products.map(mapApiProduct);
 }
 
 export async function getCatalogProduct(slug: string) {
-  return mapApiProduct(await apiFetch<ApiProduct>(`/catalog/products/${slug}`));
+  return mapApiProduct(await publicApiFetch<ApiProduct>(`/catalog/products/${slug}`));
 }
 
 export async function createCodOrder(input: CreateCodOrderInput) {
@@ -186,7 +187,7 @@ export async function getProductReviews(slug: string, params: { page?: number; p
   if (params.page) search.set("page", String(params.page));
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
 
-  return apiFetch<ProductReviewsResponse>(`/catalog/products/${slug}/reviews${search.size ? `?${search}` : ""}`);
+  return publicApiFetch<ProductReviewsResponse>(`/catalog/products/${slug}/reviews${search.size ? `?${search}` : ""}`);
 }
 
 export async function getMyProductReview(slug: string) {
