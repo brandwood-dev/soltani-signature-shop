@@ -108,7 +108,7 @@ function Home() {
         <LazySection minHeight={520}>
           <Packs items={packs} />
         </LazySection>
-        {promoBanners.map((banner, index) => (
+        {promoBanners.map((banner: PromoBannerItem, index: number) => (
           <LazySection key={banner.id} minHeight={420}>
             <PromoBanner
               eyebrow={banner.ctaLabel}
