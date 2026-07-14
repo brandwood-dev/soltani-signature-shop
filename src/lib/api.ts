@@ -30,6 +30,22 @@ export type ContactMessageInput = {
   message?: string;
 };
 
+export type PasswordResetRequestInput = {
+  email: string;
+};
+
+export type PasswordResetVerifyInput = {
+  email: string;
+  code: string;
+};
+
+export type PasswordResetConfirmInput = {
+  email: string;
+  code: string;
+  password: string;
+  confirmPassword: string;
+};
+
 export type ApiAddress = {
   id: string;
   addressLine1: string;
@@ -413,6 +429,27 @@ export async function registerCustomer(input: RegisterCustomerInput) {
     body: JSON.stringify(input),
   });
   return response.user;
+}
+
+export async function requestPasswordReset(input: PasswordResetRequestInput) {
+  return apiFetch<{ success: boolean; message: string }>("/auth/password-reset/request", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function verifyPasswordReset(input: PasswordResetVerifyInput) {
+  return apiFetch<{ success: boolean; message: string }>("/auth/password-reset/verify", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function confirmPasswordReset(input: PasswordResetConfirmInput) {
+  return apiFetch<{ success: boolean; message: string }>("/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function subscribeNewsletter(email: string) {
