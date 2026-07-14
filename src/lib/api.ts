@@ -208,11 +208,13 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
     }
   }
 
-  const response = await fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
-    cache: "no-store",
-    ...init,
-    headers,
-  }, { path, method });
+  const response = await measureApiFetch(path, method, () =>
+    fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
+      cache: "no-store",
+      ...init,
+      headers,
+    }, { path, method }),
+  );
 
   if (!response.ok) {
     let message = "Une erreur est survenue.";
@@ -261,14 +263,16 @@ export async function apiDownload(path: string, init: RequestInit = {}) {
   }
 
   const method = (init.method ?? "GET").toUpperCase();
-  const response = await fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
-    cache: "no-store",
-    ...init,
-    headers,
-  }, { path, method });
+  const response = await measureApiFetch(path, method, () =>
+    fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
+      cache: "no-store",
+      ...init,
+      headers,
+    }, { path, method }),
+  );
 
   if (!response.ok) {
-    let message = "TÃ©lÃ©chargement impossible.";
+    let message = "Telechargement impossible.";
     try {
       const body = (await response.json()) as ApiErrorBody;
       message = Array.isArray(body.message) ? body.message.join(", ") : body.message || message;
@@ -328,6 +332,27 @@ async function fetchWithRetry(url: string, init: RequestInit, options: { path: s
   throw new Error(networkErrorMessage());
 }
 
+async function measureApiFetch(path: string, method: string, callback: () => Promise<Response>) {
+  if (typeof performance === "undefined" || !isAdminPath(path)) {
+    return callback();
+  }
+
+  const safePath = stripQuery(path).replace(/[^a-z0-9/_-]/gi, "_");
+  const id = `${method}:${safePath}:${Math.random().toString(36).slice(2)}`;
+  const start = `admin-api:${id}:start`;
+  const end = `admin-api:${id}:end`;
+  performance.mark(start);
+  try {
+    return await callback();
+  } finally {
+    performance.mark(end);
+    try {
+      performance.measure(`admin-api:${method}:${safePath}`, start, end);
+    } catch {
+      // Ignore unsupported Performance API cases without blocking API calls.
+    }
+  }
+}
 function buildCacheKey(path: string, method: string, authorization: string | null) {
   return `${method}:${path}:${authorization ?? "guest"}`;
 }

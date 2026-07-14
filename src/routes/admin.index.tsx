@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   TrendingUp,
   ShoppingBag,
@@ -31,8 +32,11 @@ import {
   formatTND,
 } from "@/lib/admin/mock-data";
 import {
-  getAdminDashboard,
-  type AdminDashboardResponse,
+  getAdminDashboardKpis,
+  getAdminDashboardRecentOrders,
+  getAdminDashboardRevenueSeries,
+  getAdminDashboardStockSummary,
+  getAdminDashboardTopProducts,
 } from "@/lib/admin-dashboard-api";
 
 export const Route = createFileRoute("/admin/")({
@@ -41,13 +45,51 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminDashboard() {
   const [period, setPeriod] = useState<DatePeriod>(() => getDefaultPeriod());
-  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const kpis = dashboard?.kpis;
-  const series = dashboard?.series ?? [];
-  const topProducts = dashboard?.topProducts ?? [];
-  const recentOrders = dashboard?.recentOrders ?? [];
+  const periodKey = `${period.from.toISOString()}:${period.to.toISOString()}`;
+
+  const kpisQuery = useQuery({
+    queryKey: ["admin-dashboard", "kpis", periodKey],
+    queryFn: () => getAdminDashboardKpis(period),
+    staleTime: 30_000,
+  });
+  const stockQuery = useQuery({
+    queryKey: ["admin-dashboard", "stock"],
+    queryFn: getAdminDashboardStockSummary,
+    staleTime: 45_000,
+  });
+  const revenueQuery = useQuery({
+    queryKey: ["admin-dashboard", "revenue", periodKey],
+    queryFn: () => getAdminDashboardRevenueSeries(period),
+    staleTime: 60_000,
+  });
+  const topProductsQuery = useQuery({
+    queryKey: ["admin-dashboard", "top-products", periodKey],
+    queryFn: () => getAdminDashboardTopProducts(period),
+    staleTime: 180_000,
+  });
+  const recentOrdersQuery = useQuery({
+    queryKey: ["admin-dashboard", "recent-orders"],
+    queryFn: getAdminDashboardRecentOrders,
+    staleTime: 30_000,
+  });
+
+  const kpis = kpisQuery.data?.kpis
+    ? {
+        ...kpisQuery.data.kpis,
+        products: stockQuery.data?.products ?? 0,
+        lowStock: stockQuery.data?.lowStock ?? 0,
+      }
+    : undefined;
+  const series = revenueQuery.data?.series ?? [];
+  const topProducts = topProductsQuery.data?.topProducts ?? [];
+  const recentOrders = recentOrdersQuery.data?.recentOrders ?? [];
+  const kpisLoading = kpisQuery.isLoading || stockQuery.isLoading;
+  const revenueLoading = revenueQuery.isLoading;
+  const topProductsLoading = topProductsQuery.isLoading;
+  const recentOrdersLoading = recentOrdersQuery.isLoading;
+  const error = [kpisQuery.error, stockQuery.error, revenueQuery.error, topProductsQuery.error, recentOrdersQuery.error]
+    .find(Boolean);
+  const errorMessage = error instanceof Error ? error.message : "";
   const hasRevenueSeries = series.some((point) => point.value > 0);
   const chartWidth = Math.max(520, series.length * 56);
   const chartHeight = 220;
@@ -71,50 +113,37 @@ function AdminDashboard() {
     : "";
 
   useEffect(() => {
-    let mounted = true;
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        setError("");
-        const next = await getAdminDashboard(period);
-        if (mounted) setDashboard(next);
-      } catch (err) {
-        if (mounted) {
-          setError(err instanceof Error ? err.message : "Impossible de charger le tableau de bord.");
-          setDashboard(null);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
+    if (typeof performance === "undefined") return;
+    const marker = "admin-dashboard-render-visible";
+    performance.mark(marker);
+    try {
+      performance.measure("admin-dashboard-route-visible", marker);
+    } catch {
+      // Ignore unsupported Performance API cases without affecting the admin UI.
     }
-    loadDashboard();
-    return () => {
-      mounted = false;
-    };
-  }, [period]);
-
+  }, []);
   const cards = [
     {
       label: "Chiffre d'affaires",
-      value: formatTND(kpis?.revenue ?? 0),
+      value: kpisLoading ? "..." : formatTND(kpis?.revenue ?? 0),
       delta: kpis?.revenueDelta ?? 0,
       icon: TrendingUp,
     },
     {
       label: "Commandes",
-      value: String(kpis?.orders ?? 0),
+      value: kpisLoading ? "..." : String(kpis?.orders ?? 0),
       delta: kpis?.ordersDelta ?? 0,
       icon: ShoppingBag,
     },
     {
       label: "Nouveaux clients",
-      value: String(kpis?.customers ?? 0),
+      value: kpisLoading ? "..." : String(kpis?.customers ?? 0),
       delta: kpis?.customersDelta ?? 0,
       icon: Users,
     },
     {
       label: "Panier moyen",
-      value: formatTND(kpis?.averageBasket ?? 0),
+      value: kpisLoading ? "..." : formatTND(kpis?.averageBasket ?? 0),
       delta: kpis?.averageBasketDelta ?? 0,
       icon: Package,
     },
@@ -134,9 +163,9 @@ function AdminDashboard() {
       />
 
       <div className="flex-1 space-y-4 p-3 sm:space-y-6 sm:p-6">
-        {error && (
+        {errorMessage && (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
+            {errorMessage}
           </div>
         )}
 
@@ -170,7 +199,7 @@ function AdminDashboard() {
                     )}
                     {up ? "+" : ""}
                     {k.delta}%
-                    <span className="text-muted-foreground">vs période précédente</span>
+                    <span className="text-muted-foreground">vs periode precedente</span>
                   </div>
                 </CardContent>
               </Card>
@@ -182,22 +211,22 @@ function AdminDashboard() {
           {/* Revenue chart */}
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base">Revenu — {period.label}</CardTitle>
+              <CardTitle className="text-base">Revenu - {period.label}</CardTitle>
               <span className="text-xs text-muted-foreground">DT</span>
             </CardHeader>
             <CardContent>
               <div className="min-h-[220px] overflow-x-auto">
-                {loading ? (
+                {revenueLoading ? (
                   <div className="flex h-[220px] w-full items-center justify-center rounded-md bg-muted/30 text-sm text-muted-foreground">
-                    Chargement du graphique…
+                    Chargement du graphique...
                   </div>
-                ) : error ? (
+                ) : revenueQuery.isError ? (
                   <div className="flex h-[220px] w-full items-center justify-center rounded-md border border-destructive/20 bg-destructive/5 px-4 text-center text-sm text-destructive">
-                    Impossible de charger les données du graphique.
+                    Impossible de charger les donnees du graphique.
                   </div>
                 ) : !series.length || !hasRevenueSeries ? (
                   <div className="flex h-[220px] w-full items-center justify-center rounded-md bg-muted/30 px-4 text-center text-sm text-muted-foreground">
-                    Aucune donnée de revenu sur cette période.
+                    Aucune donnee de revenu sur cette periode.
                   </div>
                 ) : (
                   <svg
@@ -205,7 +234,7 @@ function AdminDashboard() {
                     height={chartHeight}
                     viewBox={`0 0 ${chartWidth} ${chartHeight}`}
                     role="img"
-                    aria-label={`Chiffre d'affaires livré pour ${period.label}`}
+                    aria-label={`Chiffre d'affaires livre pour ${period.label}`}
                     className="min-w-full"
                   >
                     <defs>
@@ -257,7 +286,7 @@ function AdminDashboard() {
                           className="fill-background stroke-primary"
                           strokeWidth="2.5"
                         >
-                          <title>{`${point.day} · ${formatTND(point.value)}`}</title>
+                          <title>{`${point.day} - ${formatTND(point.value)}`}</title>
                         </circle>
                         <text
                           x={point.x}
@@ -304,14 +333,14 @@ function AdminDashboard() {
                   </div>
                 </div>
               ))}
-              {!loading && topProducts.length === 0 && (
+              {!topProductsLoading && topProducts.length === 0 && (
                 <p className="py-6 text-center text-sm text-muted-foreground">
-                  Aucun produit vendu sur cette période.
+                  Aucun produit vendu sur cette periode.
                 </p>
               )}
-              {loading && (
+              {topProductsLoading && (
                 <p className="py-6 text-center text-sm text-muted-foreground">
-                  Chargement des produits…
+                  Chargement des produits...
                 </p>
               )}
             </CardContent>
@@ -321,7 +350,7 @@ function AdminDashboard() {
         {/* Recent orders */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base">Commandes récentes</CardTitle>
+            <CardTitle className="text-base">Commandes recentes</CardTitle>
             <Link
               to="/admin/orders"
               className="text-xs font-medium text-primary hover:underline"
@@ -354,9 +383,9 @@ function AdminDashboard() {
                   </div>
                 </Link>
               ))}
-              {!loading && recentOrders.length === 0 && (
+              {!recentOrdersLoading && recentOrders.length === 0 && (
                 <div className="rounded-lg border border-border bg-background p-3 text-center text-sm text-muted-foreground">
-                  Aucune commande récente.
+                  Aucune commande recente.
                 </div>
               )}
             </div>
@@ -365,7 +394,7 @@ function AdminDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Référence</TableHead>
+                    <TableHead>Reference</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Statut</TableHead>
@@ -396,17 +425,17 @@ function AdminDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {!loading && recentOrders.length === 0 && (
+                  {!recentOrdersLoading && recentOrders.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
-                        Aucune commande récente.
+                        Aucune commande recente.
                       </TableCell>
                     </TableRow>
                   )}
-                  {loading && (
+                  {recentOrdersLoading && (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
-                        Chargement des commandes…
+                        Chargement des commandes...
                       </TableCell>
                     </TableRow>
                   )}

@@ -50,7 +50,7 @@ export type AdminOrdersResponse = {
     pageSize: number;
     total: number;
   };
-  statusCounts: Record<"all" | AdminOrderStatus, number>;
+  statusCounts?: Record<"all" | AdminOrderStatus, number>;
 };
 
 export type AdminOrdersQuery = {
@@ -86,6 +86,16 @@ export function getAdminOrders(query: AdminOrdersQuery) {
   if (query.pageSize) params.set("pageSize", String(query.pageSize));
 
   return apiFetch<AdminOrdersResponse>(`/orders/admin?${params.toString()}`);
+}
+
+export function getAdminOrdersStatusSummary(query: Pick<AdminOrdersQuery, "query" | "payment"> = {}) {
+  const params = new URLSearchParams();
+  if (query.query) params.set("query", query.query);
+  if (query.payment) params.set("payment", query.payment);
+
+  return apiFetch<{ statusCounts: Record<"all" | AdminOrderStatus, number> }>(
+    `/orders/admin/status-summary?${params.toString()}`,
+  );
 }
 
 export async function getAdminOrder(id: string) {

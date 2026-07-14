@@ -40,6 +40,7 @@ import {
 import {
   downloadAdminOrdersExport,
   getAdminOrders,
+  getAdminOrdersStatusSummary,
   updateAdminOrderStatus,
   type AdminOrderExportPeriod,
   type AdminOrderListItem,
@@ -100,15 +101,22 @@ function AdminOrders() {
     try {
       setLoading(true);
       setError("");
-      const response = await getAdminOrders({
-        query: deferredQuery,
-        status: tab,
-        payment: payment as "all" | "card" | "cod",
-        page,
-        pageSize,
-      });
+      const paymentFilter = payment as "all" | "card" | "cod";
+      const [response, summary] = await Promise.all([
+        getAdminOrders({
+          query: deferredQuery,
+          status: tab,
+          payment: paymentFilter,
+          page,
+          pageSize,
+        }),
+        getAdminOrdersStatusSummary({
+          query: deferredQuery,
+          payment: paymentFilter,
+        }),
+      ]);
       setOrders(response.orders);
-      setCounts(response.statusCounts);
+      setCounts(summary.statusCounts);
       setTotal(response.pagination.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de charger les commandes.");
