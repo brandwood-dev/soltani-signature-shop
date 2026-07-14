@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/supabase";
+import { getAccessToken } from "@/lib/supabase";
 import { publicEnv } from "@/lib/env";
 import { mapHttpErrorMessage, networkErrorMessage } from "@/lib/error-messages";
 
@@ -149,7 +149,6 @@ const ADMIN_CACHE_RULES: Array<{ prefix: string; ttlMs: number }> = [
   { prefix: "/catalog/products", ttlMs: 30_000 },
   { prefix: "/admin/me", ttlMs: 60_000 },
   { prefix: "/admin/dashboard", ttlMs: 30_000 },
-  { prefix: "/admin/notifications", ttlMs: 10_000 },
   { prefix: "/admin/customers", ttlMs: 30_000 },
   { prefix: "/orders/admin", ttlMs: 30_000 },
   { prefix: "/products/admin", ttlMs: 30_000 },
@@ -180,7 +179,7 @@ const ADMIN_INVALIDATION_PREFIXES = [
 ];
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}) {
-  const session = typeof window === "undefined" ? null : await getSession();
+  const accessToken = typeof window === "undefined" ? null : await getAccessToken();
 
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
@@ -189,8 +188,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (session?.accessToken) {
-    headers.set("Authorization", `Bearer ${session.accessToken}`);
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
   const method = (init.method ?? "GET").toUpperCase();
@@ -213,7 +212,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
     cache: "no-store",
     ...init,
     headers,
-  });
+  }, { path, method });
 
   if (!response.ok) {
     let message = "Une erreur est survenue.";
@@ -253,22 +252,23 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
 }
 
 export async function apiDownload(path: string, init: RequestInit = {}) {
-  const session = typeof window === "undefined" ? null : await getSession();
+  const accessToken = typeof window === "undefined" ? null : await getAccessToken();
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/pdf");
 
-  if (session?.accessToken) {
-    headers.set("Authorization", `Bearer ${session.accessToken}`);
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
+  const method = (init.method ?? "GET").toUpperCase();
   const response = await fetchWithRetry(`${publicEnv.apiUrl}${path}`, {
     cache: "no-store",
     ...init,
     headers,
-  });
+  }, { path, method });
 
   if (!response.ok) {
-    let message = "Téléchargement impossible.";
+    let message = "TÃ©lÃ©chargement impossible.";
     try {
       const body = (await response.json()) as ApiErrorBody;
       message = Array.isArray(body.message) ? body.message.join(", ") : body.message || message;
@@ -297,18 +297,25 @@ export function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
+async function fetchWithRetry(url: string, init: RequestInit, options: { path: string; method: string }) {
   let lastError: unknown;
+  const isGet = options.method === "GET";
+  const attempts = isGet ? 2 : 1;
+  const timeoutMs = isGet && isAdminPath(options.path) ? 10_000 : 15_000;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
-    const timeoutId = globalThis.setTimeout(() => controller.abort(), 20_000);
+    const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      return await fetch(url, {
+      const response = await fetch(url, {
         ...init,
         signal: init.signal ?? controller.signal,
       });
+      if (!shouldRetryResponse(response, attempt, attempts, isGet)) {
+        return response;
+      }
+      lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
       lastError = error;
       if (attempt === attempts) break;
@@ -334,6 +341,19 @@ function getAdminCacheTtl(path: string, method: string) {
 
 function stripQuery(path: string) {
   return path.split("?")[0] ?? path;
+}
+
+function isAdminPath(path: string) {
+  const normalizedPath = stripQuery(path);
+  return normalizedPath.startsWith("/admin")
+    || normalizedPath.startsWith("/orders/admin")
+    || normalizedPath.startsWith("/products/admin");
+}
+
+function shouldRetryResponse(response: Response, attempt: number, attempts: number, isGet: boolean) {
+  if (!isGet || attempt >= attempts) return false;
+  if (response.status >= 400 && response.status < 500) return false;
+  return response.status >= 500;
 }
 
 function invalidateAdminCache(path: string) {

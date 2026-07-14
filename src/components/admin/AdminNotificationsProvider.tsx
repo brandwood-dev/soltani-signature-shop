@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -16,19 +16,22 @@ type AdminNotificationsContextValue = {
 const AdminNotificationsContext = createContext<AdminNotificationsContextValue | null>(null);
 
 const NOTIFICATIONS_QUERY_KEY = ["admin-notifications-summary"];
-const POLL_INTERVAL_MS = 120_000;
+const POLL_INTERVAL_MS = 240_000;
 
 export function AdminNotificationsProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const seenIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
+  const [isVisible, setIsVisible] = useState(() => (
+    typeof document === "undefined" ? true : document.visibilityState === "visible"
+  ));
 
   const summaryQuery = useQuery({
     queryKey: NOTIFICATIONS_QUERY_KEY,
     queryFn: getAdminNotificationsSummary,
     staleTime: 60_000,
-    refetchInterval: () => (document.visibilityState === "visible" ? POLL_INTERVAL_MS : false),
-    refetchOnWindowFocus: true,
+    refetchInterval: isVisible ? POLL_INTERVAL_MS : false,
+    refetchOnWindowFocus: false,
   });
 
   const refresh = async () => {
@@ -42,9 +45,7 @@ export function AdminNotificationsProvider({ children }: { children: React.React
 
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void refresh().catch(() => undefined);
-      }
+      setIsVisible(document.visibilityState === "visible");
     };
 
     document.addEventListener("visibilitychange", onVisibilityChange);

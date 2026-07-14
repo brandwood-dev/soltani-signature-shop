@@ -4,6 +4,8 @@ import { mapHttpErrorMessage, networkErrorMessage } from "@/lib/error-messages";
 const STORAGE_KEY = "soltani-auth-session";
 const LEGACY_ADMIN_STORAGE_KEY = "soltani-admin-session";
 const SESSION_ONLY_KEYS = ["soltani-cart", "soltani-wishlist", "soltani-profile-cache"];
+let cachedSession: SupabaseSession | null = null;
+let sessionRefreshPromise: Promise<SupabaseSession | null> | null = null;
 
 export type SupabaseSession = {
   accessToken: string;
@@ -18,6 +20,7 @@ type SupabaseTokenResponse = {
 };
 
 function saveSession(session: SupabaseSession) {
+  cachedSession = session;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
 }
@@ -39,9 +42,12 @@ function clearSessionOnlyCommerceState() {
 }
 
 function readStoredSession() {
+  if (cachedSession) return cachedSession;
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_ADMIN_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as SupabaseSession) : null;
+    cachedSession = raw ? (JSON.parse(raw) as SupabaseSession) : null;
+    return cachedSession;
   } catch {
     return null;
   }
@@ -105,7 +111,11 @@ export async function getSession() {
     return session;
   }
 
-  try {
+  if (sessionRefreshPromise) {
+    return sessionRefreshPromise;
+  }
+
+  sessionRefreshPromise = (async () => {
     const response = await authRequest("/token?grant_type=refresh_token", {
       method: "POST",
       body: JSON.stringify({ refresh_token: session.refreshToken }),
@@ -113,17 +123,30 @@ export async function getSession() {
     const refreshedSession = toSession((await response.json()) as SupabaseTokenResponse);
     saveSession(refreshedSession);
     return refreshedSession;
+  })();
+
+  try {
+    return await sessionRefreshPromise;
   } catch {
+    cachedSession = null;
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
     clearSessionOnlyCommerceState();
     emitAuthChange();
     return null;
+  } finally {
+    sessionRefreshPromise = null;
   }
+}
+
+export async function getAccessToken() {
+  const session = await getSession();
+  return session?.accessToken ?? null;
 }
 
 export async function signOut() {
   const session = readStoredSession();
+  cachedSession = null;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
   clearSessionOnlyCommerceState();
