@@ -13,17 +13,25 @@ export type ApiCategory = {
   children?: ApiCategory[];
 };
 
-export type CategoryTree = ParentCategory & {
+export type CategoryTreeSub = {
+  slug: string;
+  name: string;
+  parentSlug: string;
   id: string;
   active: boolean;
   imageUrl: string | null;
   sortOrder: number;
-  subs: Array<ParentCategory["subs"][number] & {
-    id: string;
-    active: boolean;
-    imageUrl: string | null;
-    sortOrder: number;
-  }>;
+};
+
+export type CategoryTree = {
+  slug: string;
+  name: string;
+  image: string;
+  id: string;
+  active: boolean;
+  imageUrl: string | null;
+  sortOrder: number;
+  subs: CategoryTreeSub[];
 };
 
 export type AdminCategoryInput = {
