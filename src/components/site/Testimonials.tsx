@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Star, Quote } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Quote } from "lucide-react";
 
 import type { Testimonial } from "@/lib/testimonials-api";
 import { getPublicTestimonials } from "@/lib/testimonials-api";
@@ -21,7 +21,7 @@ function Card({ t }: { t: Testimonial }) {
       <div className="pt-4 sm:pt-5 border-t border-border">
         <p className="font-semibold text-foreground">{t.name}</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {t.gouvernorat} ·{" "}
+          {t.gouvernorat} <span aria-hidden="true">&middot;</span>{" "}
           {t.productUrl ? (
             <a href={t.productUrl} className="underline underline-offset-2">
               {t.productTitle}
@@ -66,6 +66,9 @@ export function Testimonials() {
     testimonials.length <= 3
       ? testimonials
       : Array.from({ length: 3 }, (_, offset) => testimonials[(i + offset) % testimonials.length]);
+  const currentTestimonial = testimonials[i % testimonials.length];
+  const previous = () => setI((current) => (current - 1 + testimonials.length) % testimonials.length);
+  const next = () => setI((current) => (current + 1) % testimonials.length);
 
   return (
     <section ref={sectionRef} className="py-12 md:py-20 bg-secondary/40">
@@ -83,32 +86,42 @@ export function Testimonials() {
           ))}
         </div>
 
-        <div className="md:hidden">
-          <div className="relative overflow-hidden">
-            <div
-              className="flex transition-transform duration-700 ease-out"
-              style={{ transform: `translateX(-${i * 100}%)` }}
+        <div className="md:hidden px-1">
+          <Card t={currentTestimonial} />
+        </div>
+
+        {testimonials.length > 1 && (
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={previous}
+              aria-label="Avis precedent"
+              className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
             >
-              {testimonials.map((t) => (
-                <div key={t.id} className="w-full shrink-0 px-1">
-                  <Card t={t} />
-                </div>
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="flex items-center justify-center gap-1">
+              {testimonials.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setI(idx)}
+                  aria-label={`Temoignage ${idx + 1}`}
+                  className={`mobile-slider-dot min-h-0 p-0 rounded-full transition-all duration-500 ${
+                    idx === i ? "h-[3px] w-3 bg-gold" : "h-[3px] w-[3px] bg-foreground/30"
+                  }`}
+                />
               ))}
             </div>
+            <button
+              type="button"
+              onClick={next}
+              aria-label="Avis suivant"
+              className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
-          <div className="mt-5 flex items-center justify-center gap-1">
-            {testimonials.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setI(idx)}
-                aria-label={`Témoignage ${idx + 1}`}
-                className={`mobile-slider-dot min-h-0 p-0 rounded-full transition-all duration-500 ${
-                  idx === i ? "h-[3px] w-3 bg-gold" : "h-[3px] w-[3px] bg-foreground/30"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
 import { Flame, ChevronRight, SlidersHorizontal, X } from "lucide-react";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/promotions")({
   },
   head: () => ({
     meta: seoMeta({
-      title: "Promotions ? Soltani Signature",
+      title: "Promotions — Soltani Signature",
       description: "Toutes les offres promotionnelles Soltani Signature : parfums, soins, maquillage, cheveux et lifestyle.",
       path: "/promotions",
     }),
@@ -56,23 +56,43 @@ function PromotionsPage() {
 
   const [brand, setBrand] = useState<string[]>([]);
   const [minDiscount, setMinDiscount] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(20000);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
   const [sort, setSort] = useState("discount-desc");
+
+  const priceBounds = useMemo(() => {
+    if (allPromos.length === 0) return { min: 0, max: 0 };
+    const prices = allPromos.map((product) => product.price);
+    return {
+      min: Math.floor(Math.min(...prices) / 10) * 10,
+      max: Math.ceil(Math.max(...prices) / 10) * 10,
+    };
+  }, [allPromos]);
+
+  useEffect(() => {
+    setPriceRange(([currentMin, currentMax]) => {
+      if (priceBounds.max === 0) return [0, 0];
+      if (currentMin === 0 && currentMax === 0) return [priceBounds.min, priceBounds.max];
+      return [
+        Math.max(priceBounds.min, Math.min(currentMin, priceBounds.max)),
+        Math.min(priceBounds.max, Math.max(currentMax, priceBounds.min)),
+      ];
+    });
+  }, [priceBounds.min, priceBounds.max]);
   const [openFilters, setOpenFilters] = useState(false);
 
   const items = useMemo(() => {
-    let list = allPromos.filter((p) => p.discount >= minDiscount && p.price <= maxPrice);
+    let list = allPromos.filter((p) => p.discount >= minDiscount && p.price >= selectedPriceRange[0] && p.price <= selectedPriceRange[1]);
     if (brand.length) list = list.filter((p) => brand.includes(p.brand));
     if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
     else list = [...list].sort((a, b) => b.discount - a.discount);
     return list;
-  }, [allPromos, brand, minDiscount, maxPrice, sort]);
+  }, [allPromos, brand, minDiscount, selectedPriceRange, sort]);
 
   const toggleBrand = (b: string) =>
     setBrand((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]));
 
-  const activeCount = brand.length + (minDiscount > 0 ? 1 : 0) + (maxPrice < 20000 ? 1 : 0);
+  const activeCount = brand.length + (minDiscount > 0 ? 1 : 0) + (selectedPriceRange[0] > priceBounds.min || selectedPriceRange[1] < priceBounds.max ? 1 : 0);
 
   const Filters = (
     <div className="space-y-8">
@@ -102,10 +122,38 @@ function PromotionsPage() {
         </div>
       </Block>
 
-      <Block title="Prix (max)">
-        <input type="range" min={100} max={20000} step={100} value={maxPrice} onChange={(e) => setMaxPrice(+e.target.value)} className="w-full accent-gold" />
+      <Block title="Prix">
+        <div className="space-y-3">
+          <input
+            type="range"
+            min={priceBounds.min}
+            max={priceBounds.max}
+            step={10}
+            value={selectedPriceRange[0]}
+            disabled={priceBounds.max === 0}
+            onChange={(event) => {
+              const nextMin = Math.min(Number(event.target.value), selectedPriceRange[1]);
+              setPriceRange([nextMin, selectedPriceRange[1]]);
+            }}
+            className="w-full accent-gold"
+          />
+          <input
+            type="range"
+            min={priceBounds.min}
+            max={priceBounds.max}
+            step={10}
+            value={selectedPriceRange[1]}
+            disabled={priceBounds.max === 0}
+            onChange={(event) => {
+              const nextMax = Math.max(Number(event.target.value), selectedPriceRange[0]);
+              setPriceRange([selectedPriceRange[0], nextMax]);
+            }}
+            className="w-full accent-gold"
+          />
+        </div>
         <div className="flex justify-between text-xs text-muted-foreground mt-2">
-          <span>100 DT</span><span className="text-gold font-semibold">{maxPrice} DT</span>
+          <span className="text-gold font-semibold">{selectedPriceRange[0]} DT</span>
+          <span className="text-gold font-semibold">{selectedPriceRange[1]} DT</span>
         </div>
       </Block>
     </div>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
 import {
@@ -33,11 +33,11 @@ export const Route = createFileRoute("/category/$slug")({
   },
   head: ({ params, loaderData }) => {
     const cat = loaderData?.category ?? findCategory(params.slug);
-    const title = cat ? cat.name : "Cat?gorie";
-    const fullTitle = `${title} ? Soltani Signature`;
+    const title = cat ? cat.name : "Catégorie";
+    const fullTitle = `${title} — Soltani Signature`;
     const description = cat
-      ? `D?couvrez notre s?lection ${title.toLowerCase()} chez Soltani Signature : produits authentiques, livraison rapide en Tunisie et paiement ? la livraison.`
-      : "Explorez nos cat?gories beaut?, parfums, soins, mode et lifestyle chez Soltani Signature.";
+      ? `Découvrez notre sélection ${title.toLowerCase()} chez Soltani Signature : produits authentiques, livraison rapide en Tunisie et paiement à la livraison.`
+      : "Explorez nos catégories beauté, parfums, soins, mode et lifestyle chez Soltani Signature.";
     const parent = cat?.kind === "sub" ? cat.parent : null;
     const path = `/category/${params.slug}`;
     return {
@@ -76,7 +76,7 @@ function CategoryPage() {
     brands: string[];
   };
   const [openFilters, setOpenFilters] = useState(false);
-  const [price, setPrice] = useState(20000);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
   const [brand, setBrand] = useState<string[]>([]);
   const [subFilter, setSubFilter] = useState<string | "all">("all");
   const [sort, setSort] = useState("recommended");
@@ -88,6 +88,28 @@ function CategoryPage() {
     : findParentInTree(category.parent.slug, categoryTree) ?? findParent(category.parent.slug);
 
   const baseList = useMemo(() => products, [products]);
+
+  const priceBounds = useMemo(() => {
+    if (baseList.length === 0) return { min: 0, max: 0 };
+    const prices = baseList.map((product) => product.price);
+    return {
+      min: Math.floor(Math.min(...prices) / 10) * 10,
+      max: Math.ceil(Math.max(...prices) / 10) * 10,
+    };
+  }, [baseList]);
+
+  useEffect(() => {
+    setPriceRange(([currentMin, currentMax]) => {
+      if (priceBounds.max === 0) return [0, 0];
+      if (currentMin === 0 && currentMax === 0) return [priceBounds.min, priceBounds.max];
+      return [
+        Math.max(priceBounds.min, Math.min(currentMin, priceBounds.max)),
+        Math.min(priceBounds.max, Math.max(currentMax, priceBounds.min)),
+      ];
+    });
+  }, [priceBounds.min, priceBounds.max]);
+
+  const selectedPriceRange: [number, number] = priceRange[1] === 0 && priceBounds.max > 0 ? [priceBounds.min, priceBounds.max] : priceRange;
 
   const brands = useMemo(
     () => activeBrands.filter((brandName) => baseList.some((product) => product.brand === brandName)).sort(),
@@ -107,7 +129,7 @@ function CategoryPage() {
       list = list.filter((p) => p.category === subFilter);
     }
     if (brand.length) list = list.filter((p) => brand.includes(p.brand));
-    list = list.filter((p) => p.price <= price);
+    list = list.filter((p) => p.price >= selectedPriceRange[0] && p.price <= selectedPriceRange[1]);
     // Filtres dynamiques
     for (const [key, vals] of Object.entries(facetSel)) {
       if (!vals.length) continue;
@@ -120,7 +142,7 @@ function CategoryPage() {
     if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [baseList, brand, price, sort, subFilter, isParent, facetSel]);
+  }, [baseList, brand, selectedPriceRange, sort, subFilter, isParent, facetSel]);
 
   const toggleBrand = (b: string) =>
     setBrand((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]));
@@ -135,14 +157,13 @@ function CategoryPage() {
   const resetFacets = () => {
     setFacetSel({});
     setBrand([]);
-    setPrice(maxBound);
+    setPriceRange([priceBounds.min, priceBounds.max]);
   };
 
-  const maxBound = Math.max(20000, ...baseList.map((p) => p.price));
   const activeCount =
     brand.length +
     Object.values(facetSel).reduce((a, v) => a + v.length, 0) +
-    (price < maxBound ? 1 : 0);
+    (selectedPriceRange[0] > priceBounds.min || selectedPriceRange[1] < priceBounds.max ? 1 : 0);
 
   const Filters = (
     <div className="space-y-8">
@@ -175,10 +196,38 @@ function CategoryPage() {
         </FilterBlock>
       )}
 
-      <FilterBlock title="Prix (max)">
-        <input type="range" min={50} max={maxBound} step={50} value={price} onChange={(e) => setPrice(+e.target.value)} className="w-full accent-gold" />
+      <FilterBlock title="Prix">
+        <div className="space-y-3">
+          <input
+            type="range"
+            min={priceBounds.min}
+            max={priceBounds.max}
+            step={10}
+            value={selectedPriceRange[0]}
+            disabled={priceBounds.max === 0}
+            onChange={(event) => {
+              const nextMin = Math.min(Number(event.target.value), selectedPriceRange[1]);
+              setPriceRange([nextMin, selectedPriceRange[1]]);
+            }}
+            className="w-full accent-gold"
+          />
+          <input
+            type="range"
+            min={priceBounds.min}
+            max={priceBounds.max}
+            step={10}
+            value={selectedPriceRange[1]}
+            disabled={priceBounds.max === 0}
+            onChange={(event) => {
+              const nextMax = Math.max(Number(event.target.value), selectedPriceRange[0]);
+              setPriceRange([selectedPriceRange[0], nextMax]);
+            }}
+            className="w-full accent-gold"
+          />
+        </div>
         <div className="flex justify-between text-xs text-muted-foreground mt-2">
-          <span>50 DT</span><span className="text-gold font-semibold">{price} DT</span>
+          <span className="text-gold font-semibold">{selectedPriceRange[0]} DT</span>
+          <span className="text-gold font-semibold">{selectedPriceRange[1]} DT</span>
         </div>
       </FilterBlock>
 

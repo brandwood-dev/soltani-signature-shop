@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -141,6 +141,30 @@ function ProductPage() {
     });
   };
 
+  const handleBuyNow = async () => {
+    if (!product.variantId) return;
+    add(
+      { id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty },
+      { openDrawer: false },
+    );
+    trackMetaPixelEvent("AddToCart", {
+      content_ids: [product.variantId],
+      content_name: product.name,
+      content_type: "product",
+      contents: [{ id: product.variantId, quantity: qty, item_price: product.price }],
+      value: product.price * qty,
+      currency: "TND",
+    });
+    trackMetaPixelEvent("InitiateCheckout", {
+      content_ids: [product.variantId],
+      content_name: product.name,
+      content_type: "product",
+      contents: [{ id: product.variantId, quantity: qty, item_price: product.price }],
+      value: product.price * qty,
+      currency: "TND",
+    });
+    await navigate({ to: "/checkout" });
+  };
   const handleShare = async () => {
     const url = window.location.href;
     try {
@@ -269,9 +293,9 @@ function ProductPage() {
             </button>
           </div>
           {shareMessage && <p className="mb-3 text-xs text-gold">{shareMessage}</p>}
-          <Link to="/checkout" className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight">
+          <button type="button" onClick={handleBuyNow} className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight">
             <span className="text-center">Acheter maintenant — Paiement à la livraison</span>
-          </Link>
+          </button>
 
           <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-border">
             {[{ I: Truck, t: "Livraison gratuite", s: "Dès 300 DT" }, { I: RotateCcw, t: "Retours 14j", s: "Sans frais" }, { I: Shield, t: "Authentique", s: "100% garanti" }].map(({ I, t, s }) => (
@@ -597,4 +621,3 @@ function formatSpecLabel(value: string) {
     .trim()
     .replace(/^./, (firstLetter) => firstLetter.toUpperCase());
 }
-

@@ -116,7 +116,7 @@ export function useCart() {
     void persistRemote([]).catch(() => undefined);
   }, []);
 
-  const add = useCallback((item: Omit<CartLine, "qty"> & { qty?: number }) => {
+  const add = useCallback((item: Omit<CartLine, "qty"> & { qty?: number }, options: { openDrawer?: boolean } = {}) => {
     const current = read();
     const qty = item.qty ?? 1;
     const idx = current.findIndex((line) => line.variantId === item.variantId);
@@ -127,7 +127,7 @@ export function useCart() {
 
     write(next);
     void persistRemote(next).catch(() => undefined);
-    openCartDrawer();
+    if (options.openDrawer !== false) openCartDrawer();
   }, []);
 
   const count = lines.reduce((sum, line) => sum + line.qty, 0);
