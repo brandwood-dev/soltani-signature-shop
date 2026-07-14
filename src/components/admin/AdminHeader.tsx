@@ -1,10 +1,12 @@
 ﻿import { Bell, Search } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAdminNotifications } from "@/components/admin/AdminNotificationsProvider";
+import { markAdminRouteVisible } from "@/lib/admin-performance";
 
 type Props = {
   title: string;
@@ -15,6 +17,10 @@ type Props = {
 export function AdminHeader({ title, subtitle, actions }: Props) {
   const { unread } = useAdminNotifications();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    markAdminRouteVisible(title);
+  }, [title]);
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">

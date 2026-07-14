@@ -30,6 +30,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOutAdmin } from "@/lib/admin/auth";
+import { markAdminNavigationStart } from "@/lib/admin-performance";
 
 const mainItems = [
   { title: "Tableau de bord", url: "/admin", icon: LayoutDashboard, exact: true },
@@ -61,7 +62,8 @@ export function AdminSidebar() {
   const isActive = (url: string, exact?: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(url + "/");
 
-  const handleNav = () => {
+  const handleNav = (url?: string) => {
+    if (url) markAdminNavigationStart(url);
     if (isMobile) setOpenMobile(false);
   };
 
@@ -74,7 +76,7 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border/60">
       <SidebarHeader className="border-b border-border/60">
-        <Link to="/admin" preload="intent" onClick={handleNav} className="flex items-center gap-2 px-2 py-2">
+        <Link to="/admin" preload="intent" onClick={() => handleNav("/admin")} className="flex items-center gap-2 px-2 py-2">
           <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-foreground text-background">
             <Store className="h-4 w-4" />
           </div>
@@ -101,7 +103,7 @@ export function AdminSidebar() {
                     isActive={isActive(item.url, item.exact)}
                     tooltip={item.title}
                   >
-                    <Link to={item.url} preload="intent" onClick={handleNav}>
+                    <Link to={item.url} preload="intent" onClick={() => handleNav(item.url)}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -119,7 +121,7 @@ export function AdminSidebar() {
               {contentItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url} preload="intent" onClick={handleNav}>
+                    <Link to={item.url} preload="intent" onClick={() => handleNav(item.url)}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -136,7 +138,7 @@ export function AdminSidebar() {
           {footerItems.map((item) => (
             <SidebarMenuItem key={item.url}>
               <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                <Link to={item.url} preload="intent" onClick={handleNav}>
+                <Link to={item.url} preload="intent" onClick={() => handleNav(item.url)}>
                   <item.icon className="h-4 w-4" />
                   <span>{item.title}</span>
                 </Link>

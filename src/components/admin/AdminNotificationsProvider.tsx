@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -17,11 +16,13 @@ const AdminNotificationsContext = createContext<AdminNotificationsContextValue |
 
 const NOTIFICATIONS_QUERY_KEY = ["admin-notifications-summary"];
 const POLL_INTERVAL_MS = 300_000;
+const INITIAL_LOAD_DELAY_MS = 1_200;
 
 export function AdminNotificationsProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const seenIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
+  const [ready, setReady] = useState(false);
   const [isVisible, setIsVisible] = useState(() => (
     typeof document === "undefined" ? true : document.visibilityState === "visible"
   ));
@@ -29,8 +30,9 @@ export function AdminNotificationsProvider({ children }: { children: React.React
   const summaryQuery = useQuery({
     queryKey: NOTIFICATIONS_QUERY_KEY,
     queryFn: getAdminNotificationsSummary,
+    enabled: ready && isVisible,
     staleTime: 60_000,
-    refetchInterval: isVisible ? POLL_INTERVAL_MS : false,
+    refetchInterval: ready && isVisible ? POLL_INTERVAL_MS : false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
@@ -42,6 +44,11 @@ export function AdminNotificationsProvider({ children }: { children: React.React
       staleTime: 0,
     });
   };
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setReady(true), INITIAL_LOAD_DELAY_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -61,10 +68,10 @@ export function AdminNotificationsProvider({ children }: { children: React.React
     summaryQuery.data.notifications.forEach((notification) => seenIds.current.add(notification.id));
 
     if (initialized.current) {
-      incoming
-        .filter((notification) => !notification.isRead)
-        .reverse()
-        .forEach((notification) => {
+      const unreadIncoming = incoming.filter((notification) => !notification.isRead).reverse();
+      if (unreadIncoming.length > 0) {
+        void import("sonner").then(({ toast }) => {
+          unreadIncoming.forEach((notification) => {
           toast(notification.title, {
             description: notification.message,
             action: {
@@ -75,6 +82,8 @@ export function AdminNotificationsProvider({ children }: { children: React.React
             },
           });
         });
+        });
+      }
     }
 
     initialized.current = true;
