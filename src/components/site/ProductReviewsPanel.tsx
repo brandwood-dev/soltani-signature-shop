@@ -28,7 +28,11 @@ export function ProductReviewsPanel({ slug, onSummaryChange }: Props) {
   const [error, setError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [myReviewId, setMyReviewId] = useState<string | null>(null);
-  const [form, setForm] = useState({ rating: 5, title: "", content: "" });
+  const [form, setForm] = useState<{ rating: number | null; title: string; content: string }>({
+    rating: null,
+    title: "",
+    content: "",
+  });
   const [saving, setSaving] = useState(false);
   const [formMessage, setFormMessage] = useState("");
 
@@ -82,6 +86,11 @@ export function ProductReviewsPanel({ slug, onSummaryChange }: Props) {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!form.rating || form.rating < 1 || form.rating > 5) {
+      setFormMessage("Veuillez choisir une note entre 1 et 5 étoiles.");
+      return;
+    }
+
     if (!form.content.trim()) {
       setFormMessage("Votre avis ne peut pas être vide.");
       return;
@@ -116,7 +125,7 @@ export function ProductReviewsPanel({ slug, onSummaryChange }: Props) {
     try {
       await deleteProductReview(slug, myReviewId);
       setMyReviewId(null);
-      setForm({ rating: 5, title: "", content: "" });
+      setForm({ rating: null, title: "", content: "" });
       setFormMessage("Votre avis a été supprimé.");
       await loadReviews(1);
       setPage(1);
@@ -142,18 +151,13 @@ export function ProductReviewsPanel({ slug, onSummaryChange }: Props) {
       {isAuthenticated ? (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-sm border border-border p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <label className="text-sm font-semibold">Votre note</label>
-            <select
+            <span id="product-review-rating-label" className="text-sm font-semibold">
+              Votre note
+            </span>
+            <StarRatingInput
               value={form.rating}
-              onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-              className="h-10 rounded-sm border border-border bg-background px-3 text-sm"
-            >
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <option key={rating} value={rating}>
-                  {rating} étoile{rating > 1 ? "s" : ""}
-                </option>
-              ))}
-            </select>
+              onChange={(rating) => setForm((current) => ({ ...current, rating }))}
+            />
           </div>
           <input
             value={form.title}
@@ -251,6 +255,56 @@ function StarRating({ value }: { value: number }) {
       {Array.from({ length: 5 }).map((_, index) => (
         <Star key={index} className={`h-4 w-4 ${index < value ? "fill-gold text-gold" : "text-muted-foreground"}`} />
       ))}
+    </div>
+  );
+}
+
+function StarRatingInput({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (value: number) => void;
+}) {
+  const setNextRating = (nextValue: number) => {
+    onChange(Math.min(5, Math.max(1, nextValue)));
+  };
+
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby="product-review-rating-label"
+      className="flex items-center gap-1"
+    >
+      {Array.from({ length: 5 }).map((_, index) => {
+        const rating = index + 1;
+        const selected = value === rating;
+        const filled = value !== null && rating <= value;
+
+        return (
+          <button
+            key={rating}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={`${rating} étoile${rating > 1 ? "s" : ""}`}
+            onClick={() => setNextRating(rating)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+                event.preventDefault();
+                setNextRating((value ?? 0) + 1);
+              }
+              if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+                event.preventDefault();
+                setNextRating((value ?? 2) - 1);
+              }
+            }}
+            className="rounded-sm p-1 text-muted-foreground transition hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <Star className={`h-7 w-7 ${filled ? "fill-gold text-gold" : ""}`} />
+          </button>
+        );
+      })}
     </div>
   );
 }

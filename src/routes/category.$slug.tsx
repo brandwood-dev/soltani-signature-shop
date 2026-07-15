@@ -166,15 +166,15 @@ function CategoryPage() {
     Object.values(facetSel).reduce((a, v) => a + v.length, 0) +
     (selectedPriceRange[0] > priceBounds.min || selectedPriceRange[1] < priceBounds.max ? 1 : 0);
 
-  const Filters = (
-    <div className="space-y-8">
+  const renderFilters = (isMobile = false) => (
+    <div className={`space-y-8 ${isMobile ? "pb-[calc(5.5rem+env(safe-area-inset-bottom))]" : ""}`}>
       {isParent && parent && parent.subs.length > 0 && (
         <FilterBlock title="Sous-catégorie">
           <div className="space-y-2.5">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="radio"
-                name="sub"
+                name={isMobile ? "mobile-sub" : "desktop-sub"}
                 checked={subFilter === "all"}
                 onChange={() => setSubFilter("all")}
                 className="accent-gold"
@@ -185,7 +185,7 @@ function CategoryPage() {
               <label key={s.slug} className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="radio"
-                  name="sub"
+                  name={isMobile ? "mobile-sub" : "desktop-sub"}
                   checked={subFilter === s.slug}
                   onChange={() => setSubFilter(s.slug)}
                   className="accent-gold"
@@ -238,13 +238,35 @@ function CategoryPage() {
         </FilterBlock>
       ))}
 
-      {activeCount > 0 && (
+      {!isMobile && activeCount > 0 && (
         <button
           onClick={resetFacets}
           className="w-full h-10 text-[11px] uppercase tracking-[0.25em] border border-gold/40 text-gold hover:bg-gold hover:text-ink transition rounded-sm"
         >
           Réinitialiser ({activeCount})
         </button>
+      )}
+
+      {isMobile && (
+        <div className="sticky bottom-0 z-10 -mx-6 mt-8 border-t border-border bg-background/95 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={resetFacets}
+              disabled={activeCount === 0}
+              className="h-11 rounded-sm border border-gold/40 text-[11px] font-bold uppercase tracking-[0.2em] text-gold transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              RÃ©initialiser
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpenFilters(false)}
+              className="h-11 rounded-sm bg-gold text-[11px] font-bold uppercase tracking-[0.2em] text-ink transition hover:bg-ink hover:text-gold"
+            >
+              Appliquer
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -293,7 +315,7 @@ function CategoryPage() {
       )}
 
       <div className="container-luxe pb-24 grid lg:grid-cols-[260px_1fr] gap-10">
-        <aside className="hidden lg:block">{Filters}</aside>
+        <aside className="hidden lg:block">{renderFilters()}</aside>
 
         <div>
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
@@ -319,14 +341,14 @@ function CategoryPage() {
       </div>
 
       {openFilters && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[80] lg:hidden">
           <div className="absolute inset-0 bg-ink/70" onClick={() => setOpenFilters(false)} />
-          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-background p-6 overflow-y-auto">
+          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-background p-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-display text-xl font-bold">Filtres</h3>
               <button onClick={() => setOpenFilters(false)}><X className="h-5 w-5" /></button>
             </div>
-            {Filters}
+            {renderFilters(true)}
           </div>
         </div>
       )}
