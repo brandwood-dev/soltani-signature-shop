@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   TrendingUp,
@@ -91,26 +91,54 @@ function AdminDashboard() {
     .find(Boolean);
   const errorMessage = error instanceof Error ? error.message : "";
   const hasRevenueSeries = series.some((point) => point.value > 0);
-  const chartWidth = Math.max(520, series.length * 56);
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const [chartContainerWidth, setChartContainerWidth] = useState(0);
+  const [activeChartPoint, setActiveChartPoint] = useState<{
+    date: string;
+    day: string;
+    value: number;
+    x: number;
+    y: number;
+    fullDate: string;
+  } | null>(null);
+  const chartWidth = Math.max(320, chartContainerWidth || 720);
   const chartHeight = 220;
   const chartPadding = { top: 16, right: 18, bottom: 36, left: 58 };
   const chartMax = Math.max(...series.map((point) => point.value), 1);
   const chartBottom = chartHeight - chartPadding.bottom;
-  const chartPoints = series.map((point, index) => {
-    const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
-    const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
+  const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
+  const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
+  const maxXAxisLabels = Math.max(2, Math.floor(plotWidth / 86));
+  const labelStep = Math.max(1, Math.ceil(series.length / maxXAxisLabels));
+  const chartPoints = useMemo(() => series.map((point, index) => {
     const x =
       chartPadding.left +
       (series.length <= 1 ? plotWidth / 2 : (index / (series.length - 1)) * plotWidth);
     const y = chartPadding.top + (1 - point.value / chartMax) * plotHeight;
-    return { ...point, x, y };
-  });
+    const fullDate = new Date(point.date).toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    return { ...point, x, y, fullDate };
+  }), [chartMax, plotHeight, plotWidth, series]);
+  const shouldShowXAxisLabel = (index: number) =>
+    index === 0 || index === chartPoints.length - 1 || index % labelStep === 0;
   const linePath = chartPoints
     .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
     .join(" ");
   const areaPath = chartPoints.length
     ? `${linePath} L ${chartPoints[chartPoints.length - 1].x} ${chartBottom} L ${chartPoints[0].x} ${chartBottom} Z`
     : "";
+  const tooltipWidth = 150;
+  const tooltipHeight = 52;
+  const tooltipX = activeChartPoint
+    ? Math.min(Math.max(activeChartPoint.x - tooltipWidth / 2, chartPadding.left), chartWidth - tooltipWidth - chartPadding.right)
+    : 0;
+  const tooltipY = activeChartPoint
+    ? Math.max(chartPadding.top, activeChartPoint.y - tooltipHeight - 10)
+    : 0;
 
   useEffect(() => {
     if (typeof performance === "undefined") return;
@@ -121,6 +149,16 @@ function AdminDashboard() {
     } catch {
       // Ignore unsupported Performance API cases without affecting the admin UI.
     }
+  }, []);
+
+  useEffect(() => {
+    const element = chartContainerRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      setChartContainerWidth(Math.round(entry.contentRect.width));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
   const cards = [
     {
@@ -215,7 +253,7 @@ function AdminDashboard() {
               <span className="text-xs text-muted-foreground">DT</span>
             </CardHeader>
             <CardContent>
-              <div className="min-h-[220px] overflow-x-auto">
+              <div ref={chartContainerRef} className="min-h-[220px] w-full overflow-hidden">
                 {revenueLoading ? (
                   <div className="flex h-[220px] w-full items-center justify-center rounded-md bg-muted/30 text-sm text-muted-foreground">
                     Chargement du graphique...
@@ -225,17 +263,21 @@ function AdminDashboard() {
                     Impossible de charger les donnees du graphique.
                   </div>
                 ) : !series.length || !hasRevenueSeries ? (
-                  <div className="flex h-[220px] w-full items-center justify-center rounded-md bg-muted/30 px-4 text-center text-sm text-muted-foreground">
-                    Aucune donnee de revenu sur cette periode.
+                  <div className="flex h-[220px] w-full flex-col items-center justify-center rounded-md bg-muted/30 px-4 text-center">
+                    <p className="text-sm font-medium text-foreground">Aucun revenu livré sur cette période.</p>
+                    <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                      Le graphique se remplira dès qu'une commande livrée existe dans la plage sélectionnée.
+                    </p>
                   </div>
                 ) : (
                   <svg
-                    width={chartWidth}
+                    width="100%"
                     height={chartHeight}
                     viewBox={`0 0 ${chartWidth} ${chartHeight}`}
                     role="img"
                     aria-label={`Chiffre d'affaires livre pour ${period.label}`}
-                    className="min-w-full"
+                    className="block w-full"
+                    onMouseLeave={() => setActiveChartPoint(null)}
                   >
                     <defs>
                       <linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1">
@@ -277,27 +319,71 @@ function AdminDashboard() {
                       strokeLinejoin="round"
                       strokeWidth="3"
                     />
-                    {chartPoints.map((point) => (
-                      <g key={point.date}>
+                    {chartPoints.map((point, index) => (
+                      <rect
+                        key={`hit-${point.date}`}
+                        x={Math.max(chartPadding.left, point.x - Math.max(8, plotWidth / Math.max(chartPoints.length, 1) / 2))}
+                        y={chartPadding.top}
+                        width={Math.max(12, plotWidth / Math.max(chartPoints.length - 1, 1))}
+                        height={chartBottom - chartPadding.top}
+                        fill="transparent"
+                        onMouseEnter={() => setActiveChartPoint(point)}
+                        onFocus={() => setActiveChartPoint(point)}
+                        onClick={() => setActiveChartPoint(point)}
+                        tabIndex={0}
+                        aria-label={`${point.fullDate}: ${formatTND(point.value)}`}
+                      />
+                    ))}
+                    {chartPoints.map((point, index) => (
+                      <g key={point.date} pointerEvents="none">
                         <circle
                           cx={point.x}
                           cy={point.y}
-                          r="4"
+                          r={point.value > 0 || shouldShowXAxisLabel(index) ? "3.5" : "2"}
                           className="fill-background stroke-primary"
                           strokeWidth="2.5"
                         >
-                          <title>{`${point.day} - ${formatTND(point.value)}`}</title>
+                          <title>{`${point.fullDate} - ${formatTND(point.value)}`}</title>
                         </circle>
-                        <text
-                          x={point.x}
-                          y={chartHeight - 10}
-                          textAnchor="middle"
-                          className="fill-muted-foreground text-[10px] font-medium"
-                        >
-                          {point.day}
-                        </text>
+                        {shouldShowXAxisLabel(index) && (
+                          <text
+                            x={point.x}
+                            y={chartHeight - 10}
+                            textAnchor={index === 0 ? "start" : index === chartPoints.length - 1 ? "end" : "middle"}
+                            className="fill-muted-foreground text-[10px] font-medium"
+                          >
+                            {point.day}
+                          </text>
+                        )}
                       </g>
                     ))}
+                    {activeChartPoint && (
+                      <g pointerEvents="none">
+                        <line
+                          x1={activeChartPoint.x}
+                          x2={activeChartPoint.x}
+                          y1={chartPadding.top}
+                          y2={chartBottom}
+                          stroke="hsl(var(--primary))"
+                          strokeDasharray="3 3"
+                          strokeOpacity="0.35"
+                        />
+                        <rect
+                          x={tooltipX}
+                          y={tooltipY}
+                          width={tooltipWidth}
+                          height={tooltipHeight}
+                          rx="8"
+                          className="fill-popover stroke-border"
+                        />
+                        <text x={tooltipX + 10} y={tooltipY + 20} className="fill-muted-foreground text-[10px] capitalize">
+                          {activeChartPoint.fullDate}
+                        </text>
+                        <text x={tooltipX + 10} y={tooltipY + 40} className="fill-foreground text-[12px] font-semibold">
+                          {formatTND(activeChartPoint.value)}
+                        </text>
+                      </g>
+                    )}
                   </svg>
                 )}
               </div>
