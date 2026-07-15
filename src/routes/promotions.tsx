@@ -141,7 +141,7 @@ function PromotionsPage() {
     (effectivePriceRange[0] > priceBounds.min || effectivePriceRange[1] < priceBounds.max ? 1 : 0);
 
   const renderFilters = (scope: string, isMobile = false) => (
-    <div className="space-y-8">
+    <div className={`space-y-8 ${isMobile ? "pb-[calc(5.5rem+env(safe-area-inset-bottom))]" : ""}`}>
       <Block title="Marque">
         <div className="space-y-2.5">
           {brands.map((b) => (
@@ -197,7 +197,7 @@ function PromotionsPage() {
       </Block>
 
       {isMobile && (
-        <div className="sticky bottom-0 -mx-6 mt-8 border-t border-border bg-background/95 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur">
+        <div className="sticky bottom-0 z-10 -mx-6 mt-8 border-t border-border bg-background/95 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur">
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -307,9 +307,9 @@ function PromotionsPage() {
       </div>
 
       {openFilters && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[80] lg:hidden">
           <div className="absolute inset-0 bg-ink/70" onClick={() => setOpenFilters(false)} />
-          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-background p-6 overflow-y-auto">
+          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-background p-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-display text-xl font-bold">Filtres</h3>
               <button onClick={() => setOpenFilters(false)} aria-label="Fermer">
