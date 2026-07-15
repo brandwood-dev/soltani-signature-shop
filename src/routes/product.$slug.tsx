@@ -305,7 +305,7 @@ function ProductPage() {
           </button>
 
           <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-border">
-            {[{ I: Truck, t: "Livraison gratuite", s: "Dès 300 DT" }, { I: RotateCcw, t: "Retours 14j", s: "Sans frais" }, { I: Shield, t: "Authentique", s: "100% garanti" }].map(({ I, t, s }) => (
+            {[{ I: Truck, t: "Livraison express", s: "Partout en Tunisie" }, { I: RotateCcw, t: "Retours 14j", s: "Sans frais" }, { I: Shield, t: "Authentique", s: "100% garanti" }].map(({ I, t, s }) => (
               <div key={t} className="text-center">
                 <I className="h-5 w-5 mx-auto text-gold mb-2" />
                 <p className="text-xs font-semibold">{t}</p>
