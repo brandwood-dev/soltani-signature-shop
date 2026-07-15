@@ -140,8 +140,8 @@ function PromotionsPage() {
     (minDiscount > 0 ? 1 : 0) +
     (effectivePriceRange[0] > priceBounds.min || effectivePriceRange[1] < priceBounds.max ? 1 : 0);
 
-  const renderFilters = (scope: string, isMobile = false) => (
-    <div className={`space-y-8 ${isMobile ? "pb-[calc(5.5rem+env(safe-area-inset-bottom))]" : ""}`}>
+  const renderFilters = (scope: string) => (
+    <div className="space-y-8">
       <Block title="Marque">
         <div className="space-y-2.5">
           {brands.map((b) => (
@@ -195,28 +195,6 @@ function PromotionsPage() {
           onChange={setPriceRange}
         />
       </Block>
-
-      {isMobile && (
-        <div className="sticky bottom-0 z-10 -mx-6 mt-8 border-t border-border bg-background/95 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur">
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={resetFilters}
-              disabled={activeCount === 0}
-              className="h-11 rounded-sm border border-gold/40 text-[11px] font-bold uppercase tracking-[0.2em] text-gold transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Réinitialiser
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpenFilters(false)}
-              className="h-11 rounded-sm bg-gold text-[11px] font-bold uppercase tracking-[0.2em] text-ink transition hover:bg-ink hover:text-gold"
-            >
-              Appliquer
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -309,14 +287,37 @@ function PromotionsPage() {
       {openFilters && (
         <div className="fixed inset-0 z-[80] lg:hidden">
           <div className="absolute inset-0 bg-ink/70" onClick={() => setOpenFilters(false)} />
-          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-background p-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
-            <div className="flex items-center justify-between mb-6">
+          <div className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col overflow-hidden bg-background">
+            <div className="shrink-0 border-b border-border bg-background px-6 py-5">
+              <div className="flex items-center justify-between">
               <h3 className="font-display text-xl font-bold">Filtres</h3>
               <button onClick={() => setOpenFilters(false)} aria-label="Fermer">
                 <X className="h-5 w-5" />
               </button>
+              </div>
             </div>
-            {allPromos.length > 0 ? renderFilters("mobile", true) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
+              {allPromos.length > 0 ? renderFilters("mobile") : null}
+            </div>
+            <div className="shrink-0 border-t border-border bg-background px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  disabled={activeCount === 0}
+                  className="h-11 rounded-sm border border-gold/40 text-[10px] font-bold uppercase tracking-[0.16em] text-gold transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Réinitialiser
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenFilters(false)}
+                  className="h-11 rounded-sm bg-gold text-[10px] font-bold uppercase tracking-[0.16em] text-ink transition hover:bg-ink hover:text-gold"
+                >
+                  Appliquer
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
