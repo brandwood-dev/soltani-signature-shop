@@ -53,8 +53,69 @@ export type CategoryAttributeInput = {
   sortOrder?: number;
 };
 
+type AttributeDefinitionsResponse = AttributeDefinition[] | { definitions?: AttributeDefinition[] };
+type CategoryAttributesResponse = CategoryAttribute[] | { attributes?: CategoryAttribute[] };
+
+const ATTRIBUTE_TYPES: AttributeType[] = ["TEXT", "NUMBER", "BOOLEAN", "SELECT", "MULTI_SELECT"];
+
+function isAttributeType(value: unknown): value is AttributeType {
+  return typeof value === "string" && ATTRIBUTE_TYPES.includes(value as AttributeType);
+}
+
+function normalizeOption(option: Partial<AttributeOption> | null | undefined): AttributeOption {
+  return {
+    id: String(option?.id ?? ""),
+    definitionId: String(option?.definitionId ?? ""),
+    value: String(option?.value ?? ""),
+    label: String(option?.label ?? option?.value ?? ""),
+    sortOrder: Number(option?.sortOrder ?? 0),
+    isActive: option?.isActive ?? true,
+  };
+}
+
+function normalizeDefinition(
+  definition: Partial<AttributeDefinition> | null | undefined,
+): AttributeDefinition {
+  return {
+    id: String(definition?.id ?? ""),
+    key: String(definition?.key ?? ""),
+    label: String(definition?.label ?? definition?.key ?? ""),
+    type: isAttributeType(definition?.type) ? definition.type : "TEXT",
+    sortOrder: Number(definition?.sortOrder ?? 0),
+    isActive: definition?.isActive ?? true,
+    options: Array.isArray(definition?.options) ? definition.options.map(normalizeOption) : [],
+  };
+}
+
+function normalizeCategoryAttribute(
+  association: Partial<CategoryAttribute> | null | undefined,
+): CategoryAttribute {
+  const definition = normalizeDefinition(association?.attributeDefinition);
+
+  return {
+    id: String(association?.id ?? ""),
+    categoryId: String(association?.categoryId ?? ""),
+    attributeDefinitionId: String(association?.attributeDefinitionId ?? definition.id),
+    required: association?.required ?? false,
+    filterable: association?.filterable ?? true,
+    sortOrder: Number(association?.sortOrder ?? 0),
+    attributeDefinition: definition,
+  };
+}
+
+function normalizeDefinitions(response: AttributeDefinitionsResponse) {
+  const definitions = Array.isArray(response) ? response : response.definitions;
+  return Array.isArray(definitions) ? definitions.map(normalizeDefinition) : [];
+}
+
+function normalizeCategoryAttributes(response: CategoryAttributesResponse) {
+  const attributes = Array.isArray(response) ? response : response.attributes;
+  return Array.isArray(attributes) ? attributes.map(normalizeCategoryAttribute) : [];
+}
+
 export async function getAdminAttributeDefinitions() {
-  return apiFetch<AttributeDefinition[]>("/admin/attributes");
+  const response = await apiFetch<AttributeDefinitionsResponse>("/admin/attributes");
+  return normalizeDefinitions(response);
 }
 
 export async function createAdminAttributeDefinition(input: AttributeDefinitionInput) {
@@ -62,7 +123,7 @@ export async function createAdminAttributeDefinition(input: AttributeDefinitionI
     method: "POST",
     body: JSON.stringify(input),
   });
-  return response.definition;
+  return normalizeDefinition(response.definition);
 }
 
 export async function updateAdminAttributeDefinition(
@@ -73,7 +134,7 @@ export async function updateAdminAttributeDefinition(
     method: "PATCH",
     body: JSON.stringify(input),
   });
-  return response.definition;
+  return normalizeDefinition(response.definition);
 }
 
 export async function toggleAdminAttributeDefinition(id: string) {
@@ -83,7 +144,7 @@ export async function toggleAdminAttributeDefinition(id: string) {
       method: "PATCH",
     },
   );
-  return response.definition;
+  return normalizeDefinition(response.definition);
 }
 
 export async function deleteAdminAttributeDefinition(id: string) {
@@ -98,7 +159,7 @@ export async function reorderAdminAttributeDefinitions(ids: string[]) {
       body: JSON.stringify({ ids }),
     },
   );
-  return response.definitions;
+  return normalizeDefinitions(response);
 }
 
 export async function createAdminAttributeOption(
@@ -112,7 +173,7 @@ export async function createAdminAttributeOption(
       body: JSON.stringify(input),
     },
   );
-  return response.option;
+  return normalizeOption(response.option);
 }
 
 export async function updateAdminAttributeOption(
@@ -127,7 +188,7 @@ export async function updateAdminAttributeOption(
       body: JSON.stringify(input),
     },
   );
-  return response.option;
+  return normalizeOption(response.option);
 }
 
 export async function toggleAdminAttributeOption(definitionId: string, optionId: string) {
@@ -135,7 +196,7 @@ export async function toggleAdminAttributeOption(definitionId: string, optionId:
     `/admin/attributes/${definitionId}/options/${optionId}/toggle`,
     { method: "PATCH" },
   );
-  return response.option;
+  return normalizeOption(response.option);
 }
 
 export async function deleteAdminAttributeOption(definitionId: string, optionId: string) {
@@ -152,11 +213,14 @@ export async function reorderAdminAttributeOptions(definitionId: string, ids: st
       body: JSON.stringify({ ids }),
     },
   );
-  return response.definitions;
+  return normalizeDefinitions(response);
 }
 
 export async function getAdminCategoryAttributes(categoryId: string) {
-  return apiFetch<CategoryAttribute[]>(`/admin/categories/${categoryId}/attributes`);
+  const response = await apiFetch<CategoryAttributesResponse>(
+    `/admin/categories/${categoryId}/attributes`,
+  );
+  return normalizeCategoryAttributes(response);
 }
 
 export async function assignAdminCategoryAttribute(
@@ -170,7 +234,7 @@ export async function assignAdminCategoryAttribute(
       body: JSON.stringify(input),
     },
   );
-  return response.association;
+  return normalizeCategoryAttribute(response.association);
 }
 
 export async function updateAdminCategoryAttribute(
@@ -185,7 +249,7 @@ export async function updateAdminCategoryAttribute(
       body: JSON.stringify(input),
     },
   );
-  return response.association;
+  return normalizeCategoryAttribute(response.association);
 }
 
 export async function deleteAdminCategoryAttribute(categoryId: string, associationId: string) {
@@ -205,9 +269,12 @@ export async function reorderAdminCategoryAttributes(categoryId: string, ids: st
       body: JSON.stringify({ ids }),
     },
   );
-  return response.attributes;
+  return normalizeCategoryAttributes(response);
 }
 
 export async function getCatalogCategoryAttributes(slug: string) {
-  return publicApiFetch<CategoryAttribute[]>(`/catalog/categories/${slug}/attributes`);
+  const response = await publicApiFetch<CategoryAttributesResponse>(
+    `/catalog/categories/${slug}/attributes`,
+  );
+  return normalizeCategoryAttributes(response);
 }
