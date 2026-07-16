@@ -28,6 +28,22 @@ type ApiProduct = {
   };
 };
 
+type ApiBrandFacet = { name: string; slug: string };
+
+type ApiCatalogProductsPage = {
+  products: ApiProduct[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  facets: {
+    price: { min: string | number; max: string | number };
+    brands: ApiBrandFacet[];
+  };
+};
+
 export type CreateCodOrderInput = {
   customerEmail: string;
   shippingAddress: {
@@ -155,6 +171,7 @@ export async function getCatalogProducts(params: {
   summary?: boolean;
   featured?: boolean;
   bestSeller?: boolean;
+  promotion?: boolean;
 } = {}) {
   const search = new URLSearchParams();
   if (params.category) search.set("category", params.category);
@@ -164,9 +181,70 @@ export async function getCatalogProducts(params: {
   if (params.summary) search.set("summary", "1");
   if (params.featured) search.set("featured", "1");
   if (params.bestSeller) search.set("bestSeller", "1");
+  if (params.promotion) search.set("promotion", "1");
 
   const products = await publicApiFetch<ApiProduct[]>(`/catalog/products${search.size ? `?${search}` : ""}`);
   return products.map(mapApiProduct);
+}
+
+export type CatalogProductsQuery = {
+  category?: string;
+  query?: string;
+  section?: string;
+  featured?: boolean;
+  bestSeller?: boolean;
+  promotion?: boolean;
+  brands?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  minDiscount?: number;
+  sort?: string;
+  page?: number;
+  pageSize?: number;
+  attributes?: Record<string, string[]>;
+};
+
+export type CatalogProductsPage = {
+  products: Product[];
+  pagination: ApiCatalogProductsPage["pagination"];
+  facets: {
+    price: { min: number; max: number };
+    brands: ApiBrandFacet[];
+  };
+};
+
+export async function getCatalogProductsPage(params: CatalogProductsQuery = {}): Promise<CatalogProductsPage> {
+  const search = new URLSearchParams();
+  if (params.category) search.set("category", params.category);
+  if (params.query) search.set("q", params.query);
+  if (params.section) search.set("section", params.section);
+  if (params.featured) search.set("featured", "1");
+  if (params.bestSeller) search.set("bestSeller", "1");
+  if (params.promotion) search.set("promotion", "1");
+  if (params.brands?.length) search.set("brand", params.brands.join(","));
+  if (Number.isFinite(params.minPrice)) search.set("minPrice", String(params.minPrice));
+  if (Number.isFinite(params.maxPrice)) search.set("maxPrice", String(params.maxPrice));
+  if (Number.isFinite(params.minDiscount)) search.set("minDiscount", String(params.minDiscount));
+  if (params.sort) search.set("sort", params.sort);
+  search.set("page", String(params.page ?? 1));
+  search.set("pageSize", String(params.pageSize ?? 24));
+  search.set("summary", "1");
+  if (params.attributes && Object.keys(params.attributes).length) {
+    search.set("attributes", JSON.stringify(params.attributes));
+  }
+
+  const response = await publicApiFetch<ApiCatalogProductsPage>(`/catalog/products?${search}`);
+  return {
+    products: response.products.map(mapApiProduct),
+    pagination: response.pagination,
+    facets: {
+      price: {
+        min: numberValue(response.facets.price.min),
+        max: numberValue(response.facets.price.max),
+      },
+      brands: response.facets.brands,
+    },
+  };
 }
 
 export async function getCatalogProduct(slug: string) {
