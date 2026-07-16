@@ -9,6 +9,8 @@ import {
   Eye,
   EyeOff,
   ImagePlus,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -27,6 +29,8 @@ import {
 import {
   fallbackCategoryTree,
   generatedCategorySlug,
+  createAdminCategory,
+  deleteAdminCategory,
   loadCategoryTree,
   reorderAdminCategories,
   toggleAdminCategory,
@@ -41,12 +45,14 @@ export const Route = createFileRoute("/admin/categories")({
 });
 
 type EditableCategory = {
-  id: string;
+  id?: string;
+  parentId?: string;
   name: string;
   slug: string;
   imageUrl: string;
   active: boolean;
   type: "category" | "subcategory";
+  mode: "create" | "edit";
 };
 
 function AdminCategories() {
@@ -70,7 +76,9 @@ function AdminCategories() {
       setError("");
       const next = await loadCategoryTree({ admin: true });
       setCats(next);
-      setExpanded((current) => current.size ? current : new Set(next.slice(0, 1).map((category) => category.id)));
+      setExpanded((current) =>
+        current.size ? current : new Set(next.slice(0, 1).map((category) => category.id)),
+      );
     } catch (err) {
       setCats(fallbackCategoryTree());
       setError(err instanceof Error ? err.message : "Connexion API momentanément indisponible.");
@@ -86,7 +94,11 @@ function AdminCategories() {
   const toggleExpand = (id: string) =>
     setExpanded((current) => {
       const next = new Set(current);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
 
@@ -126,27 +138,35 @@ function AdminCategories() {
 
   const handleToggle = async (id: string) => {
     const previousCats = cats;
-    setCats((current) => current.map((category) => {
-      if (category.id === id) return { ...category, active: !category.active };
-      return {
-        ...category,
-        subs: category.subs.map((sub) => (sub.id === id ? { ...sub, active: !sub.active } : sub)),
-      };
-    }));
+    setCats((current) =>
+      current.map((category) => {
+        if (category.id === id) return { ...category, active: !category.active };
+        return {
+          ...category,
+          subs: category.subs.map((sub) => (sub.id === id ? { ...sub, active: !sub.active } : sub)),
+        };
+      }),
+    );
     try {
       setSaving(true);
       setError("");
       const updated = await toggleAdminCategory(id);
-      setCats((current) => current.map((category) => {
-        if (category.id === updated.id) return { ...category, active: updated.isActive };
-        return {
-          ...category,
-          subs: category.subs.map((sub) => (sub.id === updated.id ? { ...sub, active: updated.isActive } : sub)),
-        };
-      }));
+      setCats((current) =>
+        current.map((category) => {
+          if (category.id === updated.id) return { ...category, active: updated.isActive };
+          return {
+            ...category,
+            subs: category.subs.map((sub) =>
+              sub.id === updated.id ? { ...sub, active: updated.isActive } : sub,
+            ),
+          };
+        }),
+      );
     } catch (err) {
       setCats(previousCats);
-      setError(err instanceof Error ? err.message : "Impossible d'activer ou désactiver cette catégorie.");
+      setError(
+        err instanceof Error ? err.message : "Impossible d'activer ou désactiver cette catégorie.",
+      );
     } finally {
       setSaving(false);
     }
@@ -160,6 +180,7 @@ function AdminCategories() {
       imageUrl: category.imageUrl ?? "",
       active: category.active,
       type: "category",
+      mode: "edit",
     });
     setEditOpen(true);
   };
@@ -172,6 +193,32 @@ function AdminCategories() {
       imageUrl: sub.imageUrl ?? "",
       active: sub.active,
       type: "subcategory",
+      mode: "edit",
+    });
+    setEditOpen(true);
+  };
+
+  const openCreateCategory = () => {
+    setForm({
+      name: "",
+      slug: "",
+      imageUrl: "",
+      active: true,
+      type: "category",
+      mode: "create",
+    });
+    setEditOpen(true);
+  };
+
+  const openCreateSubcategory = (category: CategoryTree) => {
+    setForm({
+      parentId: category.id,
+      name: "",
+      slug: "",
+      imageUrl: "",
+      active: true,
+      type: "subcategory",
+      mode: "create",
     });
     setEditOpen(true);
   };
@@ -199,32 +246,48 @@ function AdminCategories() {
     try {
       setSaving(true);
       setError("");
-      await updateAdminCategory(form.id, {
-        name: form.name.trim(),
-        imageUrl: form.imageUrl.trim(),
-        isActive: form.active,
-      });
-      setCats((current) => current.map((category) => {
-        if (category.id === form.id) {
-          return {
-            ...category,
-            name: form.name.trim(),
-            imageUrl: form.imageUrl.trim(),
-            image: form.imageUrl.trim() || category.image,
-            active: form.active,
-          };
-        }
-        return {
-          ...category,
-          subs: category.subs.map((sub) => (sub.id === form.id
-            ? { ...sub, name: form.name.trim(), imageUrl: form.imageUrl.trim(), active: form.active }
-            : sub)),
-        };
-      }));
+      if (form.mode === "create") {
+        await createAdminCategory({
+          name: form.name.trim(),
+          parentId: form.parentId,
+          imageUrl: form.imageUrl.trim(),
+          isActive: form.active,
+        });
+      } else if (form.id) {
+        await updateAdminCategory(form.id, {
+          name: form.name.trim(),
+          imageUrl: form.imageUrl.trim(),
+          isActive: form.active,
+        });
+      }
+      await refresh();
       setEditOpen(false);
       setForm(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'enregistrer la catégorie.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeCategory = async (id: string) => {
+    if (
+      !window.confirm(
+        "Supprimer cet élément ? Si des produits l'utilisent, la suppression sera refusée.",
+      )
+    )
+      return;
+    try {
+      setSaving(true);
+      setError("");
+      await deleteAdminCategory(id);
+      await refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Suppression impossible. Désactivez cette catégorie ou déplacez les produits liés.",
+      );
     } finally {
       setSaving(false);
     }
@@ -235,6 +298,12 @@ function AdminCategories() {
       <AdminHeader
         title="Catégories"
         subtitle={`${cats.length} catégories — ${totalSubcategories} sous-catégories`}
+        actions={
+          <Button size="sm" onClick={openCreateCategory}>
+            <Plus className="h-4 w-4" />
+            Nouvelle categorie
+          </Button>
+        }
       />
 
       <div className="flex-1 space-y-3 p-3 sm:p-6">
@@ -261,7 +330,11 @@ function AdminCategories() {
                       className="shrink-0 rounded p-1 hover:bg-muted"
                       aria-label="Déplier"
                     >
-                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
                     </button>
                     <div className="hidden h-12 w-12 shrink-0 overflow-hidden rounded-sm border border-border bg-muted sm:block">
                       <img
@@ -287,19 +360,64 @@ function AdminCategories() {
                         {category.subs.length > 1 ? "s" : ""}
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openCreateSubcategory(category)}
+                      disabled={saving}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                     <div className="hidden shrink-0 gap-1 sm:flex">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCat(idx, -1)} disabled={idx === 0 || saving}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => moveCat(idx, -1)}
+                        disabled={idx === 0 || saving}
+                      >
                         <ArrowUp className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCat(idx, 1)} disabled={idx === cats.length - 1 || saving}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => moveCat(idx, 1)}
+                        disabled={idx === cats.length - 1 || saving}
+                      >
                         <ArrowDown className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleToggle(category.id)} disabled={saving}>
-                      {category.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => handleToggle(category.id)}
+                      disabled={saving}
+                    >
+                      {category.active ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => openEditCategory(category)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => openEditCategory(category)}
+                    >
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-destructive"
+                      onClick={() => removeCategory(category.id)}
+                      disabled={saving}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
 
@@ -322,18 +440,54 @@ function AdminCategories() {
                               </p>
                             </div>
                             <div className="hidden gap-1 sm:flex">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveSub(category.id, sidx, -1)} disabled={sidx === 0 || saving}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => moveSub(category.id, sidx, -1)}
+                                disabled={sidx === 0 || saving}
+                              >
                                 <ArrowUp className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveSub(category.id, sidx, 1)} disabled={sidx === category.subs.length - 1 || saving}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => moveSub(category.id, sidx, 1)}
+                                disabled={sidx === category.subs.length - 1 || saving}
+                              >
                                 <ArrowDown className="h-4 w-4" />
                               </Button>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggle(sub.id)} disabled={saving}>
-                              {sub.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleToggle(sub.id)}
+                              disabled={saving}
+                            >
+                              {sub.active ? (
+                                <Eye className="h-4 w-4" />
+                              ) : (
+                                <EyeOff className="h-4 w-4" />
+                              )}
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditSubcategory(sub)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEditSubcategory(sub)}
+                            >
                               <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => removeCategory(sub.id)}
+                              disabled={saving}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </li>
                         ))}
@@ -351,7 +505,9 @@ function AdminCategories() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {form?.type === "subcategory" ? "Modifier la sous-catégorie" : "Modifier la catégorie"}
+              {form?.type === "subcategory"
+                ? "Modifier la sous-catégorie"
+                : "Modifier la catégorie"}
             </DialogTitle>
           </DialogHeader>
           {form && (
@@ -360,13 +516,24 @@ function AdminCategories() {
                 <Label>Nom</Label>
                 <Input
                   value={form.name}
-                  onChange={(event) => setForm({ ...form, name: event.target.value, slug: generatedCategorySlug(event.target.value) })}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      name: event.target.value,
+                      slug: generatedCategorySlug(event.target.value),
+                    })
+                  }
                   maxLength={120}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label>Slug généré automatiquement</Label>
-                <Input value={form.slug} readOnly aria-readonly="true" className="bg-muted text-muted-foreground" />
+                <Input
+                  value={form.slug}
+                  readOnly
+                  aria-readonly="true"
+                  className="bg-muted text-muted-foreground"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Image de catégorie</Label>
@@ -396,7 +563,10 @@ function AdminCategories() {
               </div>
               <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                 <Label className="text-sm">Active</Label>
-                <Switch checked={form.active} onCheckedChange={(active) => setForm({ ...form, active })} />
+                <Switch
+                  checked={form.active}
+                  onCheckedChange={(active) => setForm({ ...form, active })}
+                />
               </div>
             </div>
           )}

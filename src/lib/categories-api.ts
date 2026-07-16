@@ -36,6 +36,7 @@ export type CategoryTree = {
 
 export type AdminCategoryInput = {
   name?: string;
+  parentId?: string;
   imageUrl?: string;
   isActive?: boolean;
 };
@@ -58,6 +59,14 @@ export async function updateAdminCategory(id: string, input: AdminCategoryInput)
   return response.category;
 }
 
+export async function createAdminCategory(input: AdminCategoryInput & { name: string }) {
+  const response = await apiFetch<{ category: ApiCategory }>("/admin/categories", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return response.category;
+}
+
 export async function toggleAdminCategory(id: string) {
   const response = await apiFetch<{ category: ApiCategory }>(`/admin/categories/${id}/toggle`, {
     method: "PATCH",
@@ -73,10 +82,17 @@ export async function reorderAdminCategories(ids: string[]) {
   return response.categories;
 }
 
+export async function deleteAdminCategory(id: string) {
+  return apiFetch<{ deleted: boolean }>(`/admin/categories/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export function toCategoryTree(categories: ApiCategory[]): CategoryTree[] {
   return categories.map((category) => {
     const fallback = CATEGORY_TREE.find((item) => item.slug === category.slug);
-    const image = category.imageUrl || fallback?.image || CATEGORY_TREE[0]?.image || "/placeholder.svg";
+    const image =
+      category.imageUrl || fallback?.image || CATEGORY_TREE[0]?.image || "/placeholder.svg";
 
     return {
       id: category.id,
@@ -149,7 +165,9 @@ export function findInCategoryTree(slug: string, tree: CategoryTree[]) {
 }
 
 export function findParentInTree(slug: string, tree: CategoryTree[]) {
-  return tree.find((category) => category.slug === slug || category.subs.some((sub) => sub.slug === slug));
+  return tree.find(
+    (category) => category.slug === slug || category.subs.some((sub) => sub.slug === slug),
+  );
 }
 
 export function generatedCategorySlug(name: string) {

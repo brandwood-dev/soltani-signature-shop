@@ -17,11 +17,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
-import { createAdminProduct, MAX_PRODUCT_IMAGE_SIZE_MB, uploadAdminProductImage } from "@/lib/admin-products-api";
+import {
+  createAdminProduct,
+  MAX_PRODUCT_IMAGE_SIZE_MB,
+  uploadAdminProductImage,
+} from "@/lib/admin-products-api";
 import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
+import { ProductAttributeFields } from "@/components/admin/ProductAttributeFields";
+import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
 
 export const Route = createFileRoute("/admin/products/new")({
   component: AdminNewProduct,
@@ -64,6 +68,8 @@ function AdminNewProduct() {
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [attributes, setAttributes] = useState<Record<string, string[]>>({});
+  const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
+  const [attributesLoading, setAttributesLoading] = useState(false);
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -92,7 +98,7 @@ function AdminNewProduct() {
 
   useEffect(() => {
     let active = true;
-    loadCategoryTree()
+    loadCategoryTree({ admin: true })
       .then((items) => {
         if (active && items.length) setCategoryTree(items);
       })
@@ -109,6 +115,34 @@ function AdminNewProduct() {
     };
   }, []);
 
+  useEffect(() => {
+    const selectedCategory = categoryTree
+      .flatMap((item) => [item, ...item.subs])
+      .find((item) => item.slug === (subcategory || category));
+    if (!selectedCategory) {
+      setCategoryAttributes([]);
+      return;
+    }
+
+    let active = true;
+    setAttributesLoading(true);
+    getAdminCategoryAttributes(selectedCategory.id)
+      .then((items) => {
+        if (active) setCategoryAttributes(items);
+      })
+      .catch((err) => {
+        if (active)
+          setError(err instanceof Error ? err.message : "Impossible de charger les attributs.");
+      })
+      .finally(() => {
+        if (active) setAttributesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [category, subcategory, categoryTree]);
+
   const addImage = () => {
     if (!newImage.trim()) return;
     setImages((s) => [...s, newImage.trim()]);
@@ -120,7 +154,9 @@ function AdminNewProduct() {
     try {
       setUploading(true);
       setError("");
-      const uploaded = await Promise.all(Array.from(files).map((file) => uploadAdminProductImage(file)));
+      const uploaded = await Promise.all(
+        Array.from(files).map((file) => uploadAdminProductImage(file)),
+      );
       setImages((current) => [...current, ...uploaded]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload image impossible.");
@@ -197,11 +233,7 @@ function AdminNewProduct() {
         }
       />
 
-      <form
-        id="new-product-form"
-        onSubmit={handleSubmit}
-        className="flex-1 p-3 sm:p-6"
-      >
+      <form id="new-product-form" onSubmit={handleSubmit} className="flex-1 p-3 sm:p-6">
         {error && (
           <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
@@ -294,7 +326,9 @@ function AdminNewProduct() {
                     onChange={(event) => uploadImages(event.target.files)}
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {uploading ? "Upload en cours…" : "Vous pouvez aussi uploader plusieurs images."}
+                    {uploading
+                      ? "Upload en cours…"
+                      : "Vous pouvez aussi uploader plusieurs images."}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Taille maximale : {MAX_PRODUCT_IMAGE_SIZE_MB} Mo par image.
@@ -303,7 +337,10 @@ function AdminNewProduct() {
                 {images.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {images.map((src, i) => (
-                      <div key={i} className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
+                      <div
+                        key={i}
+                        className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
+                      >
                         <img
                           src={src}
                           alt=""
@@ -331,9 +368,7 @@ function AdminNewProduct() {
                 ) : (
                   <div className="grid place-items-center rounded-md border border-dashed border-border py-8 text-center">
                     <ImagePlus className="h-6 w-6 text-muted-foreground" />
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Ajoutez au moins une image
-                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">Ajoutez au moins une image</p>
                   </div>
                 )}
               </CardContent>
@@ -382,10 +417,7 @@ function AdminNewProduct() {
                 </div>
                 <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                   <Label className="text-sm">Suivre l'inventaire</Label>
-                  <Switch
-                    checked={trackInventory}
-                    onCheckedChange={setTrackInventory}
-                  />
+                  <Switch checked={trackInventory} onCheckedChange={setTrackInventory} />
                 </div>
                 {trackInventory && (
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -422,7 +454,8 @@ function AdminNewProduct() {
                       className="bg-muted text-muted-foreground"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Le SKU final est généré automatiquement côté serveur et conservé après création.
+                      Le SKU final est généré automatiquement côté serveur et conservé après
+                      création.
                     </p>
                   </div>
                   <div className="space-y-1.5">
@@ -473,81 +506,29 @@ function AdminNewProduct() {
               </CardContent>
             </Card>
 
-            {(() => {
-              const facets = subcategory
-                ? FILTERS_BY_SUB[subcategory] ?? []
-                : category
-                ? getFacetsForCategory(
-                    category,
-                    (categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => s.slug),
-                  )
-                : [];
-              if (!facets.length) return null;
-              const toggle = (key: string, opt: string) => {
-                setAttributes((prev) => {
-                  const cur = prev[key] ?? [];
-                  const next = cur.includes(opt) ? cur.filter((v) => v !== opt) : [...cur, opt];
-                  return { ...prev, [key]: next };
-                });
-              };
-              return (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Attributs & filtres</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      Ces attributs alimentent les filtres affichés aux clients sur la page
-                      {" "}
-                      {subcategory ? "de la sous-catégorie" : "de la catégorie"} sélectionnée.
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    {facets.map((f) => (
-                      <div key={f.key} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm">{f.label}</Label>
-                          {(attributes[f.key]?.length ?? 0) > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setAttributes((p) => ({ ...p, [f.key]: [] }))}
-                              className="text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              Effacer
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {f.options.map((opt) => {
-                            const id = `${f.key}-${opt}`;
-                            const checked = attributes[f.key]?.includes(opt) ?? false;
-                            return (
-                              <label
-                                key={id}
-                                htmlFor={id}
-                                className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
-                                  checked
-                                    ? "border-foreground bg-foreground text-background"
-                                    : "border-border hover:border-foreground/40"
-                                }`}
-                              >
-                                <Checkbox
-                                  id={id}
-                                  checked={checked}
-                                  onCheckedChange={() => toggle(f.key, opt)}
-                                  className="sr-only"
-                                />
-                                {opt}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              );
-            })()}
+            {(category || subcategory) && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Attributs & filtres</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Ces attributs proviennent de la configuration dynamique de la catégorie
+                    sélectionnée.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {attributesLoading ? (
+                    <p className="text-sm text-muted-foreground">Chargement des attributs?</p>
+                  ) : (
+                    <ProductAttributeFields
+                      attributes={categoryAttributes}
+                      values={attributes}
+                      onChange={setAttributes}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
-
 
           {/* Colonne latérale */}
           <div className="space-y-3 sm:space-y-6">
@@ -607,7 +588,10 @@ function AdminNewProduct() {
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label>Section *</Label>
-                  <Select value={section} onValueChange={(value) => setSection(value as typeof section)}>
+                  <Select
+                    value={section}
+                    onValueChange={(value) => setSection(value as typeof section)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
@@ -653,7 +637,9 @@ function AdminNewProduct() {
                     disabled={!category}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"} />
+                      <SelectValue
+                        placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {(categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => (
