@@ -243,23 +243,20 @@ export async function createAdminAttributeOption(
   definitionId: string,
   input: AttributeOptionInput,
 ) {
-  const response = await apiFetch<{ option: AttributeOption }>(
-    `/admin/attributes/${definitionId}/options`,
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    },
-  );
+  const response = await apiFetch<{ option: AttributeOption }>("/admin/attribute-options", {
+    method: "POST",
+    body: JSON.stringify({ definitionId, ...input }),
+  });
   return normalizeOption(response.option);
 }
 
 export async function updateAdminAttributeOption(
-  definitionId: string,
+  _definitionId: string,
   optionId: string,
   input: Partial<AttributeOptionInput>,
 ) {
   const response = await apiFetch<{ option: AttributeOption }>(
-    `/admin/attributes/${definitionId}/options/${optionId}`,
+    `/admin/attribute-options/${optionId}`,
     {
       method: "PATCH",
       body: JSON.stringify(input),
@@ -268,26 +265,26 @@ export async function updateAdminAttributeOption(
   return normalizeOption(response.option);
 }
 
-export async function toggleAdminAttributeOption(definitionId: string, optionId: string) {
+export async function toggleAdminAttributeOption(_definitionId: string, optionId: string) {
   const response = await apiFetch<{ option: AttributeOption }>(
-    `/admin/attributes/${definitionId}/options/${optionId}/toggle`,
+    `/admin/attribute-options/${optionId}/toggle`,
     { method: "PATCH" },
   );
   return normalizeOption(response.option);
 }
 
-export async function deleteAdminAttributeOption(definitionId: string, optionId: string) {
-  return apiFetch<{ deleted: boolean }>(`/admin/attributes/${definitionId}/options/${optionId}`, {
+export async function deleteAdminAttributeOption(_definitionId: string, optionId: string) {
+  return apiFetch<{ deleted: boolean }>(`/admin/attribute-options/${optionId}`, {
     method: "DELETE",
   });
 }
 
 export async function reorderAdminAttributeOptions(definitionId: string, ids: string[]) {
   const response = await apiFetch<{ definitions: AttributeDefinition[] }>(
-    `/admin/attributes/${definitionId}/options/reorder`,
+    "/admin/attribute-options/reorder",
     {
       method: "PUT",
-      body: JSON.stringify({ ids }),
+      body: JSON.stringify({ definitionId, ids }),
     },
   );
   return normalizeDefinitions(response);
@@ -305,22 +302,22 @@ export async function assignAdminCategoryAttribute(
   input: CategoryAttributeInput,
 ) {
   const response = await apiFetch<{ association: CategoryAttribute }>(
-    `/admin/categories/${categoryId}/attributes`,
+    "/admin/category-attributes",
     {
       method: "POST",
-      body: JSON.stringify(input),
+      body: JSON.stringify({ categoryId, ...input }),
     },
   );
   return normalizeCategoryAttribute(response.association);
 }
 
 export async function updateAdminCategoryAttribute(
-  categoryId: string,
+  _categoryId: string,
   associationId: string,
   input: Omit<Partial<CategoryAttributeInput>, "attributeDefinitionId">,
 ) {
   const response = await apiFetch<{ association: CategoryAttribute }>(
-    `/admin/categories/${categoryId}/attributes/${associationId}`,
+    `/admin/category-attributes/${associationId}`,
     {
       method: "PATCH",
       body: JSON.stringify(input),
@@ -329,21 +326,18 @@ export async function updateAdminCategoryAttribute(
   return normalizeCategoryAttribute(response.association);
 }
 
-export async function deleteAdminCategoryAttribute(categoryId: string, associationId: string) {
-  return apiFetch<{ deleted: boolean }>(
-    `/admin/categories/${categoryId}/attributes/${associationId}`,
-    {
-      method: "DELETE",
-    },
-  );
+export async function deleteAdminCategoryAttribute(_categoryId: string, associationId: string) {
+  return apiFetch<{ deleted: boolean }>(`/admin/category-attributes/${associationId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function reorderAdminCategoryAttributes(categoryId: string, ids: string[]) {
   const response = await apiFetch<{ attributes: CategoryAttribute[] }>(
-    `/admin/categories/${categoryId}/attributes/reorder`,
+    "/admin/category-attributes/reorder",
     {
       method: "PUT",
-      body: JSON.stringify({ ids }),
+      body: JSON.stringify({ categoryId, ids }),
     },
   );
   return normalizeCategoryAttributes(response);
