@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "https://soltani-signature-api.vercel.app/api/v1/:path*"
+      "destination": "https://soltani-signature-api-brandwood-co.vercel.app/api/v1/:path*"
     }
   ]
 }
