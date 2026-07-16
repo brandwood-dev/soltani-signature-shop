@@ -17,8 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { getFacetsForCategory, FILTERS_BY_SUB } from "@/data/filters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +37,8 @@ import {
 } from "@/lib/admin-products-api";
 import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
+import { ProductAttributeFields } from "@/components/admin/ProductAttributeFields";
+import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
 
 const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
@@ -84,6 +84,8 @@ function AdminEditProduct() {
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [attributes, setAttributes] = useState<Record<string, string[]>>({});
+  const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
+  const [attributesLoading, setAttributesLoading] = useState(false);
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -158,7 +160,7 @@ function AdminEditProduct() {
 
   useEffect(() => {
     let active = true;
-    loadCategoryTree()
+    loadCategoryTree({ admin: true })
       .then((items) => {
         if (active && items.length) setCategoryTree(items);
       })
@@ -175,6 +177,34 @@ function AdminEditProduct() {
     };
   }, []);
 
+  useEffect(() => {
+    const selectedCategory = categoryTree
+      .flatMap((item) => [item, ...item.subs])
+      .find((item) => item.slug === (subcategory || category));
+    if (!selectedCategory) {
+      setCategoryAttributes([]);
+      return;
+    }
+
+    let active = true;
+    setAttributesLoading(true);
+    getAdminCategoryAttributes(selectedCategory.id)
+      .then((items) => {
+        if (active) setCategoryAttributes(items);
+      })
+      .catch((err) => {
+        if (active)
+          setError(err instanceof Error ? err.message : "Impossible de charger les attributs.");
+      })
+      .finally(() => {
+        if (active) setAttributesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [category, subcategory, categoryTree]);
+
   const addImage = () => {
     if (!newImage.trim()) return;
     setImages((s) => [...s, newImage.trim()]);
@@ -186,7 +216,9 @@ function AdminEditProduct() {
     try {
       setUploading(true);
       setError("");
-      const uploaded = await Promise.all(Array.from(files).map((file) => uploadAdminProductImage(file)));
+      const uploaded = await Promise.all(
+        Array.from(files).map((file) => uploadAdminProductImage(file)),
+      );
       setImages((current) => [...current, ...uploaded]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload image impossible.");
@@ -281,557 +313,510 @@ function AdminEditProduct() {
           </div>
         )}
         {product ? (
-        <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
-          {/* Main column */}
-          <div className="space-y-3 sm:space-y-6 lg:col-span-2">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Informations générales</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Nom du produit *</Label>
-                  <Input
-                    id="name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={120}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="slug">URL (slug)</Label>
-                  <Input id="slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">/product/{slug || "..."}</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="short">Description courte</Label>
-                  <Textarea
-                    id="short"
-                    rows={2}
-                    value={shortDescription}
-                    onChange={(e) => setShortDescription(e.target.value)}
-                    maxLength={160}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="desc">Description complète</Label>
-                  <Textarea
-                    id="desc"
-                    rows={6}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Images</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={newImage}
-                    onChange={(e) => setNewImage(e.target.value)}
-                    placeholder="URL de l'image"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addImage();
-                      }
-                    }}
-                  />
-                  <Button type="button" variant="outline" onClick={addImage}>
-                    <ImagePlus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Ajouter</span>
-                  </Button>
-                </div>
-                <div>
-                  <Input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    multiple
-                    disabled={uploading}
-                    onChange={(event) => uploadImages(event.target.files)}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {uploading ? "Upload en cours…" : "Vous pouvez aussi uploader plusieurs images."}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Taille maximale : {MAX_PRODUCT_IMAGE_SIZE_MB} Mo par image.
-                  </p>
-                </div>
-                {images.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {images.map((src, i) => (
-                      <div
-                        key={i}
-                        className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
-                      >
-                        <img
-                          src={src}
-                          alt=""
-                          onError={(event) => {
-                            event.currentTarget.src = "/placeholder.svg";
-                          }}
-                          className="h-full w-full object-contain object-center p-2"
-                        />
-                        {i === 0 && (
-                          <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
-                            Principale
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeImage(i)}
-                          className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition group-hover:opacity-100"
-                          aria-label="Supprimer"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+          <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
+            {/* Main column */}
+            <div className="space-y-3 sm:space-y-6 lg:col-span-2">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Informations générales</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name">Nom du produit *</Label>
+                    <Input
+                      id="name"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={120}
+                    />
                   </div>
-                ) : (
-                  <div className="grid place-items-center rounded-md border border-dashed border-border py-8 text-center">
-                    <ImagePlus className="h-6 w-6 text-muted-foreground" />
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Ajoutez au moins une image
+                  <div className="space-y-1.5">
+                    <Label htmlFor="slug">URL (slug)</Label>
+                    <Input id="slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">/product/{slug || "..."}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="short">Description courte</Label>
+                    <Textarea
+                      id="short"
+                      rows={2}
+                      value={shortDescription}
+                      onChange={(e) => setShortDescription(e.target.value)}
+                      maxLength={160}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="desc">Description complète</Label>
+                    <Textarea
+                      id="desc"
+                      rows={6}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Images</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newImage}
+                      onChange={(e) => setNewImage(e.target.value)}
+                      placeholder="URL de l'image"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addImage();
+                        }
+                      }}
+                    />
+                    <Button type="button" variant="outline" onClick={addImage}>
+                      <ImagePlus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Ajouter</span>
+                    </Button>
+                  </div>
+                  <div>
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      multiple
+                      disabled={uploading}
+                      onChange={(event) => uploadImages(event.target.files)}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {uploading
+                        ? "Upload en cours…"
+                        : "Vous pouvez aussi uploader plusieurs images."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Taille maximale : {MAX_PRODUCT_IMAGE_SIZE_MB} Mo par image.
                     </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  {images.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {images.map((src, i) => (
+                        <div
+                          key={i}
+                          className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
+                        >
+                          <img
+                            src={src}
+                            alt=""
+                            onError={(event) => {
+                              event.currentTarget.src = "/placeholder.svg";
+                            }}
+                            className="h-full w-full object-contain object-center p-2"
+                          />
+                          {i === 0 && (
+                            <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
+                              Principale
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(i)}
+                            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition group-hover:opacity-100"
+                            aria-label="Supprimer"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid place-items-center rounded-md border border-dashed border-border py-8 text-center">
+                      <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Ajoutez au moins une image
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Prix & stock</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="price">Prix de vente (DT) *</Label>
-                    <Input
-                      id="price"
-                      required
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                    />
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Prix & stock</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="price">Prix de vente (DT) *</Label>
+                      <Input
+                        id="price"
+                        required
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="compare">Prix barré (DT)</Label>
+                      <Input
+                        id="compare"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={comparePrice}
+                        onChange={(e) => setComparePrice(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cost">Coût (DT)</Label>
+                      <Input
+                        id="cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={cost}
+                        onChange={(e) => setCost(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="compare">Prix barré (DT)</Label>
-                    <Input
-                      id="compare"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={comparePrice}
-                      onChange={(e) => setComparePrice(e.target.value)}
-                    />
+                  <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                    <Label className="text-sm">Suivre l'inventaire</Label>
+                    <Switch checked={trackInventory} onCheckedChange={setTrackInventory} />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cost">Coût (DT)</Label>
-                    <Input
-                      id="cost"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={cost}
-                      onChange={(e) => setCost(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                  <Label className="text-sm">Suivre l'inventaire</Label>
-                  <Switch checked={trackInventory} onCheckedChange={setTrackInventory} />
-                </div>
-                {trackInventory && (
+                  {trackInventory && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="stock">Quantité en stock</Label>
+                        <Input
+                          id="stock"
+                          type="number"
+                          min="0"
+                          value={stock}
+                          onChange={(e) => setStock(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="low">Alerte stock faible</Label>
+                        <Input
+                          id="low"
+                          type="number"
+                          min="0"
+                          value={lowStockAlert}
+                          onChange={(e) => setLowStockAlert(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="stock">Quantité en stock</Label>
+                      <Label htmlFor="sku">SKU</Label>
                       <Input
-                        id="stock"
-                        type="number"
-                        min="0"
-                        value={stock}
-                        onChange={(e) => setStock(e.target.value)}
+                        id="sku"
+                        value={sku}
+                        readOnly
+                        aria-readonly="true"
+                        className="bg-muted text-muted-foreground"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Le SKU est généré automatiquement à la création et conservé.
+                      </p>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="low">Alerte stock faible</Label>
+                      <Label htmlFor="weight">Poids (g)</Label>
                       <Input
-                        id="low"
+                        id="weight"
                         type="number"
                         min="0"
-                        value={lowStockAlert}
-                        onChange={(e) => setLowStockAlert(e.target.value)}
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
                       />
                     </div>
                   </div>
-                )}
-                <div className="grid gap-3 sm:grid-cols-2">
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">SEO</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="sku">SKU</Label>
+                    <Label htmlFor="seo-title">Titre SEO</Label>
                     <Input
-                      id="sku"
-                      value={sku}
-                      readOnly
-                      aria-readonly="true"
-                      className="bg-muted text-muted-foreground"
+                      id="seo-title"
+                      value={seoTitle}
+                      onChange={(e) => setSeoTitle(e.target.value)}
+                      maxLength={60}
+                    />
+                    <p className="text-xs text-muted-foreground">{seoTitle.length}/60 caractères</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="seo-desc">Meta description</Label>
+                    <Textarea
+                      id="seo-desc"
+                      rows={2}
+                      value={seoDescription}
+                      onChange={(e) => setSeoDescription(e.target.value)}
+                      maxLength={160}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Le SKU est généré automatiquement à la création et conservé.
+                      {seoDescription.length}/160 caractères
                     </p>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="weight">Poids (g)</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      min="0"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">SEO</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="seo-title">Titre SEO</Label>
-                  <Input
-                    id="seo-title"
-                    value={seoTitle}
-                    onChange={(e) => setSeoTitle(e.target.value)}
-                    maxLength={60}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {seoTitle.length}/60 caractères
-                  </p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="seo-desc">Meta description</Label>
-                  <Textarea
-                    id="seo-desc"
-                    rows={2}
-                    value={seoDescription}
-                    onChange={(e) => setSeoDescription(e.target.value)}
-                    maxLength={160}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {seoDescription.length}/160 caractères
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {(() => {
-              const facets = subcategory
-                ? FILTERS_BY_SUB[subcategory] ?? []
-                : category
-                ? getFacetsForCategory(
-                    category,
-                    (categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => s.slug),
-                  )
-                : [];
-              if (!facets.length) return null;
-              const toggle = (key: string, opt: string) => {
-                setAttributes((prev) => {
-                  const cur = prev[key] ?? [];
-                  const next = cur.includes(opt) ? cur.filter((value) => value !== opt) : [...cur, opt];
-                  return { ...prev, [key]: next };
-                });
-              };
-              return (
+              {(category || subcategory) && (
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">Attributs & filtres</CardTitle>
                     <p className="text-xs text-muted-foreground">
-                      Ces attributs alimentent les filtres affichés aux clients sur la page{" "}
-                      {subcategory ? "de la sous-catégorie" : "de la catégorie"} sélectionnée.
+                      Ces attributs proviennent de la configuration dynamique de la catégorie
+                      sélectionnée.
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-5">
-                    {facets.map((f) => (
-                      <div key={f.key} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm">{f.label}</Label>
-                          {(attributes[f.key]?.length ?? 0) > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setAttributes((prev) => ({ ...prev, [f.key]: [] }))}
-                              className="text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              Effacer
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {f.options.map((opt) => {
-                            const checkboxId = `${f.key}-${opt}`;
-                            const checked = attributes[f.key]?.includes(opt) ?? false;
-                            return (
-                              <label
-                                key={checkboxId}
-                                htmlFor={checkboxId}
-                                className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
-                                  checked
-                                    ? "border-foreground bg-foreground text-background"
-                                    : "border-border hover:border-foreground/40"
-                                }`}
-                              >
-                                <Checkbox
-                                  id={checkboxId}
-                                  checked={checked}
-                                  onCheckedChange={() => toggle(f.key, opt)}
-                                  className="sr-only"
-                                />
-                                {opt}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                  <CardContent>
+                    {attributesLoading ? (
+                      <p className="text-sm text-muted-foreground">Chargement des attributs?</p>
+                    ) : (
+                      <ProductAttributeFields
+                        attributes={categoryAttributes}
+                        values={attributes}
+                        onChange={setAttributes}
+                      />
+                    )}
                   </CardContent>
                 </Card>
-              );
-            })()}
-          </div>
+              )}
+            </div>
 
-          {/* Side */}
-          <div className="space-y-3 sm:space-y-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Publication</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label>Statut</Label>
-                  <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                  <Label className="text-sm">Mettre en avant</Label>
-                  <Switch checked={featured} onCheckedChange={setFeatured} />
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                  <Label className="text-sm">Produit en promotion</Label>
-                  <Switch checked={isPromotion} onCheckedChange={setIsPromotion} />
-                </div>
-                {isPromotion && (
+            {/* Side */}
+            <div className="space-y-3 sm:space-y-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Publication</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="discount">Pourcentage de réduction</Label>
-                    <Input
-                      id="discount"
-                      required
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={discountPercentage}
-                      onChange={(e) => setDiscountPercentage(e.target.value)}
-                    />
+                    <Label>Statut</Label>
+                    <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUSES.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                  <Label className="text-sm">Best seller</Label>
-                  <Switch checked={isBestSeller} onCheckedChange={setIsBestSeller} />
-                </div>
-                <Button type="button" variant="outline" className="w-full" size="sm">
-                  <Eye className="h-4 w-4" />
-                  Aperçu
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Organisation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label>Section *</Label>
-                  <Select value={section} onValueChange={(value) => setSection(value as typeof section)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SECTIONS.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Catégorie *</Label>
-                  <Select
-                    value={category}
-                    onValueChange={(value) => {
-                      setCategory(value);
-                      setSubcategory("");
-                      setAttributes({});
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoryTree.map((c) => (
-                        <SelectItem key={c.slug} value={c.slug}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Sous-catégorie</Label>
-                  <Select
-                    value={subcategory}
-                    onValueChange={(value) => {
-                      setSubcategory(value);
-                      setAttributes({});
-                    }}
-                    disabled={!category}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => (
-                        <SelectItem key={s.slug} value={s.slug}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Marque</Label>
-                  <Select value={brand} onValueChange={setBrand}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brandOptions.map((b) => (
-                        <SelectItem key={b} value={b}>
-                          {b}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Tags</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      placeholder="Ajouter un tag"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addTag();
-                        }
-                      }}
-                    />
-                    <Button type="button" variant="outline" onClick={addTag}>
-                      OK
-                    </Button>
+                  <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                    <Label className="text-sm">Mettre en avant</Label>
+                    <Switch checked={featured} onCheckedChange={setFeatured} />
                   </div>
-                  {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {tags.map((t) => (
-                        <Badge key={t} variant="secondary" className="gap-1 pr-1">
-                          {t}
-                          <button
-                            type="button"
-                            onClick={() => removeTag(t)}
-                            className="rounded-full p-0.5 hover:bg-muted-foreground/20"
-                            aria-label={`Retirer ${t}`}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                  <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                    <Label className="text-sm">Produit en promotion</Label>
+                    <Switch checked={isPromotion} onCheckedChange={setIsPromotion} />
+                  </div>
+                  {isPromotion && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="discount">Pourcentage de réduction</Label>
+                      <Input
+                        id="discount"
+                        required
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={discountPercentage}
+                        onChange={(e) => setDiscountPercentage(e.target.value)}
+                      />
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                    <Label className="text-sm">Best seller</Label>
+                    <Switch checked={isBestSeller} onCheckedChange={setIsBestSeller} />
+                  </div>
+                  <Button type="button" variant="outline" className="w-full" size="sm">
+                    <Eye className="h-4 w-4" />
+                    Aperçu
+                  </Button>
+                </CardContent>
+              </Card>
 
-            <Card className="border-destructive/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base text-destructive">
-                  Zone de danger
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Organisation</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>Section *</Label>
+                    <Select
+                      value={section}
+                      onValueChange={(value) => setSection(value as typeof section)}
                     >
-                      <Trash2 className="h-4 w-4" />
-                      Supprimer le produit
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action est irréversible. Le produit "{product.name}" sera
-                        retiré du catalogue.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => navigate({ to: "/admin/products" })}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardContent>
-            </Card>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SECTIONS.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Catégorie *</Label>
+                    <Select
+                      value={category}
+                      onValueChange={(value) => {
+                        setCategory(value);
+                        setSubcategory("");
+                        setAttributes({});
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoryTree.map((c) => (
+                          <SelectItem key={c.slug} value={c.slug}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Sous-catégorie</Label>
+                    <Select
+                      value={subcategory}
+                      onValueChange={(value) => {
+                        setSubcategory(value);
+                        setAttributes({});
+                      }}
+                      disabled={!category}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={category ? "Choisir" : "Sélectionnez d'abord une catégorie"}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(categoryTree.find((c) => c.slug === category)?.subs ?? []).map((s) => (
+                          <SelectItem key={s.slug} value={s.slug}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Marque</Label>
+                    <Select value={brand} onValueChange={setBrand}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brandOptions.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tags</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        placeholder="Ajouter un tag"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addTag();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" onClick={addTag}>
+                        OK
+                      </Button>
+                    </div>
+                    {tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {tags.map((t) => (
+                          <Badge key={t} variant="secondary" className="gap-1 pr-1">
+                            {t}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(t)}
+                              className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                              aria-label={`Retirer ${t}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <div className="flex gap-2 lg:hidden">
-              <Button asChild variant="outline" className="flex-1">
-                <Link to="/admin/products">Annuler</Link>
-              </Button>
-              <Button type="submit" className="flex-1">
-                Enregistrer
-              </Button>
+              <Card className="border-destructive/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-destructive">Zone de danger</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Supprimer le produit
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible. Le produit "{product.name}" sera retiré du
+                          catalogue.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => navigate({ to: "/admin/products" })}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
+
+              <div className="flex gap-2 lg:hidden">
+                <Button asChild variant="outline" className="flex-1">
+                  <Link to="/admin/products">Annuler</Link>
+                </Button>
+                <Button type="submit" className="flex-1">
+                  Enregistrer
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
         ) : null}
       </form>
     </>

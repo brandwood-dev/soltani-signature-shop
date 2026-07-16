@@ -155,6 +155,7 @@ const ADMIN_CACHE_RULES: Array<{ prefix: string; ttlMs: number }> = [
   { prefix: "/orders/admin", ttlMs: 30_000 },
   { prefix: "/products/admin", ttlMs: 30_000 },
   { prefix: "/admin/categories", ttlMs: 60_000 },
+  { prefix: "/admin/attributes", ttlMs: 60_000 },
   { prefix: "/admin/hero", ttlMs: 60_000 },
   { prefix: "/admin/marquee", ttlMs: 60_000 },
   { prefix: "/admin/featured-brands", ttlMs: 60_000 },
@@ -172,6 +173,7 @@ const ADMIN_INVALIDATION_PREFIXES = [
   "/orders/admin",
   "/products/admin",
   "/admin/categories",
+  "/admin/attributes",
   "/admin/hero",
   "/admin/marquee",
   "/admin/featured-brands",
@@ -189,7 +191,8 @@ export async function publicApiFetch<T>(path: string, init: RequestInit = {}) {
 }
 
 async function apiFetchInternal<T>(path: string, init: RequestInit = {}, includeAuth: boolean) {
-  const accessToken = includeAuth && typeof window !== "undefined" ? await getCachedAccessToken() : null;
+  const accessToken =
+    includeAuth && typeof window !== "undefined" ? await getCachedAccessToken() : null;
 
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
@@ -219,11 +222,15 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
   }
 
   const response = await measureApiFetch(path, method, () =>
-    fetchWithRetry(buildApiUrl(path), {
-      cache: "no-store",
-      ...init,
-      headers,
-    }, { path, method }),
+    fetchWithRetry(
+      buildApiUrl(path),
+      {
+        cache: "no-store",
+        ...init,
+        headers,
+      },
+      { path, method },
+    ),
   );
 
   if (!response.ok) {
@@ -274,11 +281,15 @@ export async function apiDownload(path: string, init: RequestInit = {}) {
 
   const method = (init.method ?? "GET").toUpperCase();
   const response = await measureApiFetch(path, method, () =>
-    fetchWithRetry(buildApiUrl(path), {
-      cache: "no-store",
-      ...init,
-      headers,
-    }, { path, method }),
+    fetchWithRetry(
+      buildApiUrl(path),
+      {
+        cache: "no-store",
+        ...init,
+        headers,
+      },
+      { path, method },
+    ),
   );
 
   if (!response.ok) {
@@ -347,7 +358,11 @@ function isProductionStorefrontHost(hostname: string) {
   return hostname === "soltanisignature.com" || hostname === "www.soltanisignature.com";
 }
 
-async function fetchWithRetry(url: string, init: RequestInit, options: { path: string; method: string }) {
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  options: { path: string; method: string },
+) {
   let lastError: unknown;
   const isGet = options.method === "GET";
   const attempts = isGet ? 2 : 1;
@@ -416,12 +431,19 @@ function stripQuery(path: string) {
 
 function isAdminPath(path: string) {
   const normalizedPath = stripQuery(path);
-  return normalizedPath.startsWith("/admin")
-    || normalizedPath.startsWith("/orders/admin")
-    || normalizedPath.startsWith("/products/admin");
+  return (
+    normalizedPath.startsWith("/admin") ||
+    normalizedPath.startsWith("/orders/admin") ||
+    normalizedPath.startsWith("/products/admin")
+  );
 }
 
-function shouldRetryResponse(response: Response, attempt: number, attempts: number, isGet: boolean) {
+function shouldRetryResponse(
+  response: Response,
+  attempt: number,
+  attempts: number,
+  isGet: boolean,
+) {
   if (!isGet || attempt >= attempts) return false;
   if (response.status >= 400 && response.status < 500) return false;
   return response.status >= 500;
@@ -429,7 +451,9 @@ function shouldRetryResponse(response: Response, attempt: number, attempts: numb
 
 function invalidateAdminCache(path: string) {
   const normalizedPath = stripQuery(path);
-  const matchedPrefix = ADMIN_INVALIDATION_PREFIXES.find((prefix) => normalizedPath.startsWith(prefix));
+  const matchedPrefix = ADMIN_INVALIDATION_PREFIXES.find((prefix) =>
+    normalizedPath.startsWith(prefix),
+  );
   if (!matchedPrefix) return;
   const prefixesToInvalidate = new Set([matchedPrefix]);
   if (normalizedPath.startsWith("/products/admin")) {
