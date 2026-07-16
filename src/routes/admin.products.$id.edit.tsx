@@ -86,6 +86,7 @@ function AdminEditProduct() {
   const [attributes, setAttributes] = useState<Record<string, string[]>>({});
   const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
   const [attributesLoading, setAttributesLoading] = useState(false);
+  const [attributesError, setAttributesError] = useState("");
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -183,18 +184,26 @@ function AdminEditProduct() {
       .find((item) => item.slug === (subcategory || category));
     if (!selectedCategory) {
       setCategoryAttributes([]);
+      setAttributesError("");
       return;
     }
 
     let active = true;
     setAttributesLoading(true);
+    setAttributesError("");
     getAdminCategoryAttributes(selectedCategory.id)
       .then((items) => {
         if (active) setCategoryAttributes(items);
       })
       .catch((err) => {
-        if (active)
-          setError(err instanceof Error ? err.message : "Impossible de charger les attributs.");
+        if (active) {
+          setCategoryAttributes([]);
+          setAttributesError(
+            err instanceof Error
+              ? err.message
+              : "Les attributs de cette catégorie sont momentanément indisponibles.",
+          );
+        }
       })
       .finally(() => {
         if (active) setAttributesLoading(false);
@@ -577,7 +586,9 @@ function AdminEditProduct() {
                     </p>
                   </CardHeader>
                   <CardContent>
-                    {attributesLoading ? (
+                    {attributesError ? (
+                      <p className="text-sm text-destructive">{attributesError}</p>
+                    ) : attributesLoading ? (
                       <p className="text-sm text-muted-foreground">Chargement des attributs?</p>
                     ) : (
                       <ProductAttributeFields
