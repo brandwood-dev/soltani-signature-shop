@@ -83,49 +83,72 @@ type CategoryAttributesResponse = CategoryAttribute[] | { attributes?: CategoryA
 
 const ATTRIBUTE_TYPES: AttributeType[] = ["TEXT", "NUMBER", "BOOLEAN", "SELECT", "MULTI_SELECT"];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function requiredString(value: unknown, field: string, context: string) {
+  if (typeof value === "string" && value.trim()) return value;
+  throw new Error(`Réponse API invalide pour ${context} : champ "${field}" manquant.`);
+}
+
 function isAttributeType(value: unknown): value is AttributeType {
   return typeof value === "string" && ATTRIBUTE_TYPES.includes(value as AttributeType);
 }
 
-function normalizeOption(option: Partial<AttributeOption> | null | undefined): AttributeOption {
+function normalizeOption(option: unknown): AttributeOption {
+  if (!isRecord(option)) {
+    throw new Error("Réponse API invalide pour option : objet manquant.");
+  }
+
   return {
-    id: String(option?.id ?? ""),
-    definitionId: String(option?.definitionId ?? ""),
-    value: String(option?.value ?? ""),
-    label: String(option?.label ?? option?.value ?? ""),
-    sortOrder: Number(option?.sortOrder ?? 0),
-    isActive: option?.isActive ?? true,
+    id: requiredString(option.id, "id", "option"),
+    definitionId: requiredString(option.definitionId, "definitionId", "option"),
+    value: requiredString(option.value, "value", "option"),
+    label: requiredString(option.label, "label", "option"),
+    sortOrder: Number(option.sortOrder ?? 0),
+    isActive: option.isActive !== false,
   };
 }
 
-function normalizeDefinition(
-  definition:
-    (Partial<AttributeDefinition> & { _count?: { categories?: number } }) | null | undefined,
-): AttributeDefinition {
+function normalizeDefinition(definition: unknown): AttributeDefinition {
+  if (!isRecord(definition)) {
+    throw new Error("Réponse API invalide pour attribut : objet manquant.");
+  }
+  if (!isAttributeType(definition.type)) {
+    throw new Error("Réponse API invalide pour attribut : type non supporté.");
+  }
+  const count = isRecord(definition._count) ? definition._count.categories : undefined;
+
   return {
-    id: String(definition?.id ?? ""),
-    key: String(definition?.key ?? ""),
-    label: String(definition?.label ?? definition?.key ?? ""),
-    type: isAttributeType(definition?.type) ? definition.type : "TEXT",
-    sortOrder: Number(definition?.sortOrder ?? 0),
-    isActive: definition?.isActive ?? true,
-    options: Array.isArray(definition?.options) ? definition.options.map(normalizeOption) : [],
-    categoryCount: Number(definition?.categoryCount ?? definition?._count?.categories ?? 0),
+    id: requiredString(definition.id, "id", "attribut"),
+    key: requiredString(definition.key, "key", "attribut"),
+    label: requiredString(definition.label, "label", "attribut"),
+    type: definition.type,
+    sortOrder: Number(definition.sortOrder ?? 0),
+    isActive: definition.isActive !== false,
+    options: Array.isArray(definition.options) ? definition.options.map(normalizeOption) : [],
+    categoryCount: Number(definition.categoryCount ?? count ?? 0),
   };
 }
 
-function normalizeCategoryAttribute(
-  association: Partial<CategoryAttribute> | null | undefined,
-): CategoryAttribute {
-  const definition = normalizeDefinition(association?.attributeDefinition);
+function normalizeCategoryAttribute(association: unknown): CategoryAttribute {
+  if (!isRecord(association)) {
+    throw new Error("Réponse API invalide pour association : objet manquant.");
+  }
+  const definition = normalizeDefinition(association.attributeDefinition);
 
   return {
-    id: String(association?.id ?? ""),
-    categoryId: String(association?.categoryId ?? ""),
-    attributeDefinitionId: String(association?.attributeDefinitionId ?? definition.id),
-    required: association?.required ?? false,
-    filterable: association?.filterable ?? true,
-    sortOrder: Number(association?.sortOrder ?? 0),
+    id: requiredString(association.id, "id", "association"),
+    categoryId: requiredString(association.categoryId, "categoryId", "association"),
+    attributeDefinitionId: requiredString(
+      association.attributeDefinitionId ?? definition.id,
+      "attributeDefinitionId",
+      "association",
+    ),
+    required: association.required === true,
+    filterable: association.filterable !== false,
+    sortOrder: Number(association.sortOrder ?? 0),
     attributeDefinition: definition,
   };
 }

@@ -206,7 +206,60 @@ function AdminAttributes() {
     if (!loading) void refreshDefinitions();
   }, [page, search, sort]);
 
+  const sortOptions = (options: AttributeOption[]) =>
+    [...options].sort(
+      (left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label),
+    );
+
+  const replaceDefinition = (definition: AttributeDefinition) => {
+    setDefinitions((current) =>
+      current.map((item) => (item.id === definition.id ? definition : item)),
+    );
+    setAllDefinitions((current) =>
+      current.map((item) => (item.id === definition.id ? definition : item)),
+    );
+  };
+
+  const upsertVisibleDefinition = (definition: AttributeDefinition) => {
+    setDefinitions((current) => {
+      const exists = current.some((item) => item.id === definition.id);
+      const next = exists
+        ? current.map((item) => (item.id === definition.id ? definition : item))
+        : [definition, ...current];
+      return next.slice(0, ATTRIBUTE_PAGE_SIZE);
+    });
+    setAllDefinitions((current) => {
+      const exists = current.some((item) => item.id === definition.id);
+      return exists
+        ? current.map((item) => (item.id === definition.id ? definition : item))
+        : [...current, definition];
+    });
+  };
+
+  const patchDefinitionOptions = (
+    definitionId: string,
+    updater: (options: AttributeOption[]) => AttributeOption[],
+  ) => {
+    const updateDefinition = (definition: AttributeDefinition) =>
+      definition.id === definitionId
+        ? { ...definition, options: sortOptions(updater(definition.options)) }
+        : definition;
+    setDefinitions((current) => current.map(updateDefinition));
+    setAllDefinitions((current) => current.map(updateDefinition));
+    setCategoryAttributes((current) =>
+      current.map((association) =>
+        association.attributeDefinition.id === definitionId
+          ? {
+              ...association,
+              attributeDefinition: updateDefinition(association.attributeDefinition),
+            }
+          : association,
+      ),
+    );
+  };
+
   const openDefinition = (definition?: AttributeDefinition) => {
+    setError("");
     setDefinitionForm({
       id: definition?.id,
       key: definition?.key ?? "",
@@ -218,6 +271,11 @@ function AdminAttributes() {
   };
 
   const openOption = (definition: AttributeDefinition, option?: AttributeOption) => {
+    setError("");
+    if (!supportsOptions(definition.type)) {
+      setError("Ce type d'attribut n'utilise pas d'options.");
+      return;
+    }
     setOptionForm({
       definitionId: definition.id,
       option,
@@ -246,11 +304,19 @@ function AdminAttributes() {
       const savedDefinition = definitionForm.id
         ? await updateAdminAttributeDefinition(definitionForm.id, payload)
         : await createAdminAttributeDefinition(payload);
+      const isNewDefinition = !definitionForm.id;
       if (supportsOptions(savedDefinition.type)) {
         setOpenDefinitionIds((current) => new Set([...current, savedDefinition.id]));
       }
       setDefinitionForm(null);
-      await refreshDefinitions();
+      if (isNewDefinition) {
+        setSearch(savedDefinition.label);
+        setPage(1);
+        upsertVisibleDefinition(savedDefinition);
+      } else {
+        replaceDefinition(savedDefinition);
+        await refreshDefinitions();
+      }
       await refreshAllDefinitions();
       await refreshCategoryAttributes();
     } catch (err) {
@@ -274,11 +340,21 @@ function AdminAttributes() {
         sortOrder: Number(optionForm.sortOrder || 0),
         isActive: optionForm.isActive,
       };
+      let savedOption: AttributeOption;
       if (optionForm.option) {
-        await updateAdminAttributeOption(optionForm.definitionId, optionForm.option.id, payload);
+        savedOption = await updateAdminAttributeOption(
+          optionForm.definitionId,
+          optionForm.option.id,
+          payload,
+        );
       } else {
-        await createAdminAttributeOption(optionForm.definitionId, payload);
+        savedOption = await createAdminAttributeOption(optionForm.definitionId, payload);
       }
+      patchDefinitionOptions(optionForm.definitionId, (options) => {
+        const withoutSaved = options.filter((item) => item.id !== savedOption.id);
+        return [...withoutSaved, savedOption];
+      });
+      setOpenDefinitionIds((current) => new Set([...current, optionForm.definitionId]));
       setOptionForm(null);
       await refreshDefinitions();
       await refreshAllDefinitions();
@@ -362,6 +438,8 @@ function AdminAttributes() {
       setAssignRequired(false);
       setAssignFilterable(true);
       await refreshCategoryAttributes();
+      await refreshDefinitions();
+      await refreshAllDefinitions();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Association impossible pour cette catégorie.");
     } finally {
@@ -561,14 +639,8 @@ function AdminAttributes() {
                 </CardHeader>
                 {isExpanded && (
                   <CardContent className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div>
                       <p className="text-sm font-medium">Options</p>
-                      {supportsOptions(definition.type) && (
-                        <Button variant="outline" size="sm" onClick={() => openOption(definition)}>
-                          <Plus className="h-4 w-4" />
-                          Ajouter une option
-                        </Button>
-                      )}
                     </div>
                     {definition.options.length ? (
                       <div className="space-y-2">
