@@ -16,9 +16,15 @@ function requiredPublicEnv(name: keyof typeof publicEnvFallbacks) {
   return value;
 }
 
+function normalizeApiUrl(value: string) {
+  return value
+    .replace("https://soltani-signature-api.vercel.app", "https://soltani-signature-api-brandwood-co.vercel.app")
+    .replace(/\/$/, "");
+}
+
 export const publicEnv = {
   supabaseUrl: requiredPublicEnv("VITE_SUPABASE_URL"),
   supabaseAnonKey: requiredPublicEnv("VITE_SUPABASE_ANON_KEY"),
-  apiUrl: requiredPublicEnv("VITE_API_URL").replace(/\/$/, ""),
+  apiUrl: normalizeApiUrl(requiredPublicEnv("VITE_API_URL")),
   metaPixelId: requiredPublicEnv("VITE_META_PIXEL_ID"),
 };
