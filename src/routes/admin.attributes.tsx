@@ -1021,7 +1021,14 @@ function AdminAttributes() {
             </DialogTitle>
           </DialogHeader>
           {optionForm && (
-            <div className="space-y-3">
+            <form
+              id="attribute-option-form"
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void saveOption();
+              }}
+            >
               <div className="space-y-1.5">
                 <Label>Valeur</Label>
                 <Input
@@ -1056,13 +1063,13 @@ function AdminAttributes() {
                   onCheckedChange={(isActive) => setOptionForm({ ...optionForm, isActive })}
                 />
               </div>
-            </div>
+            </form>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOptionForm(null)}>
               Annuler
             </Button>
-            <Button onClick={saveOption} disabled={saving}>
+            <Button type="submit" form="attribute-option-form" disabled={saving}>
               Enregistrer
             </Button>
           </DialogFooter>
