@@ -1066,7 +1066,13 @@ function AdminAttributes() {
                 <Button type="button" variant="outline" onClick={() => setOptionForm(null)}>
                   Annuler
                 </Button>
-                <Button type="submit" disabled={saving}>
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => {
+                    void saveOption();
+                  }}
+                >
                   Enregistrer
                 </Button>
               </DialogFooter>
