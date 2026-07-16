@@ -22,7 +22,9 @@ export function ProductAttributeFields({
   values,
   onChange,
 }: ProductAttributeFieldsProps) {
-  if (!attributes.length) {
+  const safeAttributes = attributes.filter((association) => association?.attributeDefinition?.key);
+
+  if (!safeAttributes.length) {
     return (
       <p className="text-sm text-muted-foreground">
         Aucun attribut configuré pour cette catégorie.
@@ -44,10 +46,10 @@ export function ProductAttributeFields({
 
   return (
     <div className="space-y-5">
-      {attributes.map((association) => {
+      {safeAttributes.map((association) => {
         const definition = association.attributeDefinition;
         const current = values[definition.key] ?? [];
-        const activeOptions = definition.options.filter((option) => option.isActive);
+        const activeOptions = (definition.options ?? []).filter((option) => option.isActive);
 
         return (
           <div key={association.id} className="space-y-2">

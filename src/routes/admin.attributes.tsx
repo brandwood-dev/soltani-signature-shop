@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Plus,
+  Trash2,
+} from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +39,7 @@ import {
   deleteAdminAttributeDefinition,
   deleteAdminAttributeOption,
   deleteAdminCategoryAttribute,
-  getAdminAttributeDefinitions,
+  getAdminAttributeDefinitionsPage,
   getAdminCategoryAttributes,
   reorderAdminAttributeDefinitions,
   reorderAdminAttributeOptions,
@@ -58,6 +67,8 @@ const ATTRIBUTE_TYPES: Array<{ value: AttributeType; label: string }> = [
   { value: "SELECT", label: "Choix unique" },
   { value: "MULTI_SELECT", label: "Choix multiple" },
 ];
+
+const ATTRIBUTE_PAGE_SIZE = 8;
 
 type DefinitionForm = {
   id?: string;
@@ -90,6 +101,16 @@ function AdminAttributes() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("order");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: ATTRIBUTE_PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
+  const [openDefinitionIds, setOpenDefinitionIds] = useState<Set<string>>(new Set());
 
   const flatCategories = useMemo(
     () =>
@@ -101,8 +122,17 @@ function AdminAttributes() {
   );
 
   const refreshDefinitions = async () => {
-    const items = await getAdminAttributeDefinitions();
-    setDefinitions(items);
+    const response = await getAdminAttributeDefinitionsPage({
+      page,
+      pageSize: ATTRIBUTE_PAGE_SIZE,
+      search,
+      sort,
+    });
+    setDefinitions(response.definitions);
+    setPagination(response.pagination);
+    setOpenDefinitionIds((current) =>
+      current.size ? current : new Set(response.definitions.slice(0, 1).map((item) => item.id)),
+    );
   };
 
   const refreshCategoryAttributes = async (categoryId = selectedCategoryId) => {
@@ -125,10 +155,21 @@ function AdminAttributes() {
       setLoading(true);
       setError("");
       const [definitionsData, categories] = await Promise.all([
-        getAdminAttributeDefinitions(),
+        getAdminAttributeDefinitionsPage({
+          page,
+          pageSize: ATTRIBUTE_PAGE_SIZE,
+          search,
+          sort,
+        }),
         loadCategoryTree({ admin: true }),
       ]);
-      setDefinitions(definitionsData);
+      setDefinitions(definitionsData.definitions);
+      setPagination(definitionsData.pagination);
+      setOpenDefinitionIds((current) =>
+        current.size
+          ? current
+          : new Set(definitionsData.definitions.slice(0, 1).map((item) => item.id)),
+      );
       setCategoryTree(categories.length ? categories : fallbackCategoryTree());
       const firstCategoryId = selectedCategoryId || categories[0]?.id || "";
       setSelectedCategoryId(firstCategoryId);
@@ -145,6 +186,10 @@ function AdminAttributes() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  useEffect(() => {
+    if (!loading) void refreshDefinitions();
+  }, [page, search, sort]);
 
   const openDefinition = (definition?: AttributeDefinition) => {
     setDefinitionForm({
@@ -317,190 +362,283 @@ function AdminAttributes() {
             </div>
           )}
 
-          {definitions.map((definition, index) => (
-            <Card key={definition.id}>
-              <CardHeader className="pb-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      {definition.label}
-                      <Badge variant="secondary">{definition.type}</Badge>
-                      {!definition.isActive && <Badge variant="outline">Inactif</Badge>}
-                    </CardTitle>
-                    <p className="mt-1 text-xs text-muted-foreground">Clé : {definition.key}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => moveDefinition(index, -1)}
-                      disabled={index === 0 || saving}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => moveDefinition(index, 1)}
-                      disabled={index === definitions.length - 1 || saving}
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => openDefinition(definition)}>
-                      Modifier
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() =>
-                        toggleAdminAttributeDefinition(definition.id).then(refreshDefinitions)
-                      }
-                      disabled={saving}
-                    >
-                      {definition.isActive ? (
-                        <Eye className="h-4 w-4" />
-                      ) : (
-                        <EyeOff className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() =>
-                        deleteAdminAttributeDefinition(definition.id)
-                          .then(refreshDefinitions)
-                          .catch((err) =>
-                            setError(
-                              err instanceof Error ? err.message : "Suppression impossible.",
-                            ),
-                          )
-                      }
-                      disabled={saving}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Options</p>
-                  {["SELECT", "MULTI_SELECT"].includes(definition.type) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setOptionForm({
-                          definitionId: definition.id,
-                          value: "",
-                          label: "",
-                          sortOrder: String(definition.options.length),
-                          isActive: true,
-                        })
-                      }
-                    >
-                      <Plus className="h-4 w-4" />
-                      Option
-                    </Button>
-                  )}
-                </div>
-                {definition.options.length ? (
-                  <div className="space-y-2">
-                    {definition.options.map((option, optionIndex) => (
-                      <div
-                        key={option.id}
-                        className="flex items-center gap-2 rounded-md border border-border px-3 py-2"
+          <Card className="p-3">
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
+              <Input
+                value={search}
+                onChange={(event) => {
+                  setPage(1);
+                  setSearch(event.target.value);
+                }}
+                placeholder="Rechercher un attribut"
+                aria-label="Rechercher un attribut"
+              />
+              <Select
+                value={sort}
+                onValueChange={(value) => {
+                  setPage(1);
+                  setSort(value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Tri" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="order">Ordre</SelectItem>
+                  <SelectItem value="label-asc">Nom A-Z</SelectItem>
+                  <SelectItem value="label-desc">Nom Z-A</SelectItem>
+                  <SelectItem value="type">Type</SelectItem>
+                  <SelectItem value="active">Actifs d'abord</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
+          {definitions.map((definition, index) => {
+            const isExpanded = openDefinitionIds.has(definition.id);
+            return (
+              <Card key={definition.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                        <button
+                          type="button"
+                          className="rounded p-0.5 hover:bg-muted"
+                          onClick={() =>
+                            setOpenDefinitionIds((current) => {
+                              const next = new Set(current);
+                              if (next.has(definition.id)) next.delete(definition.id);
+                              else next.add(definition.id);
+                              return next;
+                            })
+                          }
+                          aria-expanded={isExpanded}
+                          aria-label={isExpanded ? "Replier l'attribut" : "Déplier l'attribut"}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                        {definition.label}
+                        <Badge variant="secondary">{definition.type}</Badge>
+                        {!definition.isActive && <Badge variant="outline">Inactif</Badge>}
+                      </CardTitle>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {definition.options.length} option
+                        {definition.options.length > 1 ? "s" : ""} · {definition.categoryCount}{" "}
+                        catégorie
+                        {definition.categoryCount > 1 ? "s" : ""} liée
+                        {definition.categoryCount > 1 ? "s" : ""}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Clé : {definition.key}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => moveDefinition(index, -1)}
+                        disabled={index === 0 || saving}
                       >
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm">{option.label}</p>
-                          <p className="truncate text-xs text-muted-foreground">{option.value}</p>
-                        </div>
-                        {!option.isActive && <Badge variant="outline">Inactif</Badge>}
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => moveDefinition(index, 1)}
+                        disabled={index === definitions.length - 1 || saving}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => openDefinition(definition)}>
+                        Modifier
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() =>
+                          toggleAdminAttributeDefinition(definition.id).then(refreshDefinitions)
+                        }
+                        disabled={saving}
+                      >
+                        {definition.isActive ? (
+                          <Eye className="h-4 w-4" />
+                        ) : (
+                          <EyeOff className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() =>
+                          deleteAdminAttributeDefinition(definition.id)
+                            .then(refreshDefinitions)
+                            .catch((err) =>
+                              setError(
+                                err instanceof Error ? err.message : "Suppression impossible.",
+                              ),
+                            )
+                        }
+                        disabled={saving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                {isExpanded && (
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Options</p>
+                      {["SELECT", "MULTI_SELECT"].includes(definition.type) && (
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => moveOption(definition, optionIndex, -1)}
-                          disabled={optionIndex === 0 || saving}
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => moveOption(definition, optionIndex, 1)}
-                          disabled={optionIndex === definition.options.length - 1 || saving}
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() =>
                             setOptionForm({
                               definitionId: definition.id,
-                              option,
-                              value: option.value,
-                              label: option.label,
-                              sortOrder: String(option.sortOrder),
-                              isActive: option.isActive,
+                              value: "",
+                              label: "",
+                              sortOrder: String(definition.options.length),
+                              isActive: true,
                             })
                           }
                         >
-                          Modifier
+                          <Plus className="h-4 w-4" />
+                          Option
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() =>
-                            toggleAdminAttributeOption(definition.id, option.id).then(
-                              refreshDefinitions,
-                            )
-                          }
-                          disabled={saving}
-                        >
-                          {option.isActive ? (
-                            <Eye className="h-4 w-4" />
-                          ) : (
-                            <EyeOff className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() =>
-                            deleteAdminAttributeOption(definition.id, option.id)
-                              .then(refreshDefinitions)
-                              .catch((err) =>
-                                setError(
-                                  err instanceof Error ? err.message : "Suppression impossible.",
-                                ),
-                              )
-                          }
-                          disabled={saving}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      )}
+                    </div>
+                    {definition.options.length ? (
+                      <div className="space-y-2">
+                        {definition.options.map((option, optionIndex) => (
+                          <div
+                            key={option.id}
+                            className="flex items-center gap-2 rounded-md border border-border px-3 py-2"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm">{option.label}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {option.value}
+                              </p>
+                            </div>
+                            {!option.isActive && <Badge variant="outline">Inactif</Badge>}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => moveOption(definition, optionIndex, -1)}
+                              disabled={optionIndex === 0 || saving}
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => moveOption(definition, optionIndex, 1)}
+                              disabled={optionIndex === definition.options.length - 1 || saving}
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setOptionForm({
+                                  definitionId: definition.id,
+                                  option,
+                                  value: option.value,
+                                  label: option.label,
+                                  sortOrder: String(option.sortOrder),
+                                  isActive: option.isActive,
+                                })
+                              }
+                            >
+                              Modifier
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() =>
+                                toggleAdminAttributeOption(definition.id, option.id).then(
+                                  refreshDefinitions,
+                                )
+                              }
+                              disabled={saving}
+                            >
+                              {option.isActive ? (
+                                <Eye className="h-4 w-4" />
+                              ) : (
+                                <EyeOff className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() =>
+                                deleteAdminAttributeOption(definition.id, option.id)
+                                  .then(refreshDefinitions)
+                                  .catch((err) =>
+                                    setError(
+                                      err instanceof Error
+                                        ? err.message
+                                        : "Suppression impossible.",
+                                    ),
+                                  )
+                              }
+                              disabled={saving}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {["SELECT", "MULTI_SELECT"].includes(definition.type)
-                      ? "Aucune option configurée."
-                      : "Ce type n'utilise pas d'options."}
-                  </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {["SELECT", "MULTI_SELECT"].includes(definition.type)
+                          ? "Aucune option configurée."
+                          : "Ce type n'utilise pas d'options."}
+                      </p>
+                    )}
+                  </CardContent>
                 )}
-              </CardContent>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
+
+          <div className="flex flex-col gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Page {pagination.page} / {pagination.totalPages} · {pagination.total} attribut
+              {pagination.total > 1 ? "s" : ""}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((current) => Math.max(current - 1, 1))}
+                disabled={pagination.page <= 1 || loading}
+              >
+                Précédent
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((current) => Math.min(current + 1, pagination.totalPages))}
+                disabled={pagination.page >= pagination.totalPages || loading}
+              >
+                Suivant
+              </Button>
+            </div>
+          </div>
         </div>
 
         <Card className="h-fit">

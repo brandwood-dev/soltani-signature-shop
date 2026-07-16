@@ -19,6 +19,7 @@ export type AttributeDefinition = {
   sortOrder: number;
   isActive: boolean;
   options: AttributeOption[];
+  categoryCount: number;
 };
 
 export type CategoryAttribute = {
@@ -53,7 +54,31 @@ export type CategoryAttributeInput = {
   sortOrder?: number;
 };
 
-type AttributeDefinitionsResponse = AttributeDefinition[] | { definitions?: AttributeDefinition[] };
+export type AttributeDefinitionsPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type AttributeDefinitionsPage = {
+  definitions: AttributeDefinition[];
+  pagination: AttributeDefinitionsPagination;
+};
+
+export type AttributeDefinitionsQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sort?: string;
+};
+
+type AttributeDefinitionsResponse =
+  | AttributeDefinition[]
+  | {
+      definitions?: AttributeDefinition[];
+      pagination?: Partial<AttributeDefinitionsPagination>;
+    };
 type CategoryAttributesResponse = CategoryAttribute[] | { attributes?: CategoryAttribute[] };
 
 const ATTRIBUTE_TYPES: AttributeType[] = ["TEXT", "NUMBER", "BOOLEAN", "SELECT", "MULTI_SELECT"];
@@ -74,7 +99,8 @@ function normalizeOption(option: Partial<AttributeOption> | null | undefined): A
 }
 
 function normalizeDefinition(
-  definition: Partial<AttributeDefinition> | null | undefined,
+  definition:
+    (Partial<AttributeDefinition> & { _count?: { categories?: number } }) | null | undefined,
 ): AttributeDefinition {
   return {
     id: String(definition?.id ?? ""),
@@ -84,6 +110,7 @@ function normalizeDefinition(
     sortOrder: Number(definition?.sortOrder ?? 0),
     isActive: definition?.isActive ?? true,
     options: Array.isArray(definition?.options) ? definition.options.map(normalizeOption) : [],
+    categoryCount: Number(definition?.categoryCount ?? definition?._count?.categories ?? 0),
   };
 }
 
@@ -108,6 +135,22 @@ function normalizeDefinitions(response: AttributeDefinitionsResponse) {
   return Array.isArray(definitions) ? definitions.map(normalizeDefinition) : [];
 }
 
+function normalizeDefinitionsPage(
+  response: AttributeDefinitionsResponse,
+): AttributeDefinitionsPage {
+  const definitions = normalizeDefinitions(response);
+  const pagination = Array.isArray(response) ? undefined : response.pagination;
+  return {
+    definitions,
+    pagination: {
+      page: Number(pagination?.page ?? 1),
+      pageSize: Number(pagination?.pageSize ?? (definitions.length || 8)),
+      total: Number(pagination?.total ?? definitions.length),
+      totalPages: Number(pagination?.totalPages ?? 1),
+    },
+  };
+}
+
 function normalizeCategoryAttributes(response: CategoryAttributesResponse) {
   const attributes = Array.isArray(response) ? response : response.attributes;
   return Array.isArray(attributes) ? attributes.map(normalizeCategoryAttribute) : [];
@@ -116,6 +159,17 @@ function normalizeCategoryAttributes(response: CategoryAttributesResponse) {
 export async function getAdminAttributeDefinitions() {
   const response = await apiFetch<AttributeDefinitionsResponse>("/admin/attributes");
   return normalizeDefinitions(response);
+}
+
+export async function getAdminAttributeDefinitionsPage(query: AttributeDefinitionsQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.pageSize) params.set("pageSize", String(query.pageSize));
+  if (query.search?.trim()) params.set("search", query.search.trim());
+  if (query.sort) params.set("sort", query.sort);
+  const suffix = params.toString() ? `?${params}` : "";
+  const response = await apiFetch<AttributeDefinitionsResponse>(`/admin/attributes${suffix}`);
+  return normalizeDefinitionsPage(response);
 }
 
 export async function createAdminAttributeDefinition(input: AttributeDefinitionInput) {

@@ -47,6 +47,7 @@ export const Route = createFileRoute("/admin/categories")({
 type EditableCategory = {
   id?: string;
   parentId?: string;
+  parentName?: string;
   name: string;
   slug: string;
   imageUrl: string;
@@ -213,6 +214,7 @@ function AdminCategories() {
   const openCreateSubcategory = (category: CategoryTree) => {
     setForm({
       parentId: category.id,
+      parentName: category.name,
       name: "",
       slug: "",
       imageUrl: "",
@@ -361,13 +363,16 @@ function AdminCategories() {
                       </p>
                     </div>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0 gap-1 px-2"
                       onClick={() => openCreateSubcategory(category)}
                       disabled={saving}
+                      aria-label={`Ajouter une sous-catégorie à ${category.name}`}
+                      title="Ajouter une sous-catégorie"
                     >
                       <Plus className="h-4 w-4" />
+                      <span className="hidden lg:inline">Sous-catégorie</span>
                     </Button>
                     <div className="hidden shrink-0 gap-1 sm:flex">
                       <Button
@@ -505,13 +510,23 @@ function AdminCategories() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {form?.type === "subcategory"
-                ? "Modifier la sous-catégorie"
-                : "Modifier la catégorie"}
+              {form?.mode === "create"
+                ? form.type === "subcategory"
+                  ? "Nouvelle sous-catégorie"
+                  : "Nouvelle catégorie"
+                : form?.type === "subcategory"
+                  ? "Modifier la sous-catégorie"
+                  : "Modifier la catégorie"}
             </DialogTitle>
           </DialogHeader>
           {form && (
             <div className="space-y-3">
+              {form.mode === "create" && form.type === "subcategory" && form.parentName && (
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">Catégorie parente : </span>
+                  <span className="font-medium">{form.parentName}</span>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Nom</Label>
                 <Input
