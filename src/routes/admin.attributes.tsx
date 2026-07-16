@@ -39,6 +39,7 @@ import {
   deleteAdminAttributeDefinition,
   deleteAdminAttributeOption,
   deleteAdminCategoryAttribute,
+  getAdminAttributeDefinitions,
   getAdminAttributeDefinitionsPage,
   getAdminCategoryAttributes,
   reorderAdminAttributeDefinitions,
@@ -69,6 +70,11 @@ const ATTRIBUTE_TYPES: Array<{ value: AttributeType; label: string }> = [
 ];
 
 const ATTRIBUTE_PAGE_SIZE = 8;
+const OPTION_ATTRIBUTE_TYPES: AttributeType[] = ["SELECT", "MULTI_SELECT"];
+
+function supportsOptions(type: AttributeType) {
+  return OPTION_ATTRIBUTE_TYPES.includes(type);
+}
 
 type DefinitionForm = {
   id?: string;
@@ -90,6 +96,7 @@ type OptionForm = {
 
 function AdminAttributes() {
   const [definitions, setDefinitions] = useState<AttributeDefinition[]>([]);
+  const [allDefinitions, setAllDefinitions] = useState<AttributeDefinition[]>([]);
   const [categoryTree, setCategoryTree] = useState<CategoryTree[]>(fallbackCategoryTree());
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
@@ -135,6 +142,12 @@ function AdminAttributes() {
     );
   };
 
+  const refreshAllDefinitions = async () => {
+    const items = await getAdminAttributeDefinitions();
+    setAllDefinitions(Array.isArray(items) ? items : []);
+    return Array.isArray(items) ? items : [];
+  };
+
   const refreshCategoryAttributes = async (categoryId = selectedCategoryId) => {
     if (!categoryId) {
       setCategoryAttributes([]);
@@ -154,16 +167,18 @@ function AdminAttributes() {
     try {
       setLoading(true);
       setError("");
-      const [definitionsData, categories] = await Promise.all([
+      const [definitionsData, allDefinitionsData, categories] = await Promise.all([
         getAdminAttributeDefinitionsPage({
           page,
           pageSize: ATTRIBUTE_PAGE_SIZE,
           search,
           sort,
         }),
+        getAdminAttributeDefinitions(),
         loadCategoryTree({ admin: true }),
       ]);
       setDefinitions(definitionsData.definitions);
+      setAllDefinitions(Array.isArray(allDefinitionsData) ? allDefinitionsData : []);
       setPagination(definitionsData.pagination);
       setOpenDefinitionIds((current) =>
         current.size
@@ -202,6 +217,17 @@ function AdminAttributes() {
     });
   };
 
+  const openOption = (definition: AttributeDefinition, option?: AttributeOption) => {
+    setOptionForm({
+      definitionId: definition.id,
+      option,
+      value: option?.value ?? "",
+      label: option?.label ?? "",
+      sortOrder: String(option?.sortOrder ?? definition.options.length),
+      isActive: option?.isActive ?? true,
+    });
+  };
+
   const saveDefinition = async () => {
     if (!definitionForm?.key.trim() || !definitionForm.label.trim()) {
       setError("La clé et le libellé sont obligatoires.");
@@ -217,13 +243,15 @@ function AdminAttributes() {
         sortOrder: Number(definitionForm.sortOrder || 0),
         isActive: definitionForm.isActive,
       };
-      if (definitionForm.id) {
-        await updateAdminAttributeDefinition(definitionForm.id, payload);
-      } else {
-        await createAdminAttributeDefinition(payload);
+      const savedDefinition = definitionForm.id
+        ? await updateAdminAttributeDefinition(definitionForm.id, payload)
+        : await createAdminAttributeDefinition(payload);
+      if (supportsOptions(savedDefinition.type)) {
+        setOpenDefinitionIds((current) => new Set([...current, savedDefinition.id]));
       }
       setDefinitionForm(null);
       await refreshDefinitions();
+      await refreshAllDefinitions();
       await refreshCategoryAttributes();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Enregistrement impossible.");
@@ -253,6 +281,7 @@ function AdminAttributes() {
       }
       setOptionForm(null);
       await refreshDefinitions();
+      await refreshAllDefinitions();
       await refreshCategoryAttributes();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Option impossible à enregistrer.");
@@ -312,7 +341,14 @@ function AdminAttributes() {
   };
 
   const assignAttribute = async () => {
-    if (!selectedCategoryId || !assignId) return;
+    if (!selectedCategoryId) {
+      setError("Sélectionnez une catégorie ou une sous-catégorie.");
+      return;
+    }
+    if (!assignId) {
+      setError("Sélectionnez un attribut à associer.");
+      return;
+    }
     try {
       setSaving(true);
       setError("");
@@ -327,14 +363,20 @@ function AdminAttributes() {
       setAssignFilterable(true);
       await refreshCategoryAttributes();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Association impossible.");
+      setError(err instanceof Error ? err.message : "Association impossible pour cette catégorie.");
     } finally {
       setSaving(false);
     }
   };
 
-  const selectedIds = new Set(categoryAttributes.map((item) => item.attributeDefinitionId));
-  const assignableDefinitions = definitions.filter((item) => !selectedIds.has(item.id));
+  const selectedIds = new Set(
+    categoryAttributes
+      .map((item) => item.attributeDefinitionId || item.attributeDefinition?.id)
+      .filter(Boolean),
+  );
+  const assignableDefinitions = allDefinitions.filter(
+    (item) => item.id && !selectedIds.has(item.id),
+  );
 
   return (
     <>
@@ -436,6 +478,17 @@ function AdminAttributes() {
                       <p className="mt-1 text-xs text-muted-foreground">Clé : {definition.key}</p>
                     </div>
                     <div className="flex flex-wrap gap-1">
+                      {supportsOptions(definition.type) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openOption(definition)}
+                          disabled={saving}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Ajouter une option
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -462,7 +515,18 @@ function AdminAttributes() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() =>
-                          toggleAdminAttributeDefinition(definition.id).then(refreshDefinitions)
+                          toggleAdminAttributeDefinition(definition.id)
+                            .then(async () => {
+                              await refreshDefinitions();
+                              await refreshAllDefinitions();
+                            })
+                            .catch((err) =>
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Activation impossible pour cet attribut.",
+                              ),
+                            )
                         }
                         disabled={saving}
                       >
@@ -478,7 +542,10 @@ function AdminAttributes() {
                         className="h-8 w-8 text-destructive"
                         onClick={() =>
                           deleteAdminAttributeDefinition(definition.id)
-                            .then(refreshDefinitions)
+                            .then(async () => {
+                              await refreshDefinitions();
+                              await refreshAllDefinitions();
+                            })
                             .catch((err) =>
                               setError(
                                 err instanceof Error ? err.message : "Suppression impossible.",
@@ -496,22 +563,10 @@ function AdminAttributes() {
                   <CardContent className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">Options</p>
-                      {["SELECT", "MULTI_SELECT"].includes(definition.type) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setOptionForm({
-                              definitionId: definition.id,
-                              value: "",
-                              label: "",
-                              sortOrder: String(definition.options.length),
-                              isActive: true,
-                            })
-                          }
-                        >
+                      {supportsOptions(definition.type) && (
+                        <Button variant="outline" size="sm" onClick={() => openOption(definition)}>
                           <Plus className="h-4 w-4" />
-                          Option
+                          Ajouter une option
                         </Button>
                       )}
                     </div>
@@ -550,16 +605,7 @@ function AdminAttributes() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
-                                setOptionForm({
-                                  definitionId: definition.id,
-                                  option,
-                                  value: option.value,
-                                  label: option.label,
-                                  sortOrder: String(option.sortOrder),
-                                  isActive: option.isActive,
-                                })
-                              }
+                              onClick={() => openOption(definition, option)}
                             >
                               Modifier
                             </Button>
@@ -568,9 +614,19 @@ function AdminAttributes() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() =>
-                                toggleAdminAttributeOption(definition.id, option.id).then(
-                                  refreshDefinitions,
-                                )
+                                toggleAdminAttributeOption(definition.id, option.id)
+                                  .then(async () => {
+                                    await refreshDefinitions();
+                                    await refreshAllDefinitions();
+                                    await refreshCategoryAttributes();
+                                  })
+                                  .catch((err) =>
+                                    setError(
+                                      err instanceof Error
+                                        ? err.message
+                                        : "Activation impossible pour cette option.",
+                                    ),
+                                  )
                               }
                               disabled={saving}
                             >
@@ -586,7 +642,11 @@ function AdminAttributes() {
                               className="h-8 w-8 text-destructive"
                               onClick={() =>
                                 deleteAdminAttributeOption(definition.id, option.id)
-                                  .then(refreshDefinitions)
+                                  .then(async () => {
+                                    await refreshDefinitions();
+                                    await refreshAllDefinitions();
+                                    await refreshCategoryAttributes();
+                                  })
                                   .catch((err) =>
                                     setError(
                                       err instanceof Error
@@ -604,7 +664,7 @@ function AdminAttributes() {
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        {["SELECT", "MULTI_SELECT"].includes(definition.type)
+                        {supportsOptions(definition.type)
                           ? "Aucune option configurée."
                           : "Ce type n'utilise pas d'options."}
                       </p>
@@ -756,7 +816,15 @@ function AdminAttributes() {
                         onCheckedChange={(required) =>
                           updateAdminCategoryAttribute(selectedCategoryId, association.id, {
                             required,
-                          }).then(() => refreshCategoryAttributes())
+                          })
+                            .then(() => refreshCategoryAttributes())
+                            .catch((err) =>
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Modification de l'association impossible.",
+                              ),
+                            )
                         }
                       />
                     </div>
@@ -767,7 +835,15 @@ function AdminAttributes() {
                         onCheckedChange={(filterable) =>
                           updateAdminCategoryAttribute(selectedCategoryId, association.id, {
                             filterable,
-                          }).then(() => refreshCategoryAttributes())
+                          })
+                            .then(() => refreshCategoryAttributes())
+                            .catch((err) =>
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Modification de l'association impossible.",
+                              ),
+                            )
                         }
                       />
                     </div>

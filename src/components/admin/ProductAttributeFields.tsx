@@ -49,7 +49,9 @@ export function ProductAttributeFields({
       {safeAttributes.map((association) => {
         const definition = association.attributeDefinition;
         const current = values[definition.key] ?? [];
-        const activeOptions = (definition.options ?? []).filter((option) => option.isActive);
+        const activeOptions = (definition.options ?? []).filter(
+          (option) => option.isActive && (option.label || option.value),
+        );
 
         return (
           <div key={association.id} className="space-y-2">
@@ -108,11 +110,14 @@ export function ProductAttributeFields({
                   <SelectValue placeholder="Choisir" />
                 </SelectTrigger>
                 <SelectContent>
-                  {activeOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.label}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
+                  {activeOptions.map((option) => {
+                    const optionValue = option.label || option.value;
+                    return (
+                      <SelectItem key={option.id || optionValue} value={optionValue}>
+                        {option.label || option.value}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             )}
@@ -120,10 +125,11 @@ export function ProductAttributeFields({
             {definition.type === "MULTI_SELECT" && (
               <div className="flex flex-wrap gap-2">
                 {activeOptions.map((option) => {
-                  const checked = current.includes(option.label);
+                  const optionValue = option.label || option.value;
+                  const checked = current.includes(optionValue);
                   return (
                     <label
-                      key={option.id}
+                      key={option.id || optionValue}
                       className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
                         checked
                           ? "border-foreground bg-foreground text-background"
@@ -132,10 +138,10 @@ export function ProductAttributeFields({
                     >
                       <Checkbox
                         checked={checked}
-                        onCheckedChange={() => toggleValue(definition.key, option.label)}
+                        onCheckedChange={() => toggleValue(definition.key, optionValue)}
                         className="sr-only"
                       />
-                      {option.label}
+                      {option.label || option.value}
                     </label>
                   );
                 })}
