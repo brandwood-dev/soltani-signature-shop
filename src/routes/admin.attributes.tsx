@@ -108,10 +108,16 @@ function AdminAttributes() {
   const refreshCategoryAttributes = async (categoryId = selectedCategoryId) => {
     if (!categoryId) {
       setCategoryAttributes([]);
-      return;
+      return [];
     }
-    const items = await getAdminCategoryAttributes(categoryId);
-    setCategoryAttributes(items);
+    try {
+      const items = await getAdminCategoryAttributes(categoryId);
+      setCategoryAttributes(Array.isArray(items) ? items : []);
+      return Array.isArray(items) ? items : [];
+    } catch {
+      setCategoryAttributes([]);
+      return [];
+    }
   };
 
   const refresh = async () => {
@@ -127,7 +133,7 @@ function AdminAttributes() {
       const firstCategoryId = selectedCategoryId || categories[0]?.id || "";
       setSelectedCategoryId(firstCategoryId);
       if (firstCategoryId) {
-        setCategoryAttributes(await getAdminCategoryAttributes(firstCategoryId));
+        await refreshCategoryAttributes(firstCategoryId);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de charger les attributs.");
