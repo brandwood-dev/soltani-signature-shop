@@ -366,6 +366,42 @@ function AdminAttributes() {
     }
   };
 
+  const toggleOption = async (definitionId: string, option: AttributeOption) => {
+    try {
+      setSaving(true);
+      setError("");
+      const savedOption = await toggleAdminAttributeOption(definitionId, option.id);
+      patchDefinitionOptions(definitionId, (options) =>
+        options.map((item) => (item.id === savedOption.id ? savedOption : item)),
+      );
+      setOpenDefinitionIds((current) => new Set([...current, definitionId]));
+      await refreshAllDefinitions();
+      await refreshCategoryAttributes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Activation impossible pour cette option.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeOption = async (definitionId: string, optionId: string) => {
+    try {
+      setSaving(true);
+      setError("");
+      await deleteAdminAttributeOption(definitionId, optionId);
+      patchDefinitionOptions(definitionId, (options) =>
+        options.filter((item) => item.id !== optionId),
+      );
+      setOpenDefinitionIds((current) => new Set([...current, definitionId]));
+      await refreshAllDefinitions();
+      await refreshCategoryAttributes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const moveDefinition = async (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= definitions.length) return;
@@ -685,21 +721,7 @@ function AdminAttributes() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() =>
-                                toggleAdminAttributeOption(definition.id, option.id)
-                                  .then(async () => {
-                                    await refreshDefinitions();
-                                    await refreshAllDefinitions();
-                                    await refreshCategoryAttributes();
-                                  })
-                                  .catch((err) =>
-                                    setError(
-                                      err instanceof Error
-                                        ? err.message
-                                        : "Activation impossible pour cette option.",
-                                    ),
-                                  )
-                              }
+                              onClick={() => void toggleOption(definition.id, option)}
                               disabled={saving}
                             >
                               {option.isActive ? (
@@ -712,21 +734,7 @@ function AdminAttributes() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive"
-                              onClick={() =>
-                                deleteAdminAttributeOption(definition.id, option.id)
-                                  .then(async () => {
-                                    await refreshDefinitions();
-                                    await refreshAllDefinitions();
-                                    await refreshCategoryAttributes();
-                                  })
-                                  .catch((err) =>
-                                    setError(
-                                      err instanceof Error
-                                        ? err.message
-                                        : "Suppression impossible.",
-                                    ),
-                                  )
-                              }
+                              onClick={() => void removeOption(definition.id, option.id)}
                               disabled={saving}
                             >
                               <Trash2 className="h-4 w-4" />
