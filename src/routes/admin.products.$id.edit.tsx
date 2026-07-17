@@ -51,7 +51,7 @@ const SECTIONS = [
   { value: "femme", label: "Femme" },
   { value: "enfant", label: "Enfant" },
   { value: "maison", label: "Maison" },
-  { value: "bien-etre", label: "Bien-?tre" },
+  { value: "bien-etre", label: "Bien-être" },
 ] as const;
 
 function slugify(s: string) {
