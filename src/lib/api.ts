@@ -174,6 +174,8 @@ const ADMIN_INVALIDATION_PREFIXES = [
   "/products/admin",
   "/admin/categories",
   "/admin/attributes",
+  "/admin/attribute-options",
+  "/admin/category-attributes",
   "/admin/hero",
   "/admin/marquee",
   "/admin/featured-brands",
@@ -458,6 +460,13 @@ function invalidateAdminCache(path: string) {
   const prefixesToInvalidate = new Set([matchedPrefix]);
   if (normalizedPath.startsWith("/products/admin")) {
     prefixesToInvalidate.add("/catalog/products");
+  }
+  if (
+    normalizedPath.startsWith("/admin/attribute-options") ||
+    normalizedPath.startsWith("/admin/category-attributes")
+  ) {
+    prefixesToInvalidate.add("/admin/attributes");
+    prefixesToInvalidate.add("/admin/categories");
   }
 
   for (const key of responseCache.keys()) {
