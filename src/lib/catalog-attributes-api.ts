@@ -4,7 +4,7 @@ export type AttributeType = "TEXT" | "NUMBER" | "BOOLEAN" | "SELECT" | "MULTI_SE
 
 export type AttributeOption = {
   id: string;
-  definitionId: string;
+  definitionId?: string;
   value: string;
   label: string;
   sortOrder: number;
@@ -103,7 +103,7 @@ function normalizeOption(option: unknown): AttributeOption {
 
   return {
     id: requiredString(option.id, "id", "option"),
-    definitionId: requiredString(option.definitionId, "definitionId", "option"),
+    definitionId: typeof option.definitionId === "string" ? option.definitionId : undefined,
     value: requiredString(option.value, "value", "option"),
     label: requiredString(option.label, "label", "option"),
     sortOrder: Number(option.sortOrder ?? 0),
