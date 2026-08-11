@@ -114,6 +114,16 @@ export async function updateAdminProduct(id: string, input: UpsertAdminProductIn
   return response.product;
 }
 
+export function createAdminProductPreview(id: string, input: UpsertAdminProductInput) {
+  return apiFetch<{ token: string; previewUrl: string; expiresAt: string }>(
+    `/products/admin/${id}/preview`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
 export async function deleteAdminProduct(id: string) {
   return apiFetch<{ deleted?: boolean; archived?: boolean; product?: AdminProduct }>(
     `/products/admin/${id}`,
