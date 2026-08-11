@@ -1,8 +1,14 @@
 ﻿import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { ProductCard, type Product } from "@/components/site/ProductCard";
-import { getCatalogProduct, getCatalogProducts, getProductPreview, getProductReviews, type ProductReview } from "@/lib/catalog-api";
+import { ProductCard, type Product, type ProductVariant } from "@/components/site/ProductCard";
+import {
+  getCatalogProduct,
+  getCatalogProducts,
+  getProductPreview,
+  getProductReviews,
+  type ProductReview,
+} from "@/lib/catalog-api";
 import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
 import { saveQuickCheckoutLine } from "@/lib/quick-checkout";
@@ -11,21 +17,45 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 import { getCategoryDisplayName } from "@/lib/category-name";
-import { breadcrumbJsonLd, canonicalLink, jsonLdScript, productJsonLd, productReviewsJsonLd, seoMeta } from "@/lib/seo";
-import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Eye, Flame, ShoppingBag } from "lucide-react";
+import {
+  breadcrumbJsonLd,
+  canonicalLink,
+  jsonLdScript,
+  productJsonLd,
+  productReviewsJsonLd,
+  seoMeta,
+} from "@/lib/seo";
+import {
+  Heart,
+  Share2,
+  Shield,
+  Truck,
+  RotateCcw,
+  Star,
+  Minus,
+  Plus,
+  ChevronRight,
+  Eye,
+  Flame,
+  ShoppingBag,
+} from "lucide-react";
 
 const ProductReviewsPanel = lazy(() =>
-  import("@/components/site/ProductReviewsPanel").then((module) => ({ default: module.ProductReviewsPanel })),
+  import("@/components/site/ProductReviewsPanel").then((module) => ({
+    default: module.ProductReviewsPanel,
+  })),
 );
 
 export const Route = createFileRoute("/product/$slug")({
   validateSearch: (search: Record<string, unknown>) => ({
-    preview: typeof search.preview === "string" && search.preview.length > 0
-      ? search.preview
-      : undefined,
+    preview:
+      typeof search.preview === "string" && search.preview.length > 0 ? search.preview : undefined,
   }),
   loaderDeps: ({ search }) => ({ preview: search.preview }),
-  loader: async ({ params, deps }): Promise<{
+  loader: async ({
+    params,
+    deps,
+  }): Promise<{
     product: Product;
     related: Product[];
     limitedOffer: PromoBanner | null;
@@ -34,11 +64,9 @@ export const Route = createFileRoute("/product/$slug")({
     isPreview: boolean;
     previewExpiresAt: string | null;
   }> => {
-    const preview = deps.preview
-      ? await getProductPreview(deps.preview).catch(() => null)
-      : null;
+    const preview = deps.preview ? await getProductPreview(deps.preview).catch(() => null) : null;
     const product = deps.preview
-      ? preview?.product ?? null
+      ? (preview?.product ?? null)
       : await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
 
@@ -52,14 +80,15 @@ export const Route = createFileRoute("/product/$slug")({
       previewExpiresAt: preview?.expiresAt ?? null,
     };
   },
-  headers: ({ loaderData }) => loaderData?.isPreview
-    ? {
-        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
-        Pragma: "no-cache",
-        "Referrer-Policy": "no-referrer",
-        "X-Robots-Tag": "noindex, nofollow, noarchive",
-      }
-    : undefined,
+  headers: ({ loaderData }) =>
+    loaderData?.isPreview
+      ? {
+          "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+          Pragma: "no-cache",
+          "Referrer-Policy": "no-referrer",
+          "X-Robots-Tag": "noindex, nofollow, noarchive",
+        }
+      : undefined,
   head: ({ params, loaderData }) => {
     const product = loaderData?.product;
     const path = `/product/${params.slug}`;
@@ -77,9 +106,17 @@ export const Route = createFileRoute("/product/$slug")({
         scripts: [],
       };
     }
-    const title = product ? `${product.name} ? ${product.brand} | Soltani Signature` : "Produit ? Soltani Signature";
-    const description = product?.description || (product ? `${product.name} par ${product.brand}, disponible chez Soltani Signature en Tunisie.` : "D?couvrez nos produits authentiques chez Soltani Signature.");
-    const categoryName = product ? getCategoryDisplayName(product.categoryName, product.category) : "Catalogue";
+    const title = product
+      ? `${product.name} ? ${product.brand} | Soltani Signature`
+      : "Produit ? Soltani Signature";
+    const description =
+      product?.description ||
+      (product
+        ? `${product.name} par ${product.brand}, disponible chez Soltani Signature en Tunisie.`
+        : "D?couvrez nos produits authentiques chez Soltani Signature.");
+    const categoryName = product
+      ? getCategoryDisplayName(product.categoryName, product.category)
+      : "Catalogue";
     return {
       meta: seoMeta({ title, description, path, image: product?.image, type: "product" }),
       links: [canonicalLink(path)],
@@ -87,11 +124,13 @@ export const Route = createFileRoute("/product/$slug")({
         ? [
             jsonLdScript(productJsonLd(product, loaderData?.reviewSummary)),
             ...productReviewsJsonLd(product, loaderData?.reviewSamples ?? []).map(jsonLdScript),
-            jsonLdScript(breadcrumbJsonLd([
-              { name: "Accueil", path: "/" },
-              { name: categoryName, path: `/category/${product.category}` },
-              { name: product.name, path },
-            ])),
+            jsonLdScript(
+              breadcrumbJsonLd([
+                { name: "Accueil", path: "/" },
+                { name: categoryName, path: `/category/${product.category}` },
+                { name: product.name, path },
+              ]),
+            ),
           ]
         : [],
     };
@@ -100,13 +139,17 @@ export const Route = createFileRoute("/product/$slug")({
     <SiteLayout>
       <div className="container-luxe py-32 text-center">
         <h1 className="font-display text-4xl font-bold mb-4">Produit introuvable</h1>
-        <Link to="/" className="text-gold underline">Retour à l'accueil</Link>
+        <Link to="/" className="text-gold underline">
+          Retour à l'accueil
+        </Link>
       </div>
     </SiteLayout>
   ),
   errorComponent: ({ error }) => (
     <SiteLayout>
-      <div className="container-luxe py-32 text-center text-muted-foreground">{toUserFriendlyErrorMessage(error)}</div>
+      <div className="container-luxe py-32 text-center text-muted-foreground">
+        {toUserFriendlyErrorMessage(error)}
+      </div>
     </SiteLayout>
   ),
   component: ProductPage,
@@ -120,7 +163,31 @@ function ProductPage() {
     isPreview,
     previewExpiresAt,
   } = Route.useLoaderData();
-  const gallery = product.gallery?.length ? product.gallery : [product.image];
+  const productVariants = (product.variants ?? []).filter((variant) => variant.isActive);
+  const requiresShadeSelection = product.variantMode === "color" && productVariants.length > 1;
+  const [selectedVariantId, setSelectedVariantId] = useState(
+    requiresShadeSelection
+      ? ""
+      : ((productVariants.find((variant) => variant.isDefault) ?? productVariants[0])?.id ??
+          product.variantId ??
+          ""),
+  );
+  const selectedVariant = productVariants.find((variant) => variant.id === selectedVariantId);
+  const gallery = useMemo(() => {
+    const baseGallery = product.gallery?.length ? product.gallery : [product.image];
+    return selectedVariant?.imageUrl
+      ? [
+          selectedVariant.imageUrl,
+          ...baseGallery.filter((image) => image !== selectedVariant.imageUrl),
+        ]
+      : baseGallery;
+  }, [product.gallery, product.image, selectedVariant?.imageUrl]);
+  const selectedPrice = selectedVariant?.price ?? product.price;
+  const selectedReference =
+    selectedVariant?.reference || selectedVariant?.sku || product.slug.toUpperCase();
+  const canPurchase =
+    Boolean(selectedVariant?.id ?? product.variantId) &&
+    (!requiresShadeSelection || Boolean(selectedVariant));
   const parentSlug = product.category;
   const parentName = getCategoryDisplayName(product.categoryName, product.category);
   const [active, setActive] = useState(0);
@@ -133,6 +200,11 @@ function ProductPage() {
   const { add } = useCart();
   const { has, toggle } = useWishlist();
   const isFavorite = has(product.slug);
+
+  useEffect(() => {
+    setQty(1);
+    setActive(0);
+  }, [selectedVariantId]);
 
   useEffect(() => {
     if (isPreview) {
@@ -164,7 +236,8 @@ function ProductPage() {
     let activeRequest = true;
     getCatalogProducts({ category: product.category, limit: 5, summary: true })
       .then((apiProducts) => {
-        if (activeRequest) setRelated(apiProducts.filter((item) => item.slug !== product.slug).slice(0, 4));
+        if (activeRequest)
+          setRelated(apiProducts.filter((item) => item.slug !== product.slug).slice(0, 4));
       })
       .catch(() => {
         if (activeRequest) setRelated([]);
@@ -201,27 +274,57 @@ function ProductPage() {
   }, [isPreview, product.id, product.name, product.price, product.slug, product.variantId]);
 
   const handleAddToCart = () => {
-    if (isPreview || !product.variantId) return;
-    add({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
+    const variantId = selectedVariant?.id ?? product.variantId;
+    if (isPreview || !variantId || !canPurchase) return;
+    const variantLabel = selectedVariant?.label ?? product.variantLabel ?? "Standard";
+    const image = selectedVariant?.imageUrl ?? product.image;
+    add({
+      id: variantId,
+      productSlug: product.slug,
+      variantId,
+      name: product.name,
+      brand: product.brand,
+      price: selectedPrice,
+      image,
+      variant: variantLabel,
+      variantReference: selectedVariant?.reference,
+      variantColorHex: selectedVariant?.colorHex,
+      qty,
+    });
     trackMetaPixelEvent("AddToCart", {
-      content_ids: [product.variantId],
+      content_ids: [variantId],
       content_name: product.name,
       content_type: "product",
-      contents: [{ id: product.variantId, quantity: qty, item_price: product.price }],
-      value: product.price * qty,
+      contents: [{ id: variantId, quantity: qty, item_price: selectedPrice }],
+      value: selectedPrice * qty,
       currency: "TND",
     });
   };
 
   const handleBuyNow = async () => {
-    if (isPreview || !product.variantId) return;
-    saveQuickCheckoutLine({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
+    const variantId = selectedVariant?.id ?? product.variantId;
+    if (isPreview || !variantId || !canPurchase) return;
+    const variantLabel = selectedVariant?.label ?? product.variantLabel ?? "Standard";
+    const image = selectedVariant?.imageUrl ?? product.image;
+    saveQuickCheckoutLine({
+      id: variantId,
+      productSlug: product.slug,
+      variantId,
+      name: product.name,
+      brand: product.brand,
+      price: selectedPrice,
+      image,
+      variant: variantLabel,
+      variantReference: selectedVariant?.reference,
+      variantColorHex: selectedVariant?.colorHex,
+      qty,
+    });
     trackMetaPixelEvent("InitiateCheckout", {
-      content_ids: [product.variantId],
+      content_ids: [variantId],
       content_name: product.name,
       content_type: "product",
-      contents: [{ id: product.variantId, quantity: qty, item_price: product.price }],
-      value: product.price * qty,
+      contents: [{ id: variantId, quantity: qty, item_price: selectedPrice }],
+      value: selectedPrice * qty,
       currency: "TND",
     });
     await navigate({ to: "/checkout", search: { quick: "1" } });
@@ -230,7 +333,11 @@ function ProductPage() {
     const url = window.location.href;
     try {
       if (navigator.share) {
-        await navigator.share({ title: product.name, text: product.description ?? product.name, url });
+        await navigator.share({
+          title: product.name,
+          text: product.description ?? product.name,
+          url,
+        });
         setShareMessage("Produit partagé.");
       } else {
         await navigator.clipboard.writeText(url);
@@ -242,8 +349,11 @@ function ProductPage() {
     window.setTimeout(() => setShareMessage(""), 2500);
   };
 
-  const discount = product.isPromotion ? product.discountPercentage ?? 0 : 0;
-  const specifications = useMemo(() => buildSpecifications(product, parentName), [product, parentName]);
+  const discount = product.isPromotion ? (product.discountPercentage ?? 0) : 0;
+  const specifications = useMemo(
+    () => buildSpecifications(product, parentName, selectedVariant),
+    [product, parentName, selectedVariant],
+  );
 
   return (
     <SiteLayout>
@@ -255,9 +365,12 @@ function ProductPage() {
                 <Eye className="h-4 w-4" aria-hidden="true" />
               </span>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Aperçu privé</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">
+                  Aperçu privé
+                </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-cream/75">
-                  Version temporaire non publiée. Les actions d’achat et de partage sont désactivées.
+                  Version temporaire non publiée. Les actions d’achat et de partage sont
+                  désactivées.
                 </p>
               </div>
             </div>
@@ -270,9 +383,13 @@ function ProductPage() {
         </div>
       ) : null}
       <div className="container-luxe pt-8 pb-4 flex items-center gap-2 text-xs text-muted-foreground">
-        <Link to="/" className="hover:text-gold">Accueil</Link>
+        <Link to="/" className="hover:text-gold">
+          Accueil
+        </Link>
         <ChevronRight className="h-3 w-3" />
-        <Link to="/category/$slug" params={{ slug: parentSlug }} className="hover:text-gold">{parentName}</Link>
+        <Link to="/category/$slug" params={{ slug: parentSlug }} className="hover:text-gold">
+          {parentName}
+        </Link>
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground line-clamp-1">{product.name}</span>
       </div>
@@ -281,8 +398,11 @@ function ProductPage() {
         <div className="flex flex-col-reverse gap-3 lg:grid lg:grid-cols-[80px_1fr] lg:gap-4 lg:flex-row">
           <div className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
             {gallery.map((g, i) => (
-              <button key={i} onClick={() => setActive(i)}
-                className={`shrink-0 w-16 h-16 lg:w-auto lg:h-auto aspect-square overflow-hidden rounded-sm border-2 transition ${active === i ? "border-gold" : "border-border hover:border-gold/50"}`}>
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={`shrink-0 w-16 h-16 lg:w-auto lg:h-auto aspect-square overflow-hidden rounded-sm border-2 transition ${active === i ? "border-gold" : "border-border hover:border-gold/50"}`}
+              >
                 <img
                   src={g}
                   alt=""
@@ -310,49 +430,148 @@ function ProductPage() {
               className="h-full w-full object-contain object-center p-3 lg:p-4 transition-transform duration-500 group-hover:scale-150 cursor-zoom-in"
             />
             {product.isPromotion && discount > 0 && (
-              <span className="absolute top-3 left-3 lg:top-4 lg:left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">-{discount}%</span>
+              <span className="absolute top-3 left-3 lg:top-4 lg:left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">
+                -{discount}%
+              </span>
             )}
           </div>
         </div>
 
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-gold mb-2">{product.brand}</p>
-          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-3">{product.name}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
+            {product.name}
+          </h1>
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             {isPreview ? null : (
-              <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.round(reviewSummary.averageRating) ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}</div>
+              <div className="flex">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-4 w-4 ${i < Math.round(reviewSummary.averageRating) ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                  />
+                ))}
+              </div>
             )}
             <span className="text-[11px] sm:text-xs text-muted-foreground">
-              {isPreview ? "Données du formulaire" : `${reviewSummary.total} avis`} · Réf. {product.slug.toUpperCase().slice(0, 10)}
+              {isPreview ? "Données du formulaire" : `${reviewSummary.total} avis`} · Réf.{" "}
+              {selectedReference}
             </span>
           </div>
 
           <div className="flex items-end gap-2 sm:gap-3 mb-6 flex-wrap">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums">{product.price} DT</span>
-            {product.oldPrice && <span className="text-base sm:text-lg text-muted-foreground line-through tabular-nums">{product.oldPrice} DT</span>}
-            {product.isPromotion && product.oldPrice && <span className="text-xs sm:text-sm text-destructive font-semibold">Économisez {product.oldPrice - product.price} DT</span>}
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums">{selectedPrice} DT</span>
+            {product.oldPrice && (
+              <span className="text-base sm:text-lg text-muted-foreground line-through tabular-nums">
+                {product.oldPrice} DT
+              </span>
+            )}
+            {product.isPromotion && product.oldPrice && (
+              <span className="text-xs sm:text-sm text-destructive font-semibold">
+                Économisez {product.oldPrice - selectedPrice} DT
+              </span>
+            )}
           </div>
           {product.isPromotion && discount > 0 && limitedOffer?.endsAt && (
             <PromoCountdown endsAt={limitedOffer.endsAt} />
           )}
 
           <p className="text-sm text-foreground/80 mb-6 leading-relaxed">
-            {product.description ?? `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
+            {product.description ??
+              `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
           </p>
+
+          {product.variantMode === "color" && productVariants.length > 0 ? (
+            <fieldset className="mb-6 rounded-sm border border-border bg-card/50 p-4">
+              <legend className="px-1 text-xs font-bold uppercase tracking-[0.16em]">
+                Choisissez votre teinte
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-3">
+                {productVariants.map((variant) => {
+                  const isSelected = selectedVariant?.id === variant.id;
+                  const isUnavailable = variant.stockQuantity <= 0;
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      disabled={isUnavailable}
+                      aria-pressed={isSelected}
+                      aria-label={`${variant.label}${variant.reference ? `, référence ${variant.reference}` : ""}${isUnavailable ? ", indisponible" : ""}`}
+                      title={`${variant.label}${isUnavailable ? " - Rupture de stock" : ""}`}
+                      className={`relative grid h-12 w-12 place-items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 ${isSelected ? "ring-2 ring-ink ring-offset-2" : "hover:scale-105"} ${isUnavailable ? "cursor-not-allowed opacity-35" : ""}`}
+                    >
+                      <span
+                        className="h-10 w-10 rounded-full border border-black/20 shadow-inner"
+                        style={{ backgroundColor: variant.colorHex || "#C47A7A" }}
+                        aria-hidden="true"
+                      />
+                      {isSelected ? (
+                        <span className="absolute inset-0 grid place-items-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                          ✓
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 min-h-10 text-sm">
+                {selectedVariant ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p>
+                      <span className="font-semibold">{selectedVariant.label}</span> · Réf.{" "}
+                      {selectedReference}
+                    </p>
+                    <p
+                      className={
+                        selectedVariant.stockQuantity > 0 ? "text-emerald-700" : "text-destructive"
+                      }
+                    >
+                      {selectedVariant.stockQuantity > 0
+                        ? `${selectedVariant.stockQuantity} en stock`
+                        : "Rupture de stock"}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-medium text-destructive">
+                    Sélectionnez une teinte avant d’ajouter ce produit au panier.
+                  </p>
+                )}
+              </div>
+            </fieldset>
+          ) : null}
 
           {isPreview ? (
             <div className="rounded-sm border border-gold/30 bg-gold/5 px-4 py-4 text-sm leading-relaxed text-foreground/80">
-              Mode aperçu en lecture seule. Aucun panier, favori, partage ou achat ne sera enregistré.
+              Mode aperçu en lecture seule. Aucun panier, favori, partage ou achat ne sera
+              enregistré.
             </div>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
                 <div className="flex items-center border border-border rounded-sm shrink-0">
-                  <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Minus className="h-4 w-4" /></button>
+                  <button
+                    onClick={() => setQty(Math.max(1, qty - 1))}
+                    className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
                   <span className="w-8 sm:w-10 text-center font-semibold">{qty}</span>
-                  <button onClick={() => setQty(qty + 1)} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Plus className="h-4 w-4" /></button>
+                  <button
+                    onClick={() => setQty(qty + 1)}
+                    disabled={Boolean(selectedVariant && qty >= selectedVariant.stockQuantity)}
+                    className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
                 </div>
-                <button onClick={handleAddToCart} className="order-3 sm:order-none w-full sm:w-auto sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-3 bg-gold text-ink text-[11px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm whitespace-nowrap">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={
+                    !canPurchase || Boolean(selectedVariant && selectedVariant.stockQuantity <= 0)
+                  }
+                  className="order-3 sm:order-none w-full sm:w-auto sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-3 bg-gold text-ink text-[11px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-45"
+                >
                   <ShoppingBag className="h-4 w-4 shrink-0" /> Ajouter au panier
                 </button>
                 <button
@@ -360,10 +579,12 @@ function ProductPage() {
                   onClick={() => {
                     if (!isFavorite) {
                       trackMetaPixelEvent("AddToWishlist", {
-                        content_ids: [product.variantId ?? product.id ?? product.slug],
+                        content_ids: [
+                          selectedVariant?.id ?? product.variantId ?? product.id ?? product.slug,
+                        ],
                         content_name: product.name,
                         content_type: "product",
-                        value: product.price,
+                        value: selectedPrice,
                         currency: "TND",
                       });
                     }
@@ -384,14 +605,30 @@ function ProductPage() {
                 </button>
               </div>
               {shareMessage ? <p className="mb-3 text-xs text-gold">{shareMessage}</p> : null}
-              <button type="button" onClick={handleBuyNow} className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight">
+              {!canPurchase && requiresShadeSelection ? (
+                <p className="mb-3 text-center text-xs font-medium text-destructive">
+                  Choisissez une teinte pour continuer.
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                disabled={
+                  !canPurchase || Boolean(selectedVariant && selectedVariant.stockQuantity <= 0)
+                }
+                className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight disabled:cursor-not-allowed disabled:opacity-45"
+              >
                 <span className="text-center">Acheter maintenant — Paiement à la livraison</span>
               </button>
             </>
           )}
 
           <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-border">
-            {[{ I: Truck, t: "Livraison express", s: "Partout en Tunisie" }, { I: RotateCcw, t: "Retours 14j", s: "Sans frais" }, { I: Shield, t: "Authentique", s: "100% garanti" }].map(({ I, t, s }) => (
+            {[
+              { I: Truck, t: "Livraison express", s: "Partout en Tunisie" },
+              { I: RotateCcw, t: "Retours 14j", s: "Sans frais" },
+              { I: Shield, t: "Authentique", s: "100% garanti" },
+            ].map(({ I, t, s }) => (
               <div key={t} className="text-center">
                 <I className="h-5 w-5 mx-auto text-gold mb-2" />
                 <p className="text-xs font-semibold">{t}</p>
@@ -402,12 +639,18 @@ function ProductPage() {
         </div>
       </section>
 
-
       <section className="container-luxe py-12 border-t border-border">
         <div className="flex gap-5 sm:gap-8 border-b border-border mb-8 overflow-x-auto scrollbar-none">
-          {[{ k: "desc", l: "Description" }, { k: "specs", l: "Spécifications" }, ...(isPreview ? [] : [{ k: "reviews", l: "Avis produit" }])].map(({ k, l }) => (
-            <button key={k} onClick={() => setTab(k as typeof tab)}
-              className={`pb-4 text-xs sm:text-sm uppercase tracking-widest transition relative whitespace-nowrap ${tab === k ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+          {[
+            { k: "desc", l: "Description" },
+            { k: "specs", l: "Spécifications" },
+            ...(isPreview ? [] : [{ k: "reviews", l: "Avis produit" }]),
+          ].map(({ k, l }) => (
+            <button
+              key={k}
+              onClick={() => setTab(k as typeof tab)}
+              className={`pb-4 text-xs sm:text-sm uppercase tracking-widest transition relative whitespace-nowrap ${tab === k ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}
+            >
               {l}
               {tab === k && <span className="absolute bottom-0 inset-x-0 h-px bg-gold" />}
             </button>
@@ -415,7 +658,9 @@ function ProductPage() {
         </div>
         {tab === "desc" && (
           <div className="max-w-3xl text-foreground/80 leading-relaxed space-y-4">
-            <p className="whitespace-pre-line">{product.description?.trim() || "Description complète bientôt disponible."}</p>
+            <p className="whitespace-pre-line">
+              {product.description?.trim() || "Description complète bientôt disponible."}
+            </p>
           </div>
         )}
         {tab === "specs" && (
@@ -423,19 +668,26 @@ function ProductPage() {
             {specifications.length > 0 ? (
               <dl className="divide-y divide-border">
                 {specifications.map(([key, value]) => (
-                  <div key={key} className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-4 py-3 text-sm">
+                  <div
+                    key={key}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-4 py-3 text-sm"
+                  >
                     <dt className="text-muted-foreground">{key}</dt>
                     <dd className="break-words">{value}</dd>
                   </div>
                 ))}
               </dl>
             ) : (
-              <p className="text-sm text-muted-foreground">Aucune spécification disponible pour ce produit.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucune spécification disponible pour ce produit.
+              </p>
             )}
           </div>
         )}
         {!isPreview && tab === "reviews" && (
-          <Suspense fallback={<p className="text-sm text-muted-foreground">Chargement des avis...</p>}>
+          <Suspense
+            fallback={<p className="text-sm text-muted-foreground">Chargement des avis...</p>}
+          >
             <ProductReviewsPanel slug={product.slug} onSummaryChange={setReviewSummary} />
           </Suspense>
         )}
@@ -445,7 +697,9 @@ function ProductPage() {
         <section className="container-luxe py-16 border-t border-border">
           <h2 className="font-display text-3xl font-bold mb-8">Vous pourriez aimer</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
-            {related.map((p) => <ProductCard key={p.slug} p={p} />)}
+            {related.map((p) => (
+              <ProductCard key={p.slug} p={p} />
+            ))}
           </div>
         </section>
       )}
@@ -461,20 +715,31 @@ function PromoCountdown({ endsAt }: { endsAt: string }) {
   return (
     <div className="mb-6 flex items-center gap-2 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-sm text-sm">
       <Flame className="h-4 w-4 text-destructive shrink-0" />
-      <LimitedOfferCountdown endsAt={endsAt} className="text-foreground" onExpire={() => setExpired(true)} />
+      <LimitedOfferCountdown
+        endsAt={endsAt}
+        className="text-foreground"
+        onExpire={() => setExpired(true)}
+      />
     </div>
   );
 }
 
-function buildSpecifications(product: Product, categoryName: string): Array<[string, string]> {
+function buildSpecifications(
+  product: Product,
+  categoryName: string,
+  selectedVariant?: ProductVariant,
+): Array<[string, string]> {
   const dynamicSpecs = Object.entries(product.attributes ?? {})
-    .map(([key, values]) => [formatSpecLabel(key), values.filter(Boolean).join(", ")] as [string, string])
+    .map(
+      ([key, values]) =>
+        [formatSpecLabel(key), values.filter(Boolean).join(", ")] as [string, string],
+    )
     .filter(([, value]) => value.trim().length > 0);
 
   return [
     ["Marque", product.brand],
     ["Catégorie", categoryName],
-    ["Référence", product.slug.toUpperCase()],
+    ["Référence", selectedVariant?.reference || selectedVariant?.sku || product.slug.toUpperCase()],
     ...dynamicSpecs,
   ];
 }

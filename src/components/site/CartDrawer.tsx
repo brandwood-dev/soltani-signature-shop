@@ -58,7 +58,9 @@ export function CartDrawer() {
             <div className="h-full flex flex-col items-center justify-center text-center gap-4">
               <ShoppingBag className="h-12 w-12 text-muted-foreground" />
               <p className="text-muted-foreground">Votre panier est vide.</p>
-              <button onClick={close} className="text-gold underline text-sm">Continuer mes achats</button>
+              <button onClick={close} className="text-gold underline text-sm">
+                Continuer mes achats
+              </button>
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -70,19 +72,39 @@ export function CartDrawer() {
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-widest text-gold">{l.brand}</p>
                     <p className="text-sm font-medium truncate">{l.name}</p>
-                    <p className="text-xs text-muted-foreground mb-2">{l.variant}</p>
+                    <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {l.variantColorHex ? (
+                        <span
+                          className="h-3.5 w-3.5 rounded-full border border-black/15"
+                          style={{ backgroundColor: l.variantColorHex }}
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                      {l.variant}
+                      {l.variantReference ? ` · ${l.variantReference}` : ""}
+                    </p>
                     <div className="flex items-center border border-border w-fit rounded-sm">
-                      <button onClick={() => update(l.id, l.qty - 1)} className="h-7 w-7 grid place-items-center hover:text-gold">
+                      <button
+                        onClick={() => update(l.id, l.qty - 1)}
+                        className="h-7 w-7 grid place-items-center hover:text-gold"
+                      >
                         <Minus className="h-3 w-3" />
                       </button>
                       <span className="w-7 text-center text-xs tabular-nums">{l.qty}</span>
-                      <button onClick={() => update(l.id, l.qty + 1)} className="h-7 w-7 grid place-items-center hover:text-gold">
+                      <button
+                        onClick={() => update(l.id, l.qty + 1)}
+                        className="h-7 w-7 grid place-items-center hover:text-gold"
+                      >
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
                   </div>
                   <div className="flex flex-col items-end justify-between">
-                    <button onClick={() => remove(l.id)} aria-label="Supprimer" className="text-muted-foreground hover:text-destructive">
+                    <button
+                      onClick={() => remove(l.id)}
+                      aria-label="Supprimer"
+                      className="text-muted-foreground hover:text-destructive"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                     <p className="text-sm font-semibold tabular-nums">{l.price * l.qty} DT</p>
@@ -96,8 +118,12 @@ export function CartDrawer() {
         {lines.length > 0 && (
           <footer className="border-t border-border p-5 space-y-3 shrink-0 bg-secondary/30">
             <div className="flex items-end justify-between">
-              <span className="text-sm uppercase tracking-widest text-muted-foreground">Sous-total</span>
-              <span className="font-display text-2xl font-bold text-gold tabular-nums">{subtotal} DT</span>
+              <span className="text-sm uppercase tracking-widest text-muted-foreground">
+                Sous-total
+              </span>
+              <span className="font-display text-2xl font-bold text-gold tabular-nums">
+                {subtotal} DT
+              </span>
             </div>
             <Link
               to="/checkout"

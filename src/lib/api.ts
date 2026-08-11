@@ -73,6 +73,10 @@ export type ApiCustomerOrder = {
     qty: number;
     price: number;
     total: number;
+    variantId?: string;
+    variant?: string;
+    variantReference?: string | null;
+    variantColorHex?: string | null;
   }>;
 };
 
@@ -89,6 +93,8 @@ export type ApiWishlistProduct = {
   badge?: "Best Seller" | "Nouveau" | "Promo";
   variantId?: string;
   variantLabel?: string;
+  variantReference?: string | null;
+  variantColorHex?: string | null;
   stockQuantity?: number;
   gallery?: string[];
 };
@@ -103,6 +109,8 @@ export type ApiCartLine = {
   qty: number;
   image: string;
   variant: string;
+  variantReference?: string | null;
+  variantColorHex?: string | null;
 };
 
 export type CustomerProfile = {
