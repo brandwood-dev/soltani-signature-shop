@@ -6,7 +6,13 @@ import { getCatalogProducts } from "@/lib/catalog-api";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import type { Product } from "@/components/site/ProductCard";
 
-export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
+export function SearchBox({
+  compact = false,
+  onNavigate,
+}: {
+  compact?: boolean;
+  onNavigate?: () => void;
+}) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<Product[]>([]);
@@ -47,7 +53,11 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
       content_type: "product",
     });
     if (results[0]) {
-      navigate({ to: "/product/$slug", params: { slug: results[0].slug } });
+      navigate({
+        to: "/product/$slug",
+        params: { slug: results[0].slug },
+        search: { preview: undefined },
+      });
     }
     setOpen(false);
     onNavigate?.();
@@ -62,7 +72,7 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
         content_type: "product",
       });
     }
-    navigate({ to: "/product/$slug", params: { slug } });
+    navigate({ to: "/product/$slug", params: { slug }, search: { preview: undefined } });
     setOpen(false);
     setQ("");
     onNavigate?.();
@@ -77,14 +87,25 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
         <input
           type="search"
           value={q}
-          onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           placeholder={compact ? "Rechercher…" : "Rechercher une marque, un produit…"}
           aria-label="Rechercher un produit ou une marque"
           className={`w-full ${compact ? "h-10 pl-10" : "h-11 pl-11"} pr-9 bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold/60 transition rounded-sm`}
         />
         {q && (
-          <button type="button" onClick={() => { setQ(""); setOpen(false); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-gold" aria-label="Effacer">
+          <button
+            type="button"
+            onClick={() => {
+              setQ("");
+              setOpen(false);
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-gold"
+            aria-label="Effacer"
+          >
             <X className="h-4 w-4" />
           </button>
         )}
@@ -99,7 +120,7 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
           ) : (
             <ul className="max-h-[70vh] overflow-y-auto divide-y divide-border">
               {results.map((p) => {
-                const discount = p.isPromotion ? p.discountPercentage ?? 0 : 0;
+                const discount = p.isPromotion ? (p.discountPercentage ?? 0) : 0;
                 return (
                   <li key={p.slug}>
                     <button
@@ -107,14 +128,24 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
                       onClick={() => go(p.slug)}
                       className="w-full flex items-center gap-3 p-3 hover:bg-secondary/60 transition text-left"
                     >
-                      <img src={p.image} alt={p.name} className="h-14 w-14 object-cover rounded-sm shrink-0 bg-card" />
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="h-14 w-14 object-cover rounded-sm shrink-0 bg-card"
+                      />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-gold truncate">{p.brand} · {catLabel(p.category)}</p>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-gold truncate">
+                          {p.brand} · {catLabel(p.category)}
+                        </p>
                         <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
                         <div className="mt-0.5 flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground tabular-nums">{p.price} DT</span>
+                          <span className="text-sm font-semibold text-foreground tabular-nums">
+                            {p.price} DT
+                          </span>
                           {p.oldPrice && (
-                            <span className="text-xs text-muted-foreground line-through tabular-nums">{p.oldPrice} DT</span>
+                            <span className="text-xs text-muted-foreground line-through tabular-nums">
+                              {p.oldPrice} DT
+                            </span>
                           )}
                         </div>
                       </div>
@@ -130,7 +161,10 @@ export function SearchBox({ compact = false, onNavigate }: { compact?: boolean; 
               <li>
                 <Link
                   to="/promotions"
-                  onClick={() => { setOpen(false); onNavigate?.(); }}
+                  onClick={() => {
+                    setOpen(false);
+                    onNavigate?.();
+                  }}
                   className="block p-3 text-center text-[11px] uppercase tracking-[0.25em] text-gold hover:bg-secondary/60 transition"
                 >
                   Voir toutes les promotions →

@@ -12,6 +12,8 @@ export type CartLine = {
   qty: number;
   image: string;
   variant: string;
+  variantReference?: string | null;
+  variantColorHex?: string | null;
 };
 
 const KEY = "soltani-cart";
@@ -24,7 +26,9 @@ const read = (): CartLine[] => {
     const raw = sessionStorage.getItem(KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as CartLine[]).filter((line) => Boolean(line.variantId)) : [];
+    return Array.isArray(parsed)
+      ? (parsed as CartLine[]).filter((line) => Boolean(line.variantId))
+      : [];
   } catch {
     return [];
   }
@@ -39,7 +43,7 @@ const cleanupLegacyPersistentCart = () => {
   try {
     localStorage.removeItem(LEGACY_KEY);
   } catch {
-    undefined;
+    return;
   }
 };
 
@@ -116,19 +120,22 @@ export function useCart() {
     void persistRemote([]).catch(() => undefined);
   }, []);
 
-  const add = useCallback((item: Omit<CartLine, "qty"> & { qty?: number }, options: { openDrawer?: boolean } = {}) => {
-    const current = read();
-    const qty = item.qty ?? 1;
-    const idx = current.findIndex((line) => line.variantId === item.variantId);
-    const next =
-      idx >= 0
-        ? current.map((line, index) => (index === idx ? { ...line, qty: line.qty + qty } : line))
-        : [...current, { ...item, qty }];
+  const add = useCallback(
+    (item: Omit<CartLine, "qty"> & { qty?: number }, options: { openDrawer?: boolean } = {}) => {
+      const current = read();
+      const qty = item.qty ?? 1;
+      const idx = current.findIndex((line) => line.variantId === item.variantId);
+      const next =
+        idx >= 0
+          ? current.map((line, index) => (index === idx ? { ...line, qty: line.qty + qty } : line))
+          : [...current, { ...item, qty }];
 
-    write(next);
-    void persistRemote(next).catch(() => undefined);
-    if (options.openDrawer !== false) openCartDrawer();
-  }, []);
+      write(next);
+      void persistRemote(next).catch(() => undefined);
+      if (options.openDrawer !== false) openCartDrawer();
+    },
+    [],
+  );
 
   const count = lines.reduce((sum, line) => sum + line.qty, 0);
   const subtotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);

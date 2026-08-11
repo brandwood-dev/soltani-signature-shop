@@ -8,6 +8,7 @@ type ApiProduct = {
   description?: string | null;
   basePrice: string | number;
   compareAtPrice?: string | number | null;
+  variantMode?: string;
   isFeatured?: boolean;
   section?: string;
   tags?: string[];
@@ -16,10 +17,16 @@ type ApiProduct = {
   images: Array<{ url: string; alt?: string | null }>;
   variants: Array<{
     id: string;
+    sku?: string;
     label?: string | null;
+    reference?: string | null;
+    colorHex?: string | null;
+    imageUrl?: string | null;
     price: string | number;
     stockQuantity: number;
     isActive: boolean;
+    isDefault?: boolean;
+    sortOrder?: number;
   }>;
   attributes?: Array<{ key: string; value: string }>;
   reviewSummary?: {
@@ -124,7 +131,26 @@ const BEST_SELLER_TAG = "__best_seller";
 const DISCOUNT_TAG_PREFIX = "__discount:";
 
 export function mapApiProduct(product: ApiProduct): Product {
-  const variant = product.variants.find((item) => item.isActive) ?? product.variants[0];
+  const variants = product.variants
+    .filter((item) => item.isActive)
+    .map((item, index) => ({
+      id: item.id,
+      sku: item.sku ?? "",
+      label: item.label ?? "Standard",
+      reference: item.reference ?? undefined,
+      colorHex: item.colorHex ?? undefined,
+      imageUrl: item.imageUrl ?? undefined,
+      price: numberValue(item.price),
+      stockQuantity: item.stockQuantity,
+      isActive: item.isActive,
+      isDefault: Boolean(item.isDefault),
+      sortOrder: item.sortOrder ?? index,
+    }))
+    .sort(
+      (left, right) =>
+        Number(right.isDefault) - Number(left.isDefault) || left.sortOrder - right.sortOrder,
+    );
+  const variant = variants.find((item) => item.isDefault) ?? variants[0];
   const tags = product.tags ?? [];
   const isPromotion = tags.some((tag) => tag.toLowerCase() === PROMOTION_TAG);
   const discountTag = tags.find((tag) => tag.toLowerCase().startsWith(DISCOUNT_TAG_PREFIX));
@@ -150,9 +176,14 @@ export function mapApiProduct(product: ApiProduct): Product {
     image: product.images[0]?.url ?? "/placeholder.svg",
     badge: isBestSeller ? "Best Seller" : isPromotion ? "Promo" : undefined,
     isPromotion,
-    discountPercentage: isPromotion && Number.isFinite(discountPercentage) && discountPercentage > 0 ? discountPercentage : undefined,
+    discountPercentage:
+      isPromotion && Number.isFinite(discountPercentage) && discountPercentage > 0
+        ? discountPercentage
+        : undefined,
     isBestSeller,
     isFeatured,
+    variantMode: product.variantMode?.toLowerCase() === "color" ? "color" : "simple",
+    variants,
     variantId: variant?.id,
     variantLabel: variant?.label ?? "Standard",
     stockQuantity: variant?.stockQuantity ?? 0,
@@ -163,16 +194,18 @@ export function mapApiProduct(product: ApiProduct): Product {
   };
 }
 
-export async function getCatalogProducts(params: {
-  category?: string;
-  query?: string;
-  section?: string;
-  limit?: number;
-  summary?: boolean;
-  featured?: boolean;
-  bestSeller?: boolean;
-  promotion?: boolean;
-} = {}) {
+export async function getCatalogProducts(
+  params: {
+    category?: string;
+    query?: string;
+    section?: string;
+    limit?: number;
+    summary?: boolean;
+    featured?: boolean;
+    bestSeller?: boolean;
+    promotion?: boolean;
+  } = {},
+) {
   const search = new URLSearchParams();
   if (params.category) search.set("category", params.category);
   if (params.query) search.set("q", params.query);
@@ -183,7 +216,9 @@ export async function getCatalogProducts(params: {
   if (params.bestSeller) search.set("bestSeller", "1");
   if (params.promotion) search.set("promotion", "1");
 
-  const products = await publicApiFetch<ApiProduct[]>(`/catalog/products${search.size ? `?${search}` : ""}`);
+  const products = await publicApiFetch<ApiProduct[]>(
+    `/catalog/products${search.size ? `?${search}` : ""}`,
+  );
   return products.map(mapApiProduct);
 }
 
@@ -213,7 +248,9 @@ export type CatalogProductsPage = {
   };
 };
 
-export async function getCatalogProductsPage(params: CatalogProductsQuery = {}): Promise<CatalogProductsPage> {
+export async function getCatalogProductsPage(
+  params: CatalogProductsQuery = {},
+): Promise<CatalogProductsPage> {
   const search = new URLSearchParams();
   if (params.category) search.set("category", params.category);
   if (params.query) search.set("q", params.query);
@@ -275,12 +312,17 @@ export async function createCustomerCodOrder(input: CreateCodOrderInput) {
   });
 }
 
-export async function getProductReviews(slug: string, params: { page?: number; pageSize?: number } = {}) {
+export async function getProductReviews(
+  slug: string,
+  params: { page?: number; pageSize?: number } = {},
+) {
   const search = new URLSearchParams();
   if (params.page) search.set("page", String(params.page));
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
 
-  return publicApiFetch<ProductReviewsResponse>(`/catalog/products/${slug}/reviews${search.size ? `?${search}` : ""}`);
+  return publicApiFetch<ProductReviewsResponse>(
+    `/catalog/products/${slug}/reviews${search.size ? `?${search}` : ""}`,
+  );
 }
 
 export async function getMyProductReview(slug: string) {
@@ -294,7 +336,11 @@ export async function createProductReview(slug: string, input: ProductReviewInpu
   });
 }
 
-export async function updateProductReview(slug: string, reviewId: string, input: ProductReviewInput) {
+export async function updateProductReview(
+  slug: string,
+  reviewId: string,
+  input: ProductReviewInput,
+) {
   return apiFetch<MyProductReviewResponse>(`/catalog/products/${slug}/reviews/${reviewId}`, {
     method: "PATCH",
     body: JSON.stringify(input),

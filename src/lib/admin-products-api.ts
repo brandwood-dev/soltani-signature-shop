@@ -2,6 +2,22 @@ import { apiFetch } from "@/lib/api";
 
 export type AdminProductStatus = "draft" | "active" | "archived";
 export type AdminProductSection = "homme" | "femme" | "enfant" | "maison" | "bien-etre";
+export type AdminProductVariantMode = "simple" | "color";
+
+export type AdminProductVariant = {
+  id?: string;
+  sku: string;
+  label: string;
+  reference: string | null;
+  colorHex: string | null;
+  imageUrl: string | null;
+  price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  isActive: boolean;
+  isDefault: boolean;
+  sortOrder: number;
+};
 
 export type AdminProduct = {
   id: string;
@@ -14,6 +30,8 @@ export type AdminProduct = {
   stockQuantity: number;
   sku: string;
   lowStockThreshold: number;
+  variantMode?: AdminProductVariantMode;
+  variants?: AdminProductVariant[];
   status: AdminProductStatus;
   section: AdminProductSection;
   isFeatured: boolean;
@@ -52,6 +70,8 @@ export type UpsertAdminProductInput = {
   compareAtPrice?: number | null;
   stockQuantity: number;
   sku?: string;
+  variantMode?: AdminProductVariantMode;
+  variants?: AdminProductVariant[];
   category: string;
   section: AdminProductSection;
   subcategory?: string;
@@ -133,7 +153,9 @@ export async function deleteAdminProduct(id: string) {
 
 export async function uploadAdminProductImage(file: File) {
   if (file.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
-    throw new Error(`L'image "${file.name}" dépasse la taille maximale autorisée de ${MAX_PRODUCT_IMAGE_SIZE_MB} Mo.`);
+    throw new Error(
+      `L'image "${file.name}" dépasse la taille maximale autorisée de ${MAX_PRODUCT_IMAGE_SIZE_MB} Mo.`,
+    );
   }
 
   const base64 = await new Promise<string>((resolve, reject) => {
@@ -153,4 +175,3 @@ export async function uploadAdminProductImage(file: File) {
   });
   return response.url;
 }
-

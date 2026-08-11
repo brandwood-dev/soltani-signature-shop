@@ -40,7 +40,10 @@ import {
 import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 import { ProductAttributeFields } from "@/components/admin/ProductAttributeFields";
+import { ProductVariantsEditor } from "@/components/admin/ProductVariantsEditor";
 import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
+import type { AdminProductVariant, AdminProductVariantMode } from "@/lib/admin-products-api";
+import { makeColorVariant } from "@/lib/product-variant-drafts";
 
 const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
@@ -98,6 +101,8 @@ function AdminEditProduct() {
   const [cost, setCost] = useState("");
   const [stock, setStock] = useState("");
   const [lowStockAlert, setLowStockAlert] = useState("5");
+  const [variantMode, setVariantMode] = useState<AdminProductVariantMode>("simple");
+  const [variants, setVariants] = useState<AdminProductVariant[]>([]);
   const [weight, setWeight] = useState("");
   const [status, setStatus] = useState("draft");
   const [featured, setFeatured] = useState(false);
@@ -144,6 +149,8 @@ function AdminEditProduct() {
         setComparePrice(loaded.compareAtPrice ? String(loaded.compareAtPrice) : "");
         setStock(String(loaded.stockQuantity));
         setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
+        setVariantMode(loaded.variantMode ?? "simple");
+        setVariants(loaded.variants ?? []);
         setStatus(loaded.status);
         setFeatured(loaded.isFeatured);
         setIsPromotion(Boolean(loaded.isPromotion));
@@ -248,33 +255,59 @@ function AdminEditProduct() {
   };
   const removeTag = (t: string) => setTags((s) => s.filter((x) => x !== t));
 
-  const buildProductInput = (): UpsertAdminProductInput => ({
-    name,
-    slug: slug || slugify(name),
-    shortDescription,
-    description,
-    price: Number(price),
-    compareAtPrice: comparePrice ? Number(comparePrice) : null,
-    stockQuantity: trackInventory ? Number(stock || 0) : 0,
-    section,
-    sku,
-    category,
-    subcategory: subcategory || undefined,
-    brand,
-    tags,
-    images: images.map((url) => ({ url, alt: name })),
-    attributes: Object.entries(attributes).flatMap(([key, values]) =>
-      values.map((value) => ({ key, value })),
-    ),
-    seoTitle: seoTitle || name,
-    seoDescription,
-    status: status as "draft" | "active" | "archived",
-    isFeatured: featured,
-    isPromotion,
-    discountPercentage: isPromotion ? Number(discountPercentage || 0) : null,
-    isBestSeller,
-    lowStockThreshold: Number(lowStockAlert || 5),
-  });
+  const changeVariantMode = (mode: AdminProductVariantMode) => {
+    setVariantMode(mode);
+    if (mode === "color" && variants.length === 0) {
+      const first = makeColorVariant(
+        Number(price || 0),
+        Number(stock || 0),
+        Number(lowStockAlert || 5),
+      );
+      first.id =
+        product?.variants?.find((variant) => variant.isDefault)?.id ?? product?.variants?.[0]?.id;
+      first.sku = sku;
+      first.isDefault = true;
+      setVariants([first]);
+    }
+  };
+
+  const buildProductInput = (): UpsertAdminProductInput => {
+    const activeVariantPrices = variants
+      .filter((variant) => variant.isActive)
+      .map((variant) => variant.price);
+    return {
+      name,
+      slug: slug || slugify(name),
+      shortDescription,
+      description,
+      price:
+        variantMode === "color" && activeVariantPrices.length
+          ? Math.min(...activeVariantPrices)
+          : Number(price),
+      compareAtPrice: comparePrice ? Number(comparePrice) : null,
+      stockQuantity: trackInventory ? Number(stock || 0) : 0,
+      variantMode,
+      variants: variantMode === "color" ? variants : undefined,
+      section,
+      sku,
+      category,
+      subcategory: subcategory || undefined,
+      brand,
+      tags,
+      images: images.map((url) => ({ url, alt: name })),
+      attributes: Object.entries(attributes).flatMap(([key, values]) =>
+        values.map((value) => ({ key, value })),
+      ),
+      seoTitle: seoTitle || name,
+      seoDescription,
+      status: status as "draft" | "active" | "archived",
+      isFeatured: featured,
+      isPromotion,
+      discountPercentage: isPromotion ? Number(discountPercentage || 0) : null,
+      isBestSeller,
+      lowStockThreshold: Number(lowStockAlert || 5),
+    };
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -341,7 +374,12 @@ function AdminEditProduct() {
         }
       />
 
-      <form ref={formRef} id="edit-product-form" onSubmit={handleSubmit} className="flex-1 p-3 sm:p-6">
+      <form
+        ref={formRef}
+        id="edit-product-form"
+        onSubmit={handleSubmit}
+        className="flex-1 p-3 sm:p-6"
+      >
         {error && (
           <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}{" "}
@@ -486,98 +524,154 @@ function AdminEditProduct() {
 
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Prix & stock</CardTitle>
+                  <CardTitle className="text-base">Prix, stock & variantes</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="price">Prix de vente (DT) *</Label>
-                      <Input
-                        id="price"
-                        required
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="compare">Prix barré (DT)</Label>
-                      <Input
-                        id="compare"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={comparePrice}
-                        onChange={(e) => setComparePrice(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="cost">Coût (DT)</Label>
-                      <Input
-                        id="cost"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={cost}
-                        onChange={(e) => setCost(e.target.value)}
-                      />
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label>Type de produit</Label>
+                    <Select
+                      value={variantMode}
+                      onValueChange={(value) => changeVariantMode(value as AdminProductVariantMode)}
+                    >
+                      <SelectTrigger className="min-h-11 sm:max-w-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simple">Produit simple</SelectItem>
+                        <SelectItem value="color">Plusieurs teintes / références</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Le mode teintes conserve les commandes et paniers associés à chaque référence.
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                    <Label className="text-sm">Suivre l'inventaire</Label>
-                    <Switch checked={trackInventory} onCheckedChange={setTrackInventory} />
-                  </div>
-                  {trackInventory && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="stock">Quantité en stock</Label>
-                        <Input
-                          id="stock"
-                          type="number"
-                          min="0"
-                          value={stock}
-                          onChange={(e) => setStock(e.target.value)}
-                        />
+
+                  {variantMode === "simple" ? (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="price">Prix de vente (DT) *</Label>
+                          <Input
+                            id="price"
+                            required
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="compare">Prix barré (DT)</Label>
+                          <Input
+                            id="compare"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={comparePrice}
+                            onChange={(e) => setComparePrice(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="cost">Coût (DT)</Label>
+                          <Input
+                            id="cost"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={cost}
+                            onChange={(e) => setCost(e.target.value)}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="low">Alerte stock faible</Label>
-                        <Input
-                          id="low"
-                          type="number"
-                          min="0"
-                          value={lowStockAlert}
-                          onChange={(e) => setLowStockAlert(e.target.value)}
-                        />
+                      <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                        <Label className="text-sm">Suivre l'inventaire</Label>
+                        <Switch checked={trackInventory} onCheckedChange={setTrackInventory} />
                       </div>
-                    </div>
+                      {trackInventory && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="stock">Quantité en stock</Label>
+                            <Input
+                              id="stock"
+                              type="number"
+                              min="0"
+                              value={stock}
+                              onChange={(e) => setStock(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="low">Alerte stock faible</Label>
+                            <Input
+                              id="low"
+                              type="number"
+                              min="0"
+                              value={lowStockAlert}
+                              onChange={(e) => setLowStockAlert(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="sku">SKU</Label>
+                          <Input
+                            id="sku"
+                            value={sku}
+                            readOnly
+                            aria-readonly="true"
+                            className="bg-muted text-muted-foreground"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Le SKU est conservé après la création.
+                          </p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="weight">Poids (g)</Label>
+                          <Input
+                            id="weight"
+                            type="number"
+                            min="0"
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <ProductVariantsEditor
+                        variants={variants}
+                        onChange={setVariants}
+                        defaultPrice={Number(price || 0)}
+                        defaultStock={Number(stock || 0)}
+                        defaultLowStockThreshold={Number(lowStockAlert || 5)}
+                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="compare-color">Prix barré global (DT)</Label>
+                          <Input
+                            id="compare-color"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={comparePrice}
+                            onChange={(e) => setComparePrice(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="weight-color">Poids (g)</Label>
+                          <Input
+                            id="weight-color"
+                            type="number"
+                            min="0"
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </>
                   )}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="sku">SKU</Label>
-                      <Input
-                        id="sku"
-                        value={sku}
-                        readOnly
-                        aria-readonly="true"
-                        className="bg-muted text-muted-foreground"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Le SKU est généré automatiquement à la création et conservé.
-                      </p>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="weight">Poids (g)</Label>
-                      <Input
-                        id="weight"
-                        type="number"
-                        min="0"
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                      />
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 

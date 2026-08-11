@@ -21,6 +21,8 @@ export type Product = {
   isBestSeller?: boolean;
   isFeatured?: boolean;
   rating?: number;
+  variantMode?: "simple" | "color";
+  variants?: ProductVariant[];
   variantId?: string;
   variantLabel?: string;
   stockQuantity?: number;
@@ -33,29 +35,61 @@ export type Product = {
   };
 };
 
+export type ProductVariant = {
+  id: string;
+  sku: string;
+  label: string;
+  reference?: string;
+  colorHex?: string;
+  imageUrl?: string;
+  price: number;
+  stockQuantity: number;
+  isActive: boolean;
+  isDefault: boolean;
+  sortOrder: number;
+};
+
 export function ProductCard({ p }: { p: Product }) {
   const { has, toggle } = useWishlist();
   const { add } = useCart();
   const navigate = useNavigate();
   const fav = has(p.slug);
   const promoDiscount = p.discountPercentage;
+  const requiresSelection = p.variantMode === "color" || (p.variants?.length ?? 0) > 1;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!p.variantId) return;
-    add({ id: p.variantId, productSlug: p.slug, variantId: p.variantId, name: p.name, brand: p.brand, price: p.price, image: p.image, variant: p.variantLabel ?? "Standard" });
+    if (requiresSelection || !p.variantId) {
+      navigate({ to: "/product/$slug", params: { slug: p.slug }, search: { preview: undefined } });
+      return;
+    }
+    add({
+      id: p.variantId,
+      productSlug: p.slug,
+      variantId: p.variantId,
+      name: p.name,
+      brand: p.brand,
+      price: p.price,
+      image: p.image,
+      variant: p.variantLabel ?? "Standard",
+    });
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate({ to: "/product/$slug", params: { slug: p.slug } });
+    navigate({ to: "/product/$slug", params: { slug: p.slug }, search: { preview: undefined } });
   };
 
   return (
     <article className="group relative">
-      <Link to="/product/$slug" params={{ slug: p.slug }} className="block">
+      <Link
+        to="/product/$slug"
+        params={{ slug: p.slug }}
+        search={{ preview: undefined }}
+        className="block"
+      >
         <div className="relative aspect-square overflow-hidden bg-card shadow-sm rounded-sm">
           <img
             src={p.image}
@@ -89,7 +123,10 @@ export function ProductCard({ p }: { p: Product }) {
           <button
             type="button"
             aria-label={fav ? "Retirer des favoris" : "Ajouter aux favoris"}
-            onClick={(e) => { e.preventDefault(); toggle(p.slug); }}
+            onClick={(e) => {
+              e.preventDefault();
+              toggle(p.slug);
+            }}
             className={`absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-background/80 backdrop-blur transition ${fav ? "text-destructive" : "text-foreground hover:text-destructive"}`}
           >
             <Heart className={`h-4 w-4 ${fav ? "fill-destructive" : ""}`} />
@@ -98,12 +135,12 @@ export function ProductCard({ p }: { p: Product }) {
           <div className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 sm:justify-start md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-500">
             <button
               type="button"
-              aria-label="Ajouter au panier"
+              aria-label={requiresSelection ? "Choisir une couleur" : "Ajouter au panier"}
               onClick={handleAdd}
               className="inline-flex h-9 w-9 items-center justify-center gap-2 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm sm:h-10 sm:w-auto sm:flex-1"
             >
               <ShoppingBag className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Ajouter</span>
+              <span className="hidden sm:inline">{requiresSelection ? "Choisir" : "Ajouter"}</span>
             </button>
             <button
               type="button"
@@ -118,11 +155,17 @@ export function ProductCard({ p }: { p: Product }) {
 
         <div className="pt-4 pb-2">
           <p className="text-[10px] uppercase tracking-[0.25em] text-gold mb-1.5">{p.brand}</p>
-          <h3 className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-gold transition">{p.name}</h3>
+          <h3 className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-gold transition">
+            {p.name}
+          </h3>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-base font-semibold text-foreground tabular-nums">{p.price} DT</span>
+            <span className="text-base font-semibold text-foreground tabular-nums">
+              {p.price} DT
+            </span>
             {p.oldPrice && (
-              <span className="text-xs text-muted-foreground line-through tabular-nums">{p.oldPrice} DT</span>
+              <span className="text-xs text-muted-foreground line-through tabular-nums">
+                {p.oldPrice} DT
+              </span>
             )}
           </div>
         </div>
