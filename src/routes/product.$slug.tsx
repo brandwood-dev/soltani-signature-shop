@@ -20,7 +20,7 @@ const ProductReviewsPanel = lazy(() =>
 export const Route = createFileRoute("/product/$slug")({
   validateSearch: (search: Record<string, unknown>) => ({
     preview: typeof search.preview === "string" && search.preview.length > 0
-      ? search.preview.slice(0, 256)
+      ? search.preview
       : undefined,
   }),
   loaderDeps: ({ search }) => ({ preview: search.preview }),
