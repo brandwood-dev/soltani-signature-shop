@@ -501,5 +501,6 @@ function formatPreviewExpiration(value: string) {
   return new Intl.DateTimeFormat("fr-TN", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Africa/Tunis",
   }).format(expiration);
 }
