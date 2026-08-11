@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ImagePlus, X, Save, Trash2, Eye } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -29,11 +29,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  createAdminProductPreview,
   getAdminProduct,
   MAX_PRODUCT_IMAGE_SIZE_MB,
   updateAdminProduct,
   uploadAdminProductImage,
   type AdminProduct,
+  type UpsertAdminProductInput,
 } from "@/lib/admin-products-api";
 import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
@@ -73,8 +75,10 @@ function AdminEditProduct() {
   const [product, setProduct] = useState<AdminProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -244,43 +248,69 @@ function AdminEditProduct() {
   };
   const removeTag = (t: string) => setTags((s) => s.filter((x) => x !== t));
 
+  const buildProductInput = (): UpsertAdminProductInput => ({
+    name,
+    slug: slug || slugify(name),
+    shortDescription,
+    description,
+    price: Number(price),
+    compareAtPrice: comparePrice ? Number(comparePrice) : null,
+    stockQuantity: trackInventory ? Number(stock || 0) : 0,
+    section,
+    sku,
+    category,
+    subcategory: subcategory || undefined,
+    brand,
+    tags,
+    images: images.map((url) => ({ url, alt: name })),
+    attributes: Object.entries(attributes).flatMap(([key, values]) =>
+      values.map((value) => ({ key, value })),
+    ),
+    seoTitle: seoTitle || name,
+    seoDescription,
+    status: status as "draft" | "active" | "archived",
+    isFeatured: featured,
+    isPromotion,
+    discountPercentage: isPromotion ? Number(discountPercentage || 0) : null,
+    isBestSeller,
+    lowStockThreshold: Number(lowStockAlert || 5),
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setSaving(true);
       setError("");
-      await updateAdminProduct(id, {
-        name,
-        slug: slug || slugify(name),
-        shortDescription,
-        description,
-        price: Number(price),
-        compareAtPrice: comparePrice ? Number(comparePrice) : null,
-        stockQuantity: trackInventory ? Number(stock || 0) : 0,
-        section,
-        sku,
-        category,
-        subcategory: subcategory || undefined,
-        brand,
-        tags,
-        images: images.map((url) => ({ url, alt: name })),
-        attributes: Object.entries(attributes).flatMap(([key, values]) =>
-          values.map((value) => ({ key, value })),
-        ),
-        seoTitle: seoTitle || name,
-        seoDescription,
-        status: status as "draft" | "active" | "archived",
-        isFeatured: featured,
-        isPromotion,
-        discountPercentage: isPromotion ? Number(discountPercentage || 0) : null,
-        isBestSeller,
-        lowStockThreshold: Number(lowStockAlert || 5),
-      });
+      await updateAdminProduct(id, buildProductInput());
       navigate({ to: "/admin/products" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'enregistrer le produit.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!formRef.current?.reportValidity()) return;
+
+    const previewWindow = window.open("about:blank", "_blank");
+    if (!previewWindow) {
+      setError("Autorisez les fenêtres contextuelles pour ouvrir l’aperçu du produit.");
+      return;
+    }
+    previewWindow.opener = null;
+
+    try {
+      setPreviewing(true);
+      setError("");
+      const preview = await createAdminProductPreview(id, buildProductInput());
+      const previewUrl = new URL(preview.previewUrl, window.location.origin);
+      previewWindow.location.replace(previewUrl.toString());
+    } catch (err) {
+      previewWindow.close();
+      setError(err instanceof Error ? err.message : "Impossible de générer l’aperçu du produit.");
+    } finally {
+      setPreviewing(false);
     }
   };
 
@@ -297,7 +327,13 @@ function AdminEditProduct() {
                 <span className="hidden sm:inline">Retour</span>
               </Link>
             </Button>
-            <Button form="edit-product-form" type="submit" size="sm" className="h-9">
+            <Button
+              form="edit-product-form"
+              type="submit"
+              size="sm"
+              className="h-9"
+              disabled={saving || previewing || uploading || loading}
+            >
               <Save className="h-4 w-4" />
               <span className="hidden sm:inline">{saving ? "Enregistrement…" : "Enregistrer"}</span>
             </Button>
@@ -305,7 +341,7 @@ function AdminEditProduct() {
         }
       />
 
-      <form id="edit-product-form" onSubmit={handleSubmit} className="flex-1 p-3 sm:p-6">
+      <form ref={formRef} id="edit-product-form" onSubmit={handleSubmit} className="flex-1 p-3 sm:p-6">
         {error && (
           <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}{" "}
@@ -650,9 +686,17 @@ function AdminEditProduct() {
                     <Label className="text-sm">Best seller</Label>
                     <Switch checked={isBestSeller} onCheckedChange={setIsBestSeller} />
                   </div>
-                  <Button type="button" variant="outline" className="w-full" size="sm">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 w-full sm:h-9"
+                    size="sm"
+                    onClick={handlePreview}
+                    disabled={previewing || saving || uploading || loading}
+                    aria-busy={previewing}
+                  >
                     <Eye className="h-4 w-4" />
-                    Aperçu
+                    {previewing ? "Préparation de l’aperçu…" : "Aperçu"}
                   </Button>
                 </CardContent>
               </Card>

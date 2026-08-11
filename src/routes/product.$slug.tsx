@@ -2,7 +2,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
-import { getCatalogProduct, getCatalogProducts, getProductReviews, type ProductReview } from "@/lib/catalog-api";
+import { getCatalogProduct, getCatalogProducts, getProductPreview, getProductReviews, type ProductReview } from "@/lib/catalog-api";
 import { LimitedOfferCountdown } from "@/components/site/LimitedOfferCountdown";
 import { getActiveLimitedOffer, type PromoBanner } from "@/lib/promo-banners-api";
 import { saveQuickCheckoutLine } from "@/lib/quick-checkout";
@@ -11,21 +11,34 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 import { breadcrumbJsonLd, canonicalLink, jsonLdScript, productJsonLd, productReviewsJsonLd, seoMeta } from "@/lib/seo";
-import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Flame, ShoppingBag } from "lucide-react";
+import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Eye, Flame, ShoppingBag } from "lucide-react";
 
 const ProductReviewsPanel = lazy(() =>
   import("@/components/site/ProductReviewsPanel").then((module) => ({ default: module.ProductReviewsPanel })),
 );
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: async ({ params }): Promise<{
+  validateSearch: (search: Record<string, unknown>) => ({
+    preview: typeof search.preview === "string" && search.preview.length > 0
+      ? search.preview.slice(0, 256)
+      : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ preview: search.preview }),
+  loader: async ({ params, deps }): Promise<{
     product: Product;
     related: Product[];
     limitedOffer: PromoBanner | null;
     reviewSummary: { total: number; averageRating: number };
     reviewSamples: ProductReview[];
+    isPreview: boolean;
+    previewExpiresAt: string | null;
   }> => {
-    const product = await getCatalogProduct(params.slug).catch(() => null);
+    const preview = deps.preview
+      ? await getProductPreview(deps.preview).catch(() => null)
+      : null;
+    const product = deps.preview
+      ? preview?.product ?? null
+      : await getCatalogProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
 
     return {
@@ -34,11 +47,35 @@ export const Route = createFileRoute("/product/$slug")({
       limitedOffer: null,
       reviewSummary: product.reviewSummary ?? { total: 0, averageRating: 0 },
       reviewSamples: [],
+      isPreview: Boolean(deps.preview),
+      previewExpiresAt: preview?.expiresAt ?? null,
     };
   },
+  headers: ({ loaderData }) => loaderData?.isPreview
+    ? {
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+        Pragma: "no-cache",
+        "Referrer-Policy": "no-referrer",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+      }
+    : undefined,
   head: ({ params, loaderData }) => {
     const product = loaderData?.product;
     const path = `/product/${params.slug}`;
+    if (loaderData?.isPreview) {
+      return {
+        meta: seoMeta({
+          title: product ? `Aperçu privé · ${product.name}` : "Aperçu privé · Soltani Signature",
+          description: "Aperçu temporaire et non publié d’un produit Soltani Signature.",
+          path,
+          image: product?.image,
+          type: "product",
+          noindex: true,
+        }),
+        links: [],
+        scripts: [],
+      };
+    }
     const title = product ? `${product.name} ? ${product.brand} | Soltani Signature` : "Produit ? Soltani Signature";
     const description = product?.description || (product ? `${product.name} par ${product.brand}, disponible chez Soltani Signature en Tunisie.` : "D?couvrez nos produits authentiques chez Soltani Signature.");
     const categoryName = product ? formatCategoryName(product.categoryName ?? product.category) : "Catalogue";
@@ -76,7 +113,12 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const navigate = useNavigate();
-  const { product, reviewSummary: initialReviewSummary } = Route.useLoaderData() as { product: Product; reviewSummary: { total: number; averageRating: number } };
+  const {
+    product,
+    reviewSummary: initialReviewSummary,
+    isPreview,
+    previewExpiresAt,
+  } = Route.useLoaderData();
   const gallery = product.gallery?.length ? product.gallery : [product.image];
   const parentSlug = product.category;
   const parentName = formatCategoryName(product.categoryName ?? product.category);
@@ -92,6 +134,10 @@ function ProductPage() {
   const isFavorite = has(product.slug);
 
   useEffect(() => {
+    if (isPreview) {
+      setReviewSummary(initialReviewSummary);
+      return;
+    }
     if (product.reviewSummary) {
       setReviewSummary(product.reviewSummary);
       return;
@@ -107,9 +153,13 @@ function ProductPage() {
     return () => {
       activeRequest = false;
     };
-  }, [product.slug]);
+  }, [initialReviewSummary, isPreview, product.reviewSummary, product.slug]);
 
   useEffect(() => {
+    if (isPreview) {
+      setRelated([]);
+      return;
+    }
     let activeRequest = true;
     getCatalogProducts({ category: product.category, limit: 5, summary: true })
       .then((apiProducts) => {
@@ -121,7 +171,7 @@ function ProductPage() {
     return () => {
       activeRequest = false;
     };
-  }, [product.category, product.slug]);
+  }, [isPreview, product.category, product.slug]);
 
   useEffect(() => {
     if (!product.isPromotion) return;
@@ -139,6 +189,7 @@ function ProductPage() {
   }, [product.isPromotion]);
 
   useEffect(() => {
+    if (isPreview) return;
     trackMetaPixelEvent("ViewContent", {
       content_ids: [product.variantId ?? product.id ?? product.slug],
       content_name: product.name,
@@ -146,10 +197,10 @@ function ProductPage() {
       value: product.price,
       currency: "TND",
     });
-  }, [product.id, product.name, product.price, product.slug, product.variantId]);
+  }, [isPreview, product.id, product.name, product.price, product.slug, product.variantId]);
 
   const handleAddToCart = () => {
-    if (!product.variantId) return;
+    if (isPreview || !product.variantId) return;
     add({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
     trackMetaPixelEvent("AddToCart", {
       content_ids: [product.variantId],
@@ -162,7 +213,7 @@ function ProductPage() {
   };
 
   const handleBuyNow = async () => {
-    if (!product.variantId) return;
+    if (isPreview || !product.variantId) return;
     saveQuickCheckoutLine({ id: product.variantId, productSlug: product.slug, variantId: product.variantId, name: product.name, brand: product.brand, price: product.price, image: product.image, variant: product.variantLabel ?? "Standard", qty });
     trackMetaPixelEvent("InitiateCheckout", {
       content_ids: [product.variantId],
@@ -195,6 +246,28 @@ function ProductPage() {
 
   return (
     <SiteLayout>
+      {isPreview ? (
+        <div className="border-y border-gold/40 bg-ink text-cream" role="status">
+          <div className="container-luxe flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3 sm:items-center">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-gold/50 bg-gold/10 text-gold">
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Aperçu privé</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-cream/75">
+                  Version temporaire non publiée. Les actions d’achat et de partage sont désactivées.
+                </p>
+              </div>
+            </div>
+            {previewExpiresAt ? (
+              <p className="pl-12 text-[11px] text-cream/60 sm:pl-0 sm:text-right">
+                Expire à {formatPreviewExpiration(previewExpiresAt)}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <div className="container-luxe pt-8 pb-4 flex items-center gap-2 text-xs text-muted-foreground">
         <Link to="/" className="hover:text-gold">Accueil</Link>
         <ChevronRight className="h-3 w-3" />
@@ -245,8 +318,12 @@ function ProductPage() {
           <p className="text-[11px] uppercase tracking-[0.3em] text-gold mb-2">{product.brand}</p>
           <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-3">{product.name}</h1>
           <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.round(reviewSummary.averageRating) ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}</div>
-            <span className="text-[11px] sm:text-xs text-muted-foreground">{reviewSummary.total} avis · Réf. {product.slug.toUpperCase().slice(0, 10)}</span>
+            {isPreview ? null : (
+              <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.round(reviewSummary.averageRating) ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}</div>
+            )}
+            <span className="text-[11px] sm:text-xs text-muted-foreground">
+              {isPreview ? "Données du formulaire" : `${reviewSummary.total} avis`} · Réf. {product.slug.toUpperCase().slice(0, 10)}
+            </span>
           </div>
 
           <div className="flex items-end gap-2 sm:gap-3 mb-6 flex-wrap">
@@ -262,47 +339,55 @@ function ProductPage() {
             {product.description ?? `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
           </p>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
-            <div className="flex items-center border border-border rounded-sm shrink-0">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Minus className="h-4 w-4" /></button>
-              <span className="w-8 sm:w-10 text-center font-semibold">{qty}</span>
-              <button onClick={() => setQty(qty + 1)} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Plus className="h-4 w-4" /></button>
+          {isPreview ? (
+            <div className="rounded-sm border border-gold/30 bg-gold/5 px-4 py-4 text-sm leading-relaxed text-foreground/80">
+              Mode aperçu en lecture seule. Aucun panier, favori, partage ou achat ne sera enregistré.
             </div>
-            <button onClick={handleAddToCart} className="order-3 sm:order-none w-full sm:w-auto sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-3 bg-gold text-ink text-[11px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm whitespace-nowrap">
-              <ShoppingBag className="h-4 w-4 shrink-0" /> Ajouter au panier
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!isFavorite) {
-                  trackMetaPixelEvent("AddToWishlist", {
-                    content_ids: [product.variantId ?? product.id ?? product.slug],
-                    content_name: product.name,
-                    content_type: "product",
-                    value: product.price,
-                    currency: "TND",
-                  });
-                }
-                toggle(product.slug);
-              }}
-              aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-              className={`h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0 ${isFavorite ? "text-destructive border-destructive/40" : ""}`}
-            >
-              <Heart className={`h-5 w-5 ${isFavorite ? "fill-destructive" : ""}`} />
-            </button>
-            <button
-              type="button"
-              onClick={handleShare}
-              aria-label="Partager ce produit"
-              className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0"
-            >
-              <Share2 className="h-5 w-5" />
-            </button>
-          </div>
-          {shareMessage && <p className="mb-3 text-xs text-gold">{shareMessage}</p>}
-          <button type="button" onClick={handleBuyNow} className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight">
-            <span className="text-center">Acheter maintenant — Paiement à la livraison</span>
-          </button>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                <div className="flex items-center border border-border rounded-sm shrink-0">
+                  <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Minus className="h-4 w-4" /></button>
+                  <span className="w-8 sm:w-10 text-center font-semibold">{qty}</span>
+                  <button onClick={() => setQty(qty + 1)} className="h-12 w-11 sm:w-12 grid place-items-center hover:text-gold"><Plus className="h-4 w-4" /></button>
+                </div>
+                <button onClick={handleAddToCart} className="order-3 sm:order-none w-full sm:w-auto sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-3 bg-gold text-ink text-[11px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm whitespace-nowrap">
+                  <ShoppingBag className="h-4 w-4 shrink-0" /> Ajouter au panier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isFavorite) {
+                      trackMetaPixelEvent("AddToWishlist", {
+                        content_ids: [product.variantId ?? product.id ?? product.slug],
+                        content_name: product.name,
+                        content_type: "product",
+                        value: product.price,
+                        currency: "TND",
+                      });
+                    }
+                    toggle(product.slug);
+                  }}
+                  aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  className={`h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0 ${isFavorite ? "text-destructive border-destructive/40" : ""}`}
+                >
+                  <Heart className={`h-5 w-5 ${isFavorite ? "fill-destructive" : ""}`} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Partager ce produit"
+                  className="h-12 w-12 grid place-items-center border border-border hover:border-gold hover:text-gold rounded-sm shrink-0"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
+              </div>
+              {shareMessage ? <p className="mb-3 text-xs text-gold">{shareMessage}</p> : null}
+              <button type="button" onClick={handleBuyNow} className="flex w-full items-center justify-center text-center min-h-12 px-3 py-2 bg-ink text-cream text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold hover:opacity-90 rounded-sm leading-tight">
+                <span className="text-center">Acheter maintenant — Paiement à la livraison</span>
+              </button>
+            </>
+          )}
 
           <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-border">
             {[{ I: Truck, t: "Livraison express", s: "Partout en Tunisie" }, { I: RotateCcw, t: "Retours 14j", s: "Sans frais" }, { I: Shield, t: "Authentique", s: "100% garanti" }].map(({ I, t, s }) => (
@@ -319,7 +404,7 @@ function ProductPage() {
 
       <section className="container-luxe py-12 border-t border-border">
         <div className="flex gap-5 sm:gap-8 border-b border-border mb-8 overflow-x-auto scrollbar-none">
-          {[{ k: "desc", l: "Description" }, { k: "specs", l: "Spécifications" }, { k: "reviews", l: "Avis produit" }].map(({ k, l }) => (
+          {[{ k: "desc", l: "Description" }, { k: "specs", l: "Spécifications" }, ...(isPreview ? [] : [{ k: "reviews", l: "Avis produit" }])].map(({ k, l }) => (
             <button key={k} onClick={() => setTab(k as typeof tab)}
               className={`pb-4 text-xs sm:text-sm uppercase tracking-widest transition relative whitespace-nowrap ${tab === k ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               {l}
@@ -348,14 +433,14 @@ function ProductPage() {
             )}
           </div>
         )}
-        {tab === "reviews" && (
+        {!isPreview && tab === "reviews" && (
           <Suspense fallback={<p className="text-sm text-muted-foreground">Chargement des avis...</p>}>
             <ProductReviewsPanel slug={product.slug} onSummaryChange={setReviewSummary} />
           </Suspense>
         )}
       </section>
 
-      {related.length > 0 && (
+      {!isPreview && related.length > 0 && (
         <section className="container-luxe py-16 border-t border-border">
           <h2 className="font-display text-3xl font-bold mb-8">Vous pourriez aimer</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
@@ -407,4 +492,14 @@ function formatCategoryName(value: string) {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
+}
+
+function formatPreviewExpiration(value: string) {
+  const expiration = new Date(value);
+  if (Number.isNaN(expiration.getTime())) return "bientôt";
+
+  return new Intl.DateTimeFormat("fr-TN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(expiration);
 }

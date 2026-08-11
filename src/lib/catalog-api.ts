@@ -251,6 +251,16 @@ export async function getCatalogProduct(slug: string) {
   return mapApiProduct(await publicApiFetch<ApiProduct>(`/catalog/products/${slug}`));
 }
 
+export async function getProductPreview(token: string) {
+  const response = await publicApiFetch<{ product: ApiProduct; expiresAt: string }>(
+    `/products/preview/${encodeURIComponent(token)}`,
+  );
+  return {
+    product: mapApiProduct(response.product),
+    expiresAt: response.expiresAt,
+  };
+}
+
 export async function createCodOrder(input: CreateCodOrderInput) {
   return apiFetch<CreatedOrder>("/orders", {
     method: "POST",
