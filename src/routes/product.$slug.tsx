@@ -10,6 +10,7 @@ import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
+import { getCategoryDisplayName } from "@/lib/category-name";
 import { breadcrumbJsonLd, canonicalLink, jsonLdScript, productJsonLd, productReviewsJsonLd, seoMeta } from "@/lib/seo";
 import { Heart, Share2, Shield, Truck, RotateCcw, Star, Minus, Plus, ChevronRight, Eye, Flame, ShoppingBag } from "lucide-react";
 
@@ -78,7 +79,7 @@ export const Route = createFileRoute("/product/$slug")({
     }
     const title = product ? `${product.name} ? ${product.brand} | Soltani Signature` : "Produit ? Soltani Signature";
     const description = product?.description || (product ? `${product.name} par ${product.brand}, disponible chez Soltani Signature en Tunisie.` : "D?couvrez nos produits authentiques chez Soltani Signature.");
-    const categoryName = product ? formatCategoryName(product.categoryName ?? product.category) : "Catalogue";
+    const categoryName = product ? getCategoryDisplayName(product.categoryName, product.category) : "Catalogue";
     return {
       meta: seoMeta({ title, description, path, image: product?.image, type: "product" }),
       links: [canonicalLink(path)],
@@ -121,7 +122,7 @@ function ProductPage() {
   } = Route.useLoaderData();
   const gallery = product.gallery?.length ? product.gallery : [product.image];
   const parentSlug = product.category;
-  const parentName = formatCategoryName(product.categoryName ?? product.category);
+  const parentName = getCategoryDisplayName(product.categoryName, product.category);
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
@@ -484,14 +485,6 @@ function formatSpecLabel(value: string) {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^./, (firstLetter) => firstLetter.toUpperCase());
-}
-
-function formatCategoryName(value: string) {
-  return value
-    .replace(/[-_]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
 }
 
 function formatPreviewExpiration(value: string) {
