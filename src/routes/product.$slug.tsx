@@ -165,13 +165,15 @@ function ProductPage() {
   } = Route.useLoaderData();
   const productVariants = (product.variants ?? []).filter((variant) => variant.isActive);
   const requiresShadeSelection = product.variantMode === "color" && productVariants.length > 1;
-  const [selectedVariantId, setSelectedVariantId] = useState(
-    requiresShadeSelection
-      ? ""
-      : ((productVariants.find((variant) => variant.isDefault) ?? productVariants[0])?.id ??
-          product.variantId ??
-          ""),
-  );
+  const initialVariantId = requiresShadeSelection
+    ? ""
+    : ((productVariants.find((variant) => variant.isDefault) ?? productVariants[0])?.id ??
+      product.variantId ??
+      "");
+  const variantSelectionKey = productVariants
+    .map((variant) => `${variant.id}:${variant.isDefault}`)
+    .join("|");
+  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
   const selectedVariant = productVariants.find((variant) => variant.id === selectedVariantId);
   const gallery = useMemo(() => {
     const baseGallery = product.gallery?.length ? product.gallery : [product.image];
@@ -183,6 +185,7 @@ function ProductPage() {
       : baseGallery;
   }, [product.gallery, product.image, selectedVariant?.imageUrl]);
   const selectedPrice = selectedVariant?.price ?? product.price;
+  const hasValidComparePrice = Boolean(product.oldPrice && product.oldPrice > selectedPrice);
   const selectedReference =
     selectedVariant?.reference || selectedVariant?.sku || product.slug.toUpperCase();
   const canPurchase =
@@ -200,6 +203,10 @@ function ProductPage() {
   const { add } = useCart();
   const { has, toggle } = useWishlist();
   const isFavorite = has(product.slug);
+
+  useEffect(() => {
+    setSelectedVariantId(initialVariantId);
+  }, [initialVariantId, product.slug, variantSelectionKey]);
 
   useEffect(() => {
     setQty(1);
@@ -461,12 +468,12 @@ function ProductPage() {
 
           <div className="flex items-end gap-2 sm:gap-3 mb-6 flex-wrap">
             <span className="text-2xl sm:text-3xl font-bold tabular-nums">{selectedPrice} DT</span>
-            {product.oldPrice && (
+            {hasValidComparePrice && (
               <span className="text-base sm:text-lg text-muted-foreground line-through tabular-nums">
                 {product.oldPrice} DT
               </span>
             )}
-            {product.isPromotion && product.oldPrice && (
+            {product.isPromotion && hasValidComparePrice && product.oldPrice && (
               <span className="text-xs sm:text-sm text-destructive font-semibold">
                 Économisez {product.oldPrice - selectedPrice} DT
               </span>

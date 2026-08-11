@@ -150,7 +150,7 @@ function AdminEditProduct() {
         setStock(String(loaded.stockQuantity));
         setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
         setVariantMode(loaded.variantMode ?? "simple");
-        setVariants((loaded.variants ?? []).filter((variant) => variant.isActive));
+        setVariants(loaded.variants ?? []);
         setStatus(loaded.status);
         setFeatured(loaded.isFeatured);
         setIsPromotion(Boolean(loaded.isPromotion));
