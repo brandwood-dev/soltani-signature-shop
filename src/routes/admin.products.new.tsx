@@ -26,6 +26,7 @@ import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 import { ProductAttributeFields } from "@/components/admin/ProductAttributeFields";
 import { ProductVariantsEditor } from "@/components/admin/ProductVariantsEditor";
+import { serializeConfiguredProductAttributes } from "@/lib/product-attributes";
 import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
 import type { AdminProductVariant, AdminProductVariantMode } from "@/lib/admin-products-api";
 import { makeColorVariant } from "@/lib/product-variant-drafts";
@@ -74,6 +75,7 @@ function AdminNewProduct() {
   const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
   const [attributesLoading, setAttributesLoading] = useState(false);
   const [attributesError, setAttributesError] = useState("");
+  const [categoryAttributeScope, setCategoryAttributeScope] = useState("");
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -102,6 +104,16 @@ function AdminNewProduct() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
+  const selectedCategoryConfig = categoryTree
+    .flatMap((item) => [item, ...item.subs])
+    .find((item) => item.slug === (subcategory || category));
+  const attributeConfigurationReady = Boolean(
+    selectedCategoryConfig &&
+    categoryAttributeScope === selectedCategoryConfig.id &&
+    !attributesLoading &&
+    !attributesError,
+  );
+
   useEffect(() => {
     let active = true;
     loadCategoryTree({ admin: true })
@@ -127,20 +139,27 @@ function AdminNewProduct() {
       .find((item) => item.slug === (subcategory || category));
     if (!selectedCategory) {
       setCategoryAttributes([]);
+      setCategoryAttributeScope("");
+      setAttributesLoading(false);
       setAttributesError("");
       return;
     }
 
     let active = true;
     setAttributesLoading(true);
+    setCategoryAttributeScope("");
     setAttributesError("");
     getAdminCategoryAttributes(selectedCategory.id)
       .then((items) => {
-        if (active) setCategoryAttributes(items);
+        if (active) {
+          setCategoryAttributes(items);
+          setCategoryAttributeScope(selectedCategory.id);
+        }
       })
       .catch((err) => {
         if (active) {
           setCategoryAttributes([]);
+          setCategoryAttributeScope("");
           setAttributesError(
             err instanceof Error
               ? err.message
@@ -202,6 +221,14 @@ function AdminNewProduct() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!attributeConfigurationReady) {
+      setError(
+        attributesError ||
+          "Attendez la fin du chargement des attributs de la categorie avant d'enregistrer.",
+      );
+      return;
+    }
+
     const activeVariantPrices = variants
       .filter((variant) => variant.isActive)
       .map((variant) => variant.price);
@@ -227,9 +254,7 @@ function AdminNewProduct() {
         brand,
         tags,
         images: images.map((url) => ({ url, alt: name })),
-        attributes: Object.entries(attributes).flatMap(([key, values]) =>
-          values.map((value) => ({ key, value })),
-        ),
+        attributes: serializeConfiguredProductAttributes(attributes, categoryAttributes),
         seoTitle: seoTitle || name,
         seoDescription,
         status: status as "draft" | "active" | "archived",
@@ -260,7 +285,13 @@ function AdminNewProduct() {
                 <span className="hidden sm:inline">Retour</span>
               </Link>
             </Button>
-            <Button form="new-product-form" type="submit" size="sm" className="h-9">
+            <Button
+              form="new-product-form"
+              type="submit"
+              size="sm"
+              className="h-9"
+              disabled={saving || uploading || !attributeConfigurationReady}
+            >
               <Save className="h-4 w-4" />
               <span className="hidden sm:inline">{saving ? "Enregistrement…" : "Enregistrer"}</span>
             </Button>
@@ -615,6 +646,7 @@ function AdminNewProduct() {
                       attributes={categoryAttributes}
                       values={attributes}
                       onChange={setAttributes}
+                      colorManagedByVariants={variantMode === "color"}
                     />
                   )}
                 </CardContent>
