@@ -127,6 +127,19 @@ export type UpsertAdminProductInput = {
   lowStockThreshold?: number;
 };
 
+export type AdminProductVariantSelectionInput = Pick<
+  AdminProductVariantSelection,
+  "axisKey" | "value"
+>;
+
+export type AdminProductMutationPayload = Omit<UpsertAdminProductInput, "variants"> & {
+  variants?: Array<
+    Omit<AdminProductVariant, "selections"> & {
+      selections?: AdminProductVariantSelectionInput[];
+    }
+  >;
+};
+
 export const MAX_PRODUCT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_PRODUCT_IMAGE_SIZE_MB = 5;
 
@@ -156,10 +169,22 @@ export async function getAdminProduct(id: string) {
   return response.product;
 }
 
+export function serializeAdminProductInput(
+  input: UpsertAdminProductInput,
+): AdminProductMutationPayload {
+  return {
+    ...input,
+    variants: input.variants?.map((variant) => ({
+      ...variant,
+      selections: variant.selections?.map(({ axisKey, value }) => ({ axisKey, value })),
+    })),
+  };
+}
+
 export async function createAdminProduct(input: UpsertAdminProductInput) {
   const response = await apiFetch<{ product: AdminProduct }>("/products/admin", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify(serializeAdminProductInput(input)),
   });
   return response.product;
 }
@@ -167,7 +192,7 @@ export async function createAdminProduct(input: UpsertAdminProductInput) {
 export async function updateAdminProduct(id: string, input: UpsertAdminProductInput) {
   const response = await apiFetch<{ product: AdminProduct }>(`/products/admin/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body: JSON.stringify(serializeAdminProductInput(input)),
   });
   return response.product;
 }
@@ -177,7 +202,7 @@ export function createAdminProductPreview(id: string, input: UpsertAdminProductI
     `/products/admin/${id}/preview`,
     {
       method: "POST",
-      body: JSON.stringify(input),
+      body: JSON.stringify(serializeAdminProductInput(input)),
     },
   );
 }
