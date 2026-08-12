@@ -125,6 +125,16 @@ function AdminEditProduct() {
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
 
+  const selectedCategoryConfig = categoryTree
+    .flatMap((item) => [item, ...item.subs])
+    .find((item) => item.slug === (subcategory || category));
+  const attributeConfigurationReady = Boolean(
+    selectedCategoryConfig &&
+    categoryAttributeScope === selectedCategoryConfig.id &&
+    !attributesLoading &&
+    !attributesError,
+  );
+
   useEffect(() => {
     const loadProduct = async () => {
       try {
@@ -202,6 +212,7 @@ function AdminEditProduct() {
     if (!selectedCategory) {
       setCategoryAttributes([]);
       setCategoryAttributeScope("");
+      setAttributesLoading(false);
       setAttributesError("");
       return;
     }
@@ -347,6 +358,14 @@ function AdminEditProduct() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!attributeConfigurationReady) {
+      setError(
+        attributesError ||
+          "Attendez la fin du chargement des attributs de la categorie avant d'enregistrer.",
+      );
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -361,6 +380,13 @@ function AdminEditProduct() {
 
   const handlePreview = async () => {
     if (!formRef.current?.reportValidity()) return;
+    if (!attributeConfigurationReady) {
+      setError(
+        attributesError ||
+          "Attendez la fin du chargement des attributs de la categorie avant de lancer l'apercu.",
+      );
+      return;
+    }
 
     const previewWindow = window.open("about:blank", "_blank");
     if (!previewWindow) {
@@ -401,7 +427,9 @@ function AdminEditProduct() {
               type="submit"
               size="sm"
               className="h-9"
-              disabled={saving || previewing || uploading || loading}
+              disabled={
+                saving || previewing || uploading || loading || !attributeConfigurationReady
+              }
             >
               <Save className="h-4 w-4" />
               <span className="hidden sm:inline">{saving ? "Enregistrement…" : "Enregistrer"}</span>
@@ -829,7 +857,9 @@ function AdminEditProduct() {
                     className="h-11 w-full sm:h-9"
                     size="sm"
                     onClick={handlePreview}
-                    disabled={previewing || saving || uploading || loading}
+                    disabled={
+                      previewing || saving || uploading || loading || !attributeConfigurationReady
+                    }
                     aria-busy={previewing}
                   >
                     <Eye className="h-4 w-4" />
