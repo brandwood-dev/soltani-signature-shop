@@ -23,7 +23,8 @@ export function AdminHeader({ title, subtitle, actions }: Props) {
       return getAdminNotificationsSummary();
     },
     staleTime: 60_000,
-    refetchInterval: typeof document !== "undefined" && document.visibilityState === "visible" ? 300_000 : false,
+    refetchInterval:
+      typeof document !== "undefined" && document.visibilityState === "visible" ? 300_000 : false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
@@ -40,10 +41,7 @@ export function AdminHeader({ title, subtitle, actions }: Props) {
         <div className="hidden flex-1 max-w-md md:flex">
           <div className="relative w-full">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher produit, commande, client…"
-              className="h-9 pl-9"
-            />
+            <Input placeholder="Rechercher produit, commande, client…" className="h-9 pl-9" />
           </div>
         </div>
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
@@ -69,18 +67,16 @@ export function AdminHeader({ title, subtitle, actions }: Props) {
           </Avatar>
         </div>
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 px-3 pb-4 pt-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:px-6">
+      <div className="flex flex-col gap-3 px-3 pb-4 pt-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:px-6">
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
+          <h1 className="line-clamp-2 text-lg font-semibold leading-tight tracking-tight sm:truncate sm:text-2xl">
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
-              {subtitle}
-            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
           )}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        {actions ? <div className="w-full min-w-0 sm:w-auto sm:shrink-0">{actions}</div> : null}
       </div>
     </header>
   );

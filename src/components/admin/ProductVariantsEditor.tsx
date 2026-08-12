@@ -217,7 +217,7 @@ export function ProductVariantsEditor({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-4 [&_input]:min-h-11 [&_[role=combobox]]:min-h-11 sm:space-y-5">
       <div className="rounded-lg border border-gold/25 bg-gold/5 p-3 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
@@ -226,7 +226,7 @@ export function ProductVariantsEditor({
               Ajoutez jusqu’à trois axes. Chaque combinaison aura son propre prix, SKU et stock.
             </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,220px)_auto]">
+          <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-[minmax(0,220px)_auto]">
             <Select value={axisTemplate} onValueChange={setAxisTemplate}>
               <SelectTrigger className="min-h-11 bg-background">
                 <SelectValue />
@@ -248,7 +248,7 @@ export function ProductVariantsEditor({
             <Button
               type="button"
               variant="outline"
-              className="min-h-11"
+              className="min-h-11 w-full sm:w-auto"
               onClick={addAxis}
               disabled={axes.length >= MAX_AXES}
             >
@@ -261,9 +261,9 @@ export function ProductVariantsEditor({
       {axes.map((axis, axisIndex) => (
         <section
           key={axis.id ?? `${axis.key}-${axisIndex}`}
-          className="rounded-lg border bg-card p-3 sm:p-4"
+          className="min-w-0 overflow-hidden rounded-lg border bg-card p-3 sm:p-4"
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_180px_auto] lg:items-end">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))]">
             <div className="space-y-1.5">
               <Label htmlFor={`axis-label-${axisIndex}`}>Nom de l’option *</Label>
               <Input
@@ -314,7 +314,7 @@ export function ProductVariantsEditor({
             <Button
               type="button"
               variant="outline"
-              className="min-h-10 text-destructive hover:text-destructive"
+              className="min-h-11 w-full self-end text-destructive hover:text-destructive"
               onClick={() => removeAxis(axisIndex)}
             >
               <Trash2 className="h-4 w-4" /> Retirer
@@ -322,7 +322,7 @@ export function ProductVariantsEditor({
           </div>
 
           <div className="mt-4 space-y-3 border-t pt-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Valeurs de {axis.label || "l’option"}
               </p>
@@ -330,6 +330,7 @@ export function ProductVariantsEditor({
                 type="button"
                 variant="ghost"
                 size="sm"
+                className="min-h-11 w-full sm:w-auto"
                 onClick={() =>
                   updateAxis(axisIndex, {
                     values: [
@@ -349,7 +350,7 @@ export function ProductVariantsEditor({
             {axis.values.map((value, valueIndex) => (
               <div
                 key={value.id ?? `${axis.key}-value-${valueIndex}`}
-                className="grid gap-2 rounded-md border bg-background p-2.5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end"
+                className="grid gap-2 rounded-md border bg-background p-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))]"
               >
                 <div className="space-y-1.5">
                   <Label htmlFor={`value-label-${axisIndex}-${valueIndex}`}>Libellé *</Label>
@@ -451,7 +452,7 @@ export function ProductVariantsEditor({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 text-destructive hover:text-destructive"
+                  className="min-h-11 w-full self-end text-destructive hover:text-destructive sm:w-11 sm:justify-self-end"
                   disabled={axis.values.length === 1}
                   onClick={() => {
                     updateAxis(axisIndex, {
@@ -464,6 +465,7 @@ export function ProductVariantsEditor({
                   aria-label={`Retirer ${value.label || "la valeur"}`}
                 >
                   <Trash2 className="h-4 w-4" />
+                  <span className="sm:sr-only">Retirer</span>
                 </Button>
               </div>
             ))}
@@ -472,7 +474,7 @@ export function ProductVariantsEditor({
       ))}
 
       {axes.length > 0 ? (
-        <div className="grid gap-3 rounded-lg border border-dashed p-3 lg:grid-cols-[minmax(0,1fr)_180px_auto] lg:items-end">
+        <div className="grid gap-3 rounded-lg border border-dashed p-3 md:grid-cols-[minmax(0,1fr)_180px] md:items-end lg:grid-cols-[minmax(0,1fr)_180px_auto]">
           <div>
             <p className="text-sm">
               <span className="font-semibold">{combinationCount}</span> combinaison
@@ -500,7 +502,7 @@ export function ProductVariantsEditor({
           </div>
           <Button
             type="button"
-            className="min-h-11 w-full lg:w-auto"
+            className="min-h-11 w-full md:col-span-2 lg:col-span-1 lg:w-auto"
             onClick={generate}
             disabled={!combinationCount || combinationCount > MAX_COMBINATIONS}
           >
@@ -511,20 +513,20 @@ export function ProductVariantsEditor({
 
       {variants.length > 0 ? (
         <div className="space-y-4">
-          <section className="overflow-hidden rounded-xl border border-gold/30 bg-[linear-gradient(135deg,hsl(var(--card)),hsl(var(--gold)/0.08))]">
-            <div className="grid gap-4 border-b border-gold/20 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <section className="min-w-0 overflow-hidden rounded-xl border border-gold/30 bg-[linear-gradient(135deg,hsl(var(--card)),hsl(var(--gold)/0.08))]">
+            <div className="grid gap-4 border-b border-gold/20 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
               <div className="flex items-start gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/15 text-gold">
                   <BadgeDollarSign className="h-5 w-5" />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-semibold">Assistant de tarification</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     Appliquez un prix commun, puis ajustez rapidement les écarts par option.
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-center sm:min-w-64">
+              <div className="grid min-w-0 grid-cols-2 gap-2 text-center sm:min-w-64">
                 <div className="rounded-lg border bg-background/80 px-3 py-2">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Actives
@@ -535,7 +537,7 @@ export function ProductVariantsEditor({
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     Fourchette
                   </p>
-                  <p className="mt-1 text-sm font-semibold tabular-nums">
+                  <p className="mt-1 break-words text-xs font-semibold tabular-nums sm:text-sm">
                     {priceMin === priceMax
                       ? `${displayPrice(priceMin)} DT`
                       : `${displayPrice(priceMin)} – ${displayPrice(priceMax)} DT`}
@@ -544,7 +546,7 @@ export function ProductVariantsEditor({
               </div>
             </div>
 
-            <div className="grid gap-4 p-4 xl:grid-cols-2">
+            <div className="grid gap-4 p-3 sm:p-4">
               <div className="rounded-lg border bg-background/85 p-3 sm:p-4">
                 <p className="text-sm font-semibold">Même tarif partout</p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -701,7 +703,7 @@ export function ProductVariantsEditor({
           {variants.map((variant, index) => (
             <article
               key={variant.id ?? `${variant.label}-${index}`}
-              className="rounded-lg border bg-card p-3 sm:p-4"
+              className="min-w-0 overflow-hidden rounded-lg border bg-card p-3 sm:p-4"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
@@ -710,7 +712,7 @@ export function ProductVariantsEditor({
                     {variant.selections?.map((selection) => selection.value).join(" · ")}
                   </p>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 sm:justify-start">
+                <div className="flex min-h-11 items-center justify-between gap-3 rounded-md border px-3 py-2 sm:justify-start">
                   <Label htmlFor={`variant-active-${index}`}>Active</Label>
                   <Switch
                     id={`variant-active-${index}`}
@@ -724,7 +726,7 @@ export function ProductVariantsEditor({
                   />
                 </div>
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+              <div className="mt-3 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr))]">
                 <div className="space-y-1.5">
                   <Label htmlFor={`variant-sku-${index}`}>SKU</Label>
                   <Input
@@ -818,7 +820,7 @@ export function ProductVariantsEditor({
                   <Button
                     type="button"
                     variant={variant.isDefault ? "default" : "outline"}
-                    className="min-h-10 w-full"
+                    className="min-h-11 w-full self-end"
                     onClick={() => setDefault(index)}
                     disabled={!variant.isActive}
                   >
