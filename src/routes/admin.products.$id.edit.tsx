@@ -447,24 +447,24 @@ function AdminEditProduct() {
         title={`Modifier — ${product?.name ?? "Produit"}`}
         subtitle={product?.sku ? `SKU ${product.sku}` : "Chargement du produit"}
         actions={
-          <div className="flex gap-2">
-            <Button asChild variant="ghost" size="sm" className="h-9">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+            <Button asChild variant="outline" size="sm" className="min-h-11 w-full sm:w-auto">
               <Link to="/admin/products">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Retour</span>
+                <span>Retour</span>
               </Link>
             </Button>
             <Button
               form="edit-product-form"
               type="submit"
               size="sm"
-              className="h-9"
+              className="min-h-11 w-full sm:w-auto"
               disabled={
                 saving || previewing || uploading || loading || !attributeConfigurationReady
               }
             >
               <Save className="h-4 w-4" />
-              <span className="hidden sm:inline">{saving ? "Enregistrement…" : "Enregistrer"}</span>
+              <span>{saving ? "Enregistrement…" : "Enregistrer"}</span>
             </Button>
           </div>
         }
@@ -474,7 +474,7 @@ function AdminEditProduct() {
         ref={formRef}
         id="edit-product-form"
         onSubmit={handleSubmit}
-        className="flex-1 p-3 sm:p-6"
+        className="min-w-0 flex-1 overflow-x-clip p-3 [&_input]:min-h-11 [&_[role=combobox]]:min-h-11 sm:p-6"
       >
         {error && (
           <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -492,9 +492,9 @@ function AdminEditProduct() {
           </div>
         )}
         {product ? (
-          <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
+          <div className="grid min-w-0 gap-3 sm:gap-6 xl:grid-cols-3">
             {/* Main column */}
-            <div className="space-y-3 sm:space-y-6 lg:col-span-2">
+            <div className="min-w-0 space-y-3 sm:space-y-6 xl:col-span-2">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Informations générales</CardTitle>
@@ -619,10 +619,10 @@ function AdminEditProduct() {
               </Card>
 
               <Card>
-                <CardHeader className="pb-3">
+                <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
                   <CardTitle className="text-base">Prix, stock & variantes</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
                   <div className="space-y-1.5">
                     <Label>Type de produit</Label>
                     <Select
@@ -836,7 +836,7 @@ function AdminEditProduct() {
             </div>
 
             {/* Side */}
-            <div className="space-y-3 sm:space-y-6">
+            <div className="min-w-0 space-y-3 sm:space-y-6">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Publication</CardTitle>
@@ -886,7 +886,7 @@ function AdminEditProduct() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 w-full sm:h-9"
+                    className="min-h-11 w-full"
                     size="sm"
                     onClick={handlePreview}
                     disabled={
@@ -1061,11 +1061,17 @@ function AdminEditProduct() {
                 </CardContent>
               </Card>
 
-              <div className="flex gap-2 lg:hidden">
-                <Button asChild variant="outline" className="flex-1">
+              <div className="grid grid-cols-2 gap-2 xl:hidden">
+                <Button asChild variant="outline" className="min-h-11 min-w-0">
                   <Link to="/admin/products">Annuler</Link>
                 </Button>
-                <Button type="submit" className="flex-1">
+                <Button
+                  type="submit"
+                  className="min-h-11 min-w-0"
+                  disabled={
+                    saving || previewing || uploading || loading || !attributeConfigurationReady
+                  }
+                >
                   Enregistrer
                 </Button>
               </div>
