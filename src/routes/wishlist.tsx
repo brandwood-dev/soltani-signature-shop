@@ -29,7 +29,11 @@ function WishlistPage() {
   const items = products.filter((p) => slugs.includes(p.slug));
 
   const addToCartAndGo = (product: Product) => {
-    if (product.variantMode === "color" || (product.variants?.length ?? 0) > 1) {
+    if (
+      product.variantMode === "color" ||
+      product.variantMode === "options" ||
+      (product.variants?.length ?? 0) > 1
+    ) {
       void navigate({
         to: "/product/$slug",
         params: { slug: product.slug },
@@ -143,7 +147,9 @@ function WishlistPage() {
                         className="flex-1 inline-flex items-center justify-center gap-2 h-10 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm"
                       >
                         <ShoppingBag className="h-3.5 w-3.5" />
-                        {p.variantMode === "color" || (p.variants?.length ?? 0) > 1
+                        {p.variantMode === "color" ||
+                        p.variantMode === "options" ||
+                        (p.variants?.length ?? 0) > 1
                           ? "Choisir"
                           : "Ajouter"}
                       </button>

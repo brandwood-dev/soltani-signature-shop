@@ -42,12 +42,16 @@ import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 import { ProductAttributeFields } from "@/components/admin/ProductAttributeFields";
 import { ProductVariantsEditor } from "@/components/admin/ProductVariantsEditor";
 import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
-import type { AdminProductVariant, AdminProductVariantMode } from "@/lib/admin-products-api";
+import type {
+  AdminProductVariant,
+  AdminProductVariantAxis,
+  AdminProductVariantMode,
+} from "@/lib/admin-products-api";
 import {
   sanitizeProductAttributeValues,
   serializeConfiguredProductAttributes,
 } from "@/lib/product-attributes";
-import { makeColorVariant } from "@/lib/product-variant-drafts";
+import { makeVariantAxis, normalizeLegacyColorConfiguration } from "@/lib/product-variant-drafts";
 
 const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
@@ -108,6 +112,7 @@ function AdminEditProduct() {
   const [stock, setStock] = useState("");
   const [lowStockAlert, setLowStockAlert] = useState("5");
   const [variantMode, setVariantMode] = useState<AdminProductVariantMode>("simple");
+  const [variantAxes, setVariantAxes] = useState<AdminProductVariantAxis[]>([]);
   const [variants, setVariants] = useState<AdminProductVariant[]>([]);
   const [weight, setWeight] = useState("");
   const [status, setStatus] = useState("draft");
@@ -165,8 +170,22 @@ function AdminEditProduct() {
         setComparePrice(loaded.compareAtPrice ? String(loaded.compareAtPrice) : "");
         setStock(String(loaded.stockQuantity));
         setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
-        setVariantMode(loaded.variantMode ?? "simple");
-        setVariants(loaded.variants ?? []);
+        const loadedVariants = loaded.variants ?? [];
+        const legacyConfiguration = normalizeLegacyColorConfiguration(loadedVariants);
+        const hasVariants = (loaded.variantMode ?? "simple") !== "simple";
+        setVariantMode(hasVariants ? "options" : "simple");
+        setVariantAxes(
+          hasVariants
+            ? loaded.variantAxes?.length
+              ? loaded.variantAxes
+              : legacyConfiguration.axes
+            : [],
+        );
+        setVariants(
+          hasVariants && !loaded.variantAxes?.length
+            ? legacyConfiguration.variants
+            : loadedVariants,
+        );
         setStatus(loaded.status);
         setFeatured(loaded.isFeatured);
         setIsPromotion(Boolean(loaded.isPromotion));
@@ -305,18 +324,11 @@ function AdminEditProduct() {
   const removeTag = (t: string) => setTags((s) => s.filter((x) => x !== t));
 
   const changeVariantMode = (mode: AdminProductVariantMode) => {
-    setVariantMode(mode);
-    if (mode === "color" && variants.length === 0) {
-      const first = makeColorVariant(
-        Number(price || 0),
-        Number(stock || 0),
-        Number(lowStockAlert || 5),
-      );
-      first.id =
-        product?.variants?.find((variant) => variant.isDefault)?.id ?? product?.variants?.[0]?.id;
-      first.sku = sku;
-      first.isDefault = true;
-      setVariants([first]);
+    const normalizedMode = mode === "color" ? "options" : mode;
+    setVariantMode(normalizedMode);
+    if (normalizedMode === "options" && variantAxes.length === 0) {
+      setVariantAxes([makeVariantAxis("color")]);
+      setVariants([]);
     }
   };
 
@@ -330,13 +342,14 @@ function AdminEditProduct() {
       shortDescription,
       description,
       price:
-        variantMode === "color" && activeVariantPrices.length
+        variantMode !== "simple" && activeVariantPrices.length
           ? Math.min(...activeVariantPrices)
           : Number(price),
       compareAtPrice: comparePrice ? Number(comparePrice) : null,
       stockQuantity: trackInventory ? Number(stock || 0) : 0,
       variantMode,
-      variants: variantMode === "color" ? variants : undefined,
+      variantAxes: variantMode !== "simple" ? variantAxes : undefined,
+      variants: variantMode !== "simple" ? variants : undefined,
       section,
       sku,
       category,
@@ -602,11 +615,11 @@ function AdminEditProduct() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="simple">Produit simple</SelectItem>
-                        <SelectItem value="color">Plusieurs teintes / références</SelectItem>
+                        <SelectItem value="options">Produit avec variantes / options</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Le mode teintes conserve les commandes et paniers associés à chaque référence.
+                      Chaque combinaison conserve les commandes et paniers associés à son SKU.
                     </p>
                   </div>
 
@@ -705,6 +718,8 @@ function AdminEditProduct() {
                   ) : (
                     <>
                       <ProductVariantsEditor
+                        axes={variantAxes}
+                        onAxesChange={setVariantAxes}
                         variants={variants}
                         onChange={setVariants}
                         defaultPrice={Number(price || 0)}
@@ -795,7 +810,11 @@ function AdminEditProduct() {
                         attributes={categoryAttributes}
                         values={attributes}
                         onChange={setAttributes}
-                        colorManagedByVariants={variantMode === "color"}
+                        variantManagedKeys={
+                          variantMode === "simple"
+                            ? []
+                            : variantAxes.filter((axis) => axis.isActive).map((axis) => axis.key)
+                        }
                       />
                     )}
                   </CardContent>

@@ -21,7 +21,8 @@ export type Product = {
   isBestSeller?: boolean;
   isFeatured?: boolean;
   rating?: number;
-  variantMode?: "simple" | "color";
+  variantMode?: "simple" | "color" | "options";
+  variantAxes?: ProductVariantAxis[];
   variants?: ProductVariant[];
   variantId?: string;
   variantLabel?: string;
@@ -47,6 +48,38 @@ export type ProductVariant = {
   isActive: boolean;
   isDefault: boolean;
   sortOrder: number;
+  selections?: ProductVariantSelection[];
+};
+
+export type ProductVariantAxis = {
+  id: string;
+  key: string;
+  label: string;
+  displayType: "swatch" | "button" | "select";
+  sortOrder: number;
+  values: ProductVariantOptionValue[];
+};
+
+export type ProductVariantOptionValue = {
+  id: string;
+  value: string;
+  label: string;
+  code?: string;
+  colorHex?: string;
+  imageUrl?: string;
+  sortOrder: number;
+};
+
+export type ProductVariantSelection = {
+  axisId: string;
+  axisKey: string;
+  axisLabel: string;
+  valueId: string;
+  value: string;
+  label: string;
+  code?: string;
+  colorHex?: string;
+  imageUrl?: string;
 };
 
 export function ProductCard({ p }: { p: Product }) {
@@ -55,7 +88,8 @@ export function ProductCard({ p }: { p: Product }) {
   const navigate = useNavigate();
   const fav = has(p.slug);
   const promoDiscount = p.discountPercentage;
-  const requiresSelection = p.variantMode === "color" || (p.variants?.length ?? 0) > 1;
+  const requiresSelection =
+    p.variantMode === "color" || p.variantMode === "options" || (p.variants?.length ?? 0) > 1;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -135,7 +169,7 @@ export function ProductCard({ p }: { p: Product }) {
           <div className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 sm:justify-start md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-500">
             <button
               type="button"
-              aria-label={requiresSelection ? "Choisir une couleur" : "Ajouter au panier"}
+              aria-label={requiresSelection ? "Choisir les options" : "Ajouter au panier"}
               onClick={handleAdd}
               className="inline-flex h-9 w-9 items-center justify-center gap-2 bg-gold text-ink text-[11px] uppercase tracking-widest font-semibold hover:bg-ink hover:text-gold transition rounded-sm sm:h-10 sm:w-auto sm:flex-1"
             >

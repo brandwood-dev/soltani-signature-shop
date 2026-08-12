@@ -10,20 +10,19 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { CategoryAttribute } from "@/lib/catalog-attributes-api";
-import { isVariantManagedColorAttribute } from "@/lib/product-attributes";
 
 type ProductAttributeFieldsProps = {
   attributes: CategoryAttribute[];
   values: Record<string, string[]>;
   onChange: (values: Record<string, string[]>) => void;
-  colorManagedByVariants?: boolean;
+  variantManagedKeys?: string[];
 };
 
 export function ProductAttributeFields({
   attributes,
   values,
   onChange,
-  colorManagedByVariants = false,
+  variantManagedKeys = [],
 }: ProductAttributeFieldsProps) {
   const safeAttributes = attributes.filter((association) => association?.attributeDefinition?.key);
 
@@ -46,14 +45,25 @@ export function ProductAttributeFields({
       : [...current, value];
     setValue(key, next);
   };
+  const normalizeKey = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  const managedKeys = new Set(variantManagedKeys.map(normalizeKey));
+  if (managedKeys.has("color")) {
+    ["colour", "couleur", "teinte"].forEach((key) => managedKeys.add(key));
+  }
 
   return (
     <div className="space-y-5">
       {safeAttributes.map((association) => {
         const definition = association.attributeDefinition;
         const current = values[definition.key] ?? [];
-        const managedByVariants =
-          colorManagedByVariants && isVariantManagedColorAttribute(association);
+        const managedByVariants = [definition.key, definition.label].some((value) =>
+          managedKeys.has(normalizeKey(value)),
+        );
         const required = association.required && !managedByVariants;
         const activeOptions = (definition.options ?? []).filter(
           (option) => option.isActive && (option.label || option.value),
@@ -67,7 +77,7 @@ export function ProductAttributeFields({
                 {required ? <span className="text-destructive"> *</span> : null}
                 {managedByVariants ? (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    renseigné par les teintes
+                    renseigné par les variantes
                   </span>
                 ) : null}
               </Label>
