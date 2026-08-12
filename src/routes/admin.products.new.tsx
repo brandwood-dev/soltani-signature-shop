@@ -28,8 +28,12 @@ import { ProductAttributeFields } from "@/components/admin/ProductAttributeField
 import { ProductVariantsEditor } from "@/components/admin/ProductVariantsEditor";
 import { serializeConfiguredProductAttributes } from "@/lib/product-attributes";
 import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
-import type { AdminProductVariant, AdminProductVariantMode } from "@/lib/admin-products-api";
-import { makeColorVariant } from "@/lib/product-variant-drafts";
+import type {
+  AdminProductVariant,
+  AdminProductVariantAxis,
+  AdminProductVariantMode,
+} from "@/lib/admin-products-api";
+import { makeVariantAxis } from "@/lib/product-variant-drafts";
 
 export const Route = createFileRoute("/admin/products/new")({
   component: AdminNewProduct,
@@ -84,6 +88,7 @@ function AdminNewProduct() {
   const [stock, setStock] = useState("");
   const [lowStockAlert, setLowStockAlert] = useState("5");
   const [variantMode, setVariantMode] = useState<AdminProductVariantMode>("simple");
+  const [variantAxes, setVariantAxes] = useState<AdminProductVariantAxis[]>([]);
   const [variants, setVariants] = useState<AdminProductVariant[]>([]);
   const [weight, setWeight] = useState("");
   const [status, setStatus] = useState("draft");
@@ -207,15 +212,11 @@ function AdminNewProduct() {
   const removeTag = (t: string) => setTags((s) => s.filter((x) => x !== t));
 
   const changeVariantMode = (mode: AdminProductVariantMode) => {
-    setVariantMode(mode);
-    if (mode === "color" && variants.length === 0) {
-      const first = makeColorVariant(
-        Number(price || 0),
-        Number(stock || 0),
-        Number(lowStockAlert || 5),
-      );
-      first.isDefault = true;
-      setVariants([first]);
+    const normalizedMode = mode === "color" ? "options" : mode;
+    setVariantMode(normalizedMode);
+    if (normalizedMode === "options" && variantAxes.length === 0) {
+      setVariantAxes([makeVariantAxis("color")]);
+      setVariants([]);
     }
   };
 
@@ -241,13 +242,14 @@ function AdminNewProduct() {
         shortDescription,
         description,
         price:
-          variantMode === "color" && activeVariantPrices.length
+          variantMode !== "simple" && activeVariantPrices.length
             ? Math.min(...activeVariantPrices)
             : Number(price),
         compareAtPrice: comparePrice ? Number(comparePrice) : null,
         stockQuantity: trackInventory ? Number(stock || 0) : 0,
         variantMode,
-        variants: variantMode === "color" ? variants : undefined,
+        variantAxes: variantMode !== "simple" ? variantAxes : undefined,
+        variants: variantMode !== "simple" ? variants : undefined,
         section,
         category,
         subcategory: subcategory || undefined,
@@ -456,11 +458,11 @@ function AdminNewProduct() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="simple">Produit simple</SelectItem>
-                      <SelectItem value="color">Plusieurs teintes / références</SelectItem>
+                      <SelectItem value="options">Produit avec variantes / options</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Choisissez les teintes pour les rouges à lèvres, vernis et produits similaires.
+                    Combinez couleur, taille, contenance, pointure ou une option personnalisée.
                   </p>
                 </div>
 
@@ -559,6 +561,8 @@ function AdminNewProduct() {
                 ) : (
                   <>
                     <ProductVariantsEditor
+                      axes={variantAxes}
+                      onAxesChange={setVariantAxes}
                       variants={variants}
                       onChange={setVariants}
                       defaultPrice={Number(price || 0)}
@@ -646,7 +650,11 @@ function AdminNewProduct() {
                       attributes={categoryAttributes}
                       values={attributes}
                       onChange={setAttributes}
-                      colorManagedByVariants={variantMode === "color"}
+                      variantManagedKeys={
+                        variantMode === "simple"
+                          ? []
+                          : variantAxes.filter((axis) => axis.isActive).map((axis) => axis.key)
+                      }
                     />
                   )}
                 </CardContent>

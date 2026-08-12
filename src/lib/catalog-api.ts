@@ -15,6 +15,22 @@ type ApiProduct = {
   brand: { name: string; slug: string };
   category: { name: string; slug: string };
   images: Array<{ url: string; alt?: string | null }>;
+  variantAxes?: Array<{
+    id: string;
+    key: string;
+    label: string;
+    displayType: string;
+    sortOrder?: number;
+    values: Array<{
+      id: string;
+      value: string;
+      label: string;
+      code?: string | null;
+      colorHex?: string | null;
+      imageUrl?: string | null;
+      sortOrder?: number;
+    }>;
+  }>;
   variants: Array<{
     id: string;
     sku?: string;
@@ -27,6 +43,26 @@ type ApiProduct = {
     isActive: boolean;
     isDefault?: boolean;
     sortOrder?: number;
+    selections?: Array<{
+      optionValue?: {
+        id: string;
+        value: string;
+        label: string;
+        code?: string | null;
+        colorHex?: string | null;
+        imageUrl?: string | null;
+        axis: { id: string; key: string; label: string };
+      };
+      axisId?: string;
+      axisKey?: string;
+      axisLabel?: string;
+      valueId?: string;
+      value?: string;
+      label?: string;
+      code?: string | null;
+      colorHex?: string | null;
+      imageUrl?: string | null;
+    }>;
   }>;
   attributes?: Array<{ key: string; value: string }>;
   reviewSummary?: {
@@ -131,6 +167,26 @@ const BEST_SELLER_TAG = "__best_seller";
 const DISCOUNT_TAG_PREFIX = "__discount:";
 
 export function mapApiProduct(product: ApiProduct): Product {
+  const variantAxes = (product.variantAxes ?? [])
+    .map((axis, axisIndex) => ({
+      id: axis.id,
+      key: axis.key,
+      label: axis.label,
+      displayType: (["swatch", "button", "select"].includes(axis.displayType.toLowerCase())
+        ? axis.displayType.toLowerCase()
+        : "button") as "swatch" | "button" | "select",
+      sortOrder: axis.sortOrder ?? axisIndex,
+      values: axis.values.map((value, valueIndex) => ({
+        id: value.id,
+        value: value.value,
+        label: value.label,
+        code: value.code ?? undefined,
+        colorHex: value.colorHex ?? undefined,
+        imageUrl: value.imageUrl ?? undefined,
+        sortOrder: value.sortOrder ?? valueIndex,
+      })),
+    }))
+    .sort((left, right) => left.sortOrder - right.sortOrder);
   const variants = product.variants
     .filter((item) => item.isActive)
     .map((item, index) => ({
@@ -145,6 +201,20 @@ export function mapApiProduct(product: ApiProduct): Product {
       isActive: item.isActive,
       isDefault: Boolean(item.isDefault),
       sortOrder: item.sortOrder ?? index,
+      selections: (item.selections ?? []).map((selection) => {
+        const option = selection.optionValue;
+        return {
+          axisId: option?.axis.id ?? selection.axisId ?? "",
+          axisKey: option?.axis.key ?? selection.axisKey ?? "",
+          axisLabel: option?.axis.label ?? selection.axisLabel ?? "",
+          valueId: option?.id ?? selection.valueId ?? "",
+          value: option?.value ?? selection.value ?? "",
+          label: option?.label ?? selection.label ?? "",
+          code: option?.code ?? selection.code ?? undefined,
+          colorHex: option?.colorHex ?? selection.colorHex ?? undefined,
+          imageUrl: option?.imageUrl ?? selection.imageUrl ?? undefined,
+        };
+      }),
     }))
     .sort(
       (left, right) =>
@@ -182,7 +252,10 @@ export function mapApiProduct(product: ApiProduct): Product {
         : undefined,
     isBestSeller,
     isFeatured,
-    variantMode: product.variantMode?.toLowerCase() === "color" ? "color" : "simple",
+    variantMode: (["color", "options"].includes(product.variantMode?.toLowerCase() ?? "")
+      ? product.variantMode?.toLowerCase()
+      : "simple") as "simple" | "color" | "options",
+    variantAxes,
     variants,
     variantId: variant?.id,
     variantLabel: variant?.label ?? "Standard",

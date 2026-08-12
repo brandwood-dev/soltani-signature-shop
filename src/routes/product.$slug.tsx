@@ -164,17 +164,36 @@ function ProductPage() {
     previewExpiresAt,
   } = Route.useLoaderData();
   const productVariants = (product.variants ?? []).filter((variant) => variant.isActive);
-  const requiresShadeSelection = product.variantMode === "color" && productVariants.length > 1;
-  const initialVariantId = requiresShadeSelection
-    ? ""
-    : ((productVariants.find((variant) => variant.isDefault) ?? productVariants[0])?.id ??
-      product.variantId ??
-      "");
+  const variantAxes = (product.variantAxes ?? []).filter((axis) => axis.values.length > 0);
+  const requiresOptionSelection = variantAxes.length > 0 && productVariants.length > 1;
+  const initialVariant = productVariants.find((variant) => variant.isDefault) ?? productVariants[0];
+  const initialOptions = requiresOptionSelection
+    ? {}
+    : Object.fromEntries(
+        (initialVariant?.selections ?? []).map((selection) => [selection.axisKey, selection.value]),
+      );
   const variantSelectionKey = productVariants
-    .map((variant) => `${variant.id}:${variant.isDefault}`)
+    .map(
+      (variant) =>
+        `${variant.id}:${variant.isDefault}:${variant.selections
+          ?.map((selection) => `${selection.axisKey}=${selection.value}`)
+          .join("|")}`,
+    )
     .join("|");
-  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
-  const selectedVariant = productVariants.find((variant) => variant.id === selectedVariantId);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(initialOptions);
+  const hasCompleteSelection = variantAxes.every((axis) => Boolean(selectedOptions[axis.key]));
+  const selectedVariant = variantAxes.length
+    ? hasCompleteSelection
+      ? productVariants.find((variant) =>
+          variantAxes.every((axis) =>
+            variant.selections?.some(
+              (selection) =>
+                selection.axisKey === axis.key && selection.value === selectedOptions[axis.key],
+            ),
+          ),
+        )
+      : undefined
+    : initialVariant;
   const gallery = useMemo(() => {
     const baseGallery = product.gallery?.length ? product.gallery : [product.image];
     return selectedVariant?.imageUrl
@@ -190,7 +209,7 @@ function ProductPage() {
     selectedVariant?.reference || selectedVariant?.sku || product.slug.toUpperCase();
   const canPurchase =
     Boolean(selectedVariant?.id ?? product.variantId) &&
-    (!requiresShadeSelection || Boolean(selectedVariant));
+    (!requiresOptionSelection || Boolean(selectedVariant));
   const parentSlug = product.category;
   const parentName = getCategoryDisplayName(product.categoryName, product.category);
   const [active, setActive] = useState(0);
@@ -205,13 +224,44 @@ function ProductPage() {
   const isFavorite = has(product.slug);
 
   useEffect(() => {
-    setSelectedVariantId(initialVariantId);
-  }, [initialVariantId, product.slug, variantSelectionKey]);
+    setSelectedOptions(initialOptions);
+  }, [product.slug, requiresOptionSelection, variantSelectionKey]);
 
   useEffect(() => {
     setQty(1);
     setActive(0);
-  }, [selectedVariantId]);
+  }, [selectedVariant?.id]);
+
+  const selectOption = (axisIndex: number, axisKey: string, value: string) => {
+    setSelectedOptions((current) => {
+      const next = Object.fromEntries(
+        variantAxes
+          .slice(0, axisIndex)
+          .filter((axis) => current[axis.key])
+          .map((axis) => [axis.key, current[axis.key]]),
+      );
+      next[axisKey] = value;
+      return next;
+    });
+  };
+
+  const optionIsAvailable = (axisIndex: number, axisKey: string, value: string) =>
+    productVariants.some(
+      (variant) =>
+        variant.stockQuantity > 0 &&
+        variant.selections?.some(
+          (selection) => selection.axisKey === axisKey && selection.value === value,
+        ) &&
+        variantAxes.slice(0, axisIndex).every((axis) => {
+          const selected = selectedOptions[axis.key];
+          return (
+            !selected ||
+            variant.selections?.some(
+              (selection) => selection.axisKey === axis.key && selection.value === selected,
+            )
+          );
+        }),
+    );
 
   useEffect(() => {
     if (isPreview) {
@@ -488,41 +538,97 @@ function ProductPage() {
               `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
           </p>
 
-          {product.variantMode === "color" && productVariants.length > 0 ? (
-            <fieldset className="mb-6 rounded-sm border border-border bg-card/50 p-4">
-              <legend className="px-1 text-xs font-bold uppercase tracking-[0.16em]">
-                Choisissez votre teinte
-              </legend>
-              <div className="mt-2 flex flex-wrap gap-3">
-                {productVariants.map((variant) => {
-                  const isSelected = selectedVariant?.id === variant.id;
-                  const isUnavailable = variant.stockQuantity <= 0;
-                  return (
-                    <button
-                      key={variant.id}
-                      type="button"
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      disabled={isUnavailable}
-                      aria-pressed={isSelected}
-                      aria-label={`${variant.label}${variant.reference ? `, référence ${variant.reference}` : ""}${isUnavailable ? ", indisponible" : ""}`}
-                      title={`${variant.label}${isUnavailable ? " - Rupture de stock" : ""}`}
-                      className={`relative grid h-12 w-12 place-items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 ${isSelected ? "ring-2 ring-ink ring-offset-2" : "hover:scale-105"} ${isUnavailable ? "cursor-not-allowed opacity-35" : ""}`}
-                    >
-                      <span
-                        className="h-10 w-10 rounded-full border border-black/20 shadow-inner"
-                        style={{ backgroundColor: variant.colorHex || "#C47A7A" }}
-                        aria-hidden="true"
-                      />
-                      {isSelected ? (
-                        <span className="absolute inset-0 grid place-items-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                          ✓
+          {variantAxes.length > 0 && productVariants.length > 0 ? (
+            <div className="mb-6 space-y-4 rounded-sm border border-border bg-card/50 p-3 sm:p-4">
+              {variantAxes.map((axis, axisIndex) => {
+                const selectedValue = axis.values.find(
+                  (value) => value.value === selectedOptions[axis.key],
+                );
+                return (
+                  <fieldset key={axis.id || axis.key}>
+                    <legend className="text-xs font-bold uppercase tracking-[0.16em]">
+                      {axis.label}
+                      {selectedValue ? (
+                        <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
+                          {selectedValue.label}
+                          {selectedValue.code ? ` · Réf. ${selectedValue.code}` : ""}
                         </span>
                       ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-3 min-h-10 text-sm">
+                    </legend>
+
+                    {axis.displayType === "select" ? (
+                      <select
+                        value={selectedOptions[axis.key] ?? ""}
+                        onChange={(event) => selectOption(axisIndex, axis.key, event.target.value)}
+                        className="mt-2 min-h-12 w-full rounded-sm border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold sm:max-w-xs"
+                        aria-label={`Choisir ${axis.label}`}
+                      >
+                        <option value="">Choisir {axis.label.toLowerCase()}</option>
+                        {axis.values.map((value) => {
+                          const available = optionIsAvailable(axisIndex, axis.key, value.value);
+                          return (
+                            <option
+                              key={value.id || value.value}
+                              value={value.value}
+                              disabled={!available}
+                            >
+                              {value.label}
+                              {available ? "" : " - Indisponible"}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap gap-2.5">
+                        {axis.values.map((value) => {
+                          const isSelected = selectedOptions[axis.key] === value.value;
+                          const isUnavailable = !optionIsAvailable(
+                            axisIndex,
+                            axis.key,
+                            value.value,
+                          );
+                          return axis.displayType === "swatch" ? (
+                            <button
+                              key={value.id || value.value}
+                              type="button"
+                              onClick={() => selectOption(axisIndex, axis.key, value.value)}
+                              disabled={isUnavailable}
+                              aria-pressed={isSelected}
+                              aria-label={`${value.label}${value.code ? `, référence ${value.code}` : ""}${isUnavailable ? ", indisponible" : ""}`}
+                              title={`${value.label}${isUnavailable ? " - Indisponible" : ""}`}
+                              className={`relative grid h-12 w-12 place-items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 ${isSelected ? "ring-2 ring-ink ring-offset-2" : "hover:scale-105"} ${isUnavailable ? "cursor-not-allowed opacity-35" : ""}`}
+                            >
+                              <span
+                                className="h-10 w-10 rounded-full border border-black/20 shadow-inner"
+                                style={{ backgroundColor: value.colorHex || "#C47A7A" }}
+                                aria-hidden="true"
+                              />
+                              {isSelected ? (
+                                <span className="absolute inset-0 grid place-items-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                  ✓
+                                </span>
+                              ) : null}
+                            </button>
+                          ) : (
+                            <button
+                              key={value.id || value.value}
+                              type="button"
+                              onClick={() => selectOption(axisIndex, axis.key, value.value)}
+                              disabled={isUnavailable}
+                              aria-pressed={isSelected}
+                              className={`min-h-11 rounded-sm border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${isSelected ? "border-ink bg-ink text-cream" : "border-border bg-background hover:border-gold"} ${isUnavailable ? "cursor-not-allowed line-through opacity-35" : ""}`}
+                            >
+                              {value.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </fieldset>
+                );
+              })}
+
+              <div className="min-h-10 border-t border-border pt-3 text-sm">
                 {selectedVariant ? (
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p>
@@ -541,11 +647,11 @@ function ProductPage() {
                   </div>
                 ) : (
                   <p className="font-medium text-destructive">
-                    Sélectionnez une teinte avant d’ajouter ce produit au panier.
+                    Sélectionnez toutes les options avant d’ajouter ce produit au panier.
                   </p>
                 )}
               </div>
-            </fieldset>
+            </div>
           ) : null}
 
           {isPreview ? (
@@ -612,9 +718,9 @@ function ProductPage() {
                 </button>
               </div>
               {shareMessage ? <p className="mb-3 text-xs text-gold">{shareMessage}</p> : null}
-              {!canPurchase && requiresShadeSelection ? (
+              {!canPurchase && requiresOptionSelection ? (
                 <p className="mb-3 text-center text-xs font-medium text-destructive">
-                  Choisissez une teinte pour continuer.
+                  Choisissez toutes les options pour continuer.
                 </p>
               ) : null}
               <button

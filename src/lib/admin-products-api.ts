@@ -2,7 +2,41 @@ import { apiFetch } from "@/lib/api";
 
 export type AdminProductStatus = "draft" | "active" | "archived";
 export type AdminProductSection = "homme" | "femme" | "enfant" | "maison" | "bien-etre";
-export type AdminProductVariantMode = "simple" | "color";
+export type AdminProductVariantMode = "simple" | "color" | "options";
+export type AdminVariantDisplayType = "swatch" | "button" | "select";
+
+export type AdminProductVariantOptionValue = {
+  id?: string;
+  value: string;
+  label: string;
+  code: string | null;
+  colorHex: string | null;
+  imageUrl: string | null;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type AdminProductVariantAxis = {
+  id?: string;
+  key: string;
+  label: string;
+  displayType: AdminVariantDisplayType;
+  isActive: boolean;
+  sortOrder: number;
+  values: AdminProductVariantOptionValue[];
+};
+
+export type AdminProductVariantSelection = {
+  axisId?: string;
+  axisKey: string;
+  axisLabel?: string;
+  valueId?: string;
+  value: string;
+  label?: string;
+  code?: string | null;
+  colorHex?: string | null;
+  imageUrl?: string | null;
+};
 
 export type AdminProductVariant = {
   id?: string;
@@ -17,6 +51,7 @@ export type AdminProductVariant = {
   isActive: boolean;
   isDefault: boolean;
   sortOrder: number;
+  selections?: AdminProductVariantSelection[];
 };
 
 export type AdminProduct = {
@@ -31,6 +66,7 @@ export type AdminProduct = {
   sku: string;
   lowStockThreshold: number;
   variantMode?: AdminProductVariantMode;
+  variantAxes?: AdminProductVariantAxis[];
   variants?: AdminProductVariant[];
   status: AdminProductStatus;
   section: AdminProductSection;
@@ -71,6 +107,7 @@ export type UpsertAdminProductInput = {
   stockQuantity: number;
   sku?: string;
   variantMode?: AdminProductVariantMode;
+  variantAxes?: AdminProductVariantAxis[];
   variants?: AdminProductVariant[];
   category: string;
   section: AdminProductSection;
