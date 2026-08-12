@@ -46,6 +46,7 @@ export type AdminProductVariant = {
   colorHex: string | null;
   imageUrl: string | null;
   price: number;
+  compareAtPrice: number | null;
   stockQuantity: number;
   lowStockThreshold: number;
   isActive: boolean;

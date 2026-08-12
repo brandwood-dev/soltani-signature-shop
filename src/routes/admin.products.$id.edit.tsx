@@ -51,7 +51,11 @@ import {
   sanitizeProductAttributeValues,
   serializeConfiguredProductAttributes,
 } from "@/lib/product-attributes";
-import { makeVariantAxis, normalizeLegacyColorConfiguration } from "@/lib/product-variant-drafts";
+import {
+  getActiveVariantPriceSummary,
+  makeVariantAxis,
+  normalizeLegacyColorConfiguration,
+} from "@/lib/product-variant-drafts";
 
 const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
 const STATUSES = [
@@ -171,8 +175,23 @@ function AdminEditProduct() {
         setStock(String(loaded.stockQuantity));
         setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
         const loadedVariants = loaded.variants ?? [];
-        const legacyConfiguration = normalizeLegacyColorConfiguration(loadedVariants);
         const hasVariants = (loaded.variantMode ?? "simple") !== "simple";
+        const hasVariantComparePrice = loadedVariants.some(
+          (variant) => variant.compareAtPrice != null,
+        );
+        const variantsWithLegacyComparePrice =
+          hasVariants && loaded.compareAtPrice && !hasVariantComparePrice
+            ? loadedVariants.map((variant) => ({
+                ...variant,
+                compareAtPrice:
+                  loaded.compareAtPrice && loaded.compareAtPrice > variant.price
+                    ? loaded.compareAtPrice
+                    : null,
+              }))
+            : loadedVariants;
+        const legacyConfiguration = normalizeLegacyColorConfiguration(
+          variantsWithLegacyComparePrice,
+        );
         setVariantMode(hasVariants ? "options" : "simple");
         setVariantAxes(
           hasVariants
@@ -184,7 +203,7 @@ function AdminEditProduct() {
         setVariants(
           hasVariants && !loaded.variantAxes?.length
             ? legacyConfiguration.variants
-            : loadedVariants,
+            : variantsWithLegacyComparePrice,
         );
         setStatus(loaded.status);
         setFeatured(loaded.isFeatured);
@@ -333,19 +352,19 @@ function AdminEditProduct() {
   };
 
   const buildProductInput = (): UpsertAdminProductInput => {
-    const activeVariantPrices = variants
-      .filter((variant) => variant.isActive)
-      .map((variant) => variant.price);
+    const variantPricing = getActiveVariantPriceSummary(variants);
     return {
       name,
       slug: slug || slugify(name),
       shortDescription,
       description,
-      price:
-        variantMode !== "simple" && activeVariantPrices.length
-          ? Math.min(...activeVariantPrices)
-          : Number(price),
-      compareAtPrice: comparePrice ? Number(comparePrice) : null,
+      price: variantMode !== "simple" && variantPricing.count ? variantPricing.min : Number(price),
+      compareAtPrice:
+        variantMode !== "simple"
+          ? variantPricing.compareAtPrice
+          : comparePrice
+            ? Number(comparePrice)
+            : null,
       stockQuantity: trackInventory ? Number(stock || 0) : 0,
       variantMode,
       variantAxes: variantMode !== "simple" ? variantAxes : undefined,
@@ -726,18 +745,12 @@ function AdminEditProduct() {
                         defaultStock={Number(stock || 0)}
                         defaultLowStockThreshold={Number(lowStockAlert || 5)}
                       />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="compare-color">Prix barré global (DT)</Label>
-                          <Input
-                            id="compare-color"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={comparePrice}
-                            onChange={(e) => setComparePrice(e.target.value)}
-                          />
-                        </div>
+                      <div className="grid gap-3 rounded-lg border bg-muted/30 p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-end">
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          Le prix affiché sur les listes sera automatiquement le plus bas des
+                          combinaisons actives. Chaque prix barré se règle directement dans
+                          l’assistant ci-dessus.
+                        </p>
                         <div className="space-y-1.5">
                           <Label htmlFor="weight-color">Poids (g)</Label>
                           <Input

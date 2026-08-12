@@ -250,8 +250,18 @@ function ProductPage() {
         ]
       : baseGallery;
   }, [product.gallery, product.image, selectedVariant?.imageUrl]);
-  const selectedPrice = selectedVariant?.price ?? product.price;
-  const hasValidComparePrice = Boolean(product.oldPrice && product.oldPrice > selectedPrice);
+  const priceMin = product.priceMin ?? product.price;
+  const priceMax = product.priceMax ?? product.price;
+  const showsPriceRange = !selectedVariant && priceMax > priceMin;
+  const selectedPrice = selectedVariant?.price ?? priceMin;
+  const selectedCompareAtPrice = selectedVariant
+    ? selectedVariant.compareAtPrice
+    : showsPriceRange
+      ? undefined
+      : product.oldPrice;
+  const hasValidComparePrice = Boolean(
+    selectedCompareAtPrice && selectedCompareAtPrice > selectedPrice,
+  );
   const selectedReference =
     selectedVariant?.reference || selectedVariant?.sku || product.slug.toUpperCase();
   const canPurchase =
@@ -564,17 +574,24 @@ function ProductPage() {
           </div>
 
           <div className="flex items-end gap-2 sm:gap-3 mb-6 flex-wrap">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums">{selectedPrice} DT</span>
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums">
+              {showsPriceRange ? `${priceMin} – ${priceMax} DT` : `${selectedPrice} DT`}
+            </span>
             {hasValidComparePrice && (
               <span className="text-base sm:text-lg text-muted-foreground line-through tabular-nums">
-                {product.oldPrice} DT
+                {selectedCompareAtPrice} DT
               </span>
             )}
-            {product.isPromotion && hasValidComparePrice && product.oldPrice && (
+            {product.isPromotion && hasValidComparePrice && selectedCompareAtPrice && (
               <span className="text-xs sm:text-sm text-destructive font-semibold">
-                Économisez {product.oldPrice - selectedPrice} DT
+                Économisez {selectedCompareAtPrice - selectedPrice} DT
               </span>
             )}
+            {showsPriceRange ? (
+              <span className="w-full text-xs text-muted-foreground">
+                Le prix exact dépend des options sélectionnées.
+              </span>
+            ) : null}
           </div>
           {product.isPromotion && discount > 0 && limitedOffer?.endsAt && (
             <PromoCountdown endsAt={limitedOffer.endsAt} />

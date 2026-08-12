@@ -33,7 +33,7 @@ import type {
   AdminProductVariantAxis,
   AdminProductVariantMode,
 } from "@/lib/admin-products-api";
-import { makeVariantAxis } from "@/lib/product-variant-drafts";
+import { getActiveVariantPriceSummary, makeVariantAxis } from "@/lib/product-variant-drafts";
 
 export const Route = createFileRoute("/admin/products/new")({
   component: AdminNewProduct,
@@ -230,9 +230,7 @@ function AdminNewProduct() {
       return;
     }
 
-    const activeVariantPrices = variants
-      .filter((variant) => variant.isActive)
-      .map((variant) => variant.price);
+    const variantPricing = getActiveVariantPriceSummary(variants);
     try {
       setSaving(true);
       setError("");
@@ -242,10 +240,13 @@ function AdminNewProduct() {
         shortDescription,
         description,
         price:
-          variantMode !== "simple" && activeVariantPrices.length
-            ? Math.min(...activeVariantPrices)
-            : Number(price),
-        compareAtPrice: comparePrice ? Number(comparePrice) : null,
+          variantMode !== "simple" && variantPricing.count ? variantPricing.min : Number(price),
+        compareAtPrice:
+          variantMode !== "simple"
+            ? variantPricing.compareAtPrice
+            : comparePrice
+              ? Number(comparePrice)
+              : null,
         stockQuantity: trackInventory ? Number(stock || 0) : 0,
         variantMode,
         variantAxes: variantMode !== "simple" ? variantAxes : undefined,
@@ -569,18 +570,12 @@ function AdminNewProduct() {
                       defaultStock={Number(stock || 0)}
                       defaultLowStockThreshold={Number(lowStockAlert || 5)}
                     />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="compare-color">Prix barré global (DT)</Label>
-                        <Input
-                          id="compare-color"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={comparePrice}
-                          onChange={(e) => setComparePrice(e.target.value)}
-                        />
-                      </div>
+                    <div className="grid gap-3 rounded-lg border bg-muted/30 p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-end">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        Le prix affiché sur les listes sera automatiquement le plus bas des
+                        combinaisons actives. Chaque prix barré se règle directement dans
+                        l’assistant ci-dessus.
+                      </p>
                       <div className="space-y-1.5">
                         <Label htmlFor="weight-color">Poids (g)</Label>
                         <Input
