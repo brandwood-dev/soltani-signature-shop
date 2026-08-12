@@ -163,15 +163,60 @@ function ProductPage() {
     isPreview,
     previewExpiresAt,
   } = Route.useLoaderData();
-  const productVariants = (product.variants ?? []).filter((variant) => variant.isActive);
-  const variantAxes = (product.variantAxes ?? []).filter((axis) => axis.values.length > 0);
+  const rawVariants = (product.variants ?? []).filter((variant) => variant.isActive);
+  const persistedAxes = (product.variantAxes ?? []).filter((axis) => axis.values.length > 0);
+  const usesLegacyColorFallback =
+    persistedAxes.length === 0 && product.variantMode === "color" && rawVariants.length > 0;
+  const variantAxes = usesLegacyColorFallback
+    ? [
+        {
+          id: "legacy-color",
+          key: "color",
+          label: "Couleur",
+          displayType: "swatch" as const,
+          sortOrder: 0,
+          values: rawVariants.map((variant, index) => ({
+            id: `legacy-${variant.id}`,
+            value: `legacy-${variant.id}`,
+            label: variant.label,
+            code: variant.reference,
+            colorHex: variant.colorHex,
+            imageUrl: variant.imageUrl,
+            sortOrder: index,
+          })),
+        },
+      ]
+    : persistedAxes;
+  const productVariants = usesLegacyColorFallback
+    ? rawVariants.map((variant) => ({
+        ...variant,
+        selections: [
+          {
+            axisId: "legacy-color",
+            axisKey: "color",
+            axisLabel: "Couleur",
+            valueId: `legacy-${variant.id}`,
+            value: `legacy-${variant.id}`,
+            label: variant.label,
+            code: variant.reference,
+            colorHex: variant.colorHex,
+            imageUrl: variant.imageUrl,
+          },
+        ],
+      }))
+    : rawVariants;
   const requiresOptionSelection = variantAxes.length > 0 && productVariants.length > 1;
   const initialVariant = productVariants.find((variant) => variant.isDefault) ?? productVariants[0];
-  const initialOptions = requiresOptionSelection
-    ? {}
-    : Object.fromEntries(
-        (initialVariant?.selections ?? []).map((selection) => [selection.axisKey, selection.value]),
-      );
+  const initialOptionsKey = JSON.stringify(
+    requiresOptionSelection
+      ? {}
+      : Object.fromEntries(
+          (initialVariant?.selections ?? []).map((selection) => [
+            selection.axisKey,
+            selection.value,
+          ]),
+        ),
+  );
   const variantSelectionKey = productVariants
     .map(
       (variant) =>
@@ -180,7 +225,9 @@ function ProductPage() {
           .join("|")}`,
     )
     .join("|");
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(initialOptions);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() =>
+    JSON.parse(initialOptionsKey),
+  );
   const hasCompleteSelection = variantAxes.every((axis) => Boolean(selectedOptions[axis.key]));
   const selectedVariant = variantAxes.length
     ? hasCompleteSelection
@@ -224,8 +271,8 @@ function ProductPage() {
   const isFavorite = has(product.slug);
 
   useEffect(() => {
-    setSelectedOptions(initialOptions);
-  }, [product.slug, requiresOptionSelection, variantSelectionKey]);
+    setSelectedOptions(JSON.parse(initialOptionsKey));
+  }, [initialOptionsKey, product.slug, variantSelectionKey]);
 
   useEffect(() => {
     setQty(1);

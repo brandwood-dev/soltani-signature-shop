@@ -62,6 +62,7 @@ export function ProductVariantsEditor({
     const next = makeVariantAxis(axisTemplate, axes);
     if (axes.some((axis) => axis.key === next.key)) return;
     onAxesChange([...axes, next]);
+    onChange([]);
   };
 
   const removeAxis = (index: number) => {
@@ -410,7 +411,7 @@ export function ProductVariantsEditor({
                   />
                 </div>
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                 <div className="space-y-1.5">
                   <Label htmlFor={`variant-sku-${index}`}>SKU</Label>
                   <Input
@@ -457,6 +458,16 @@ export function ProductVariantsEditor({
                     onChange={(event) =>
                       updateVariant(index, { lowStockThreshold: Number(event.target.value) })
                     }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`variant-image-${index}`}>Image spécifique</Label>
+                  <Input
+                    id={`variant-image-${index}`}
+                    type="url"
+                    value={variant.imageUrl ?? ""}
+                    onChange={(event) => updateVariant(index, { imageUrl: event.target.value })}
+                    placeholder="https://..."
                   />
                 </div>
                 <div className="flex items-end">
