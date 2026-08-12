@@ -761,7 +761,7 @@ export function ProductVariantsEditor({
                   <Input
                     id={`variant-compare-${index}`}
                     type="number"
-                    min="0"
+                    min={variant.price + 0.001}
                     step="0.001"
                     inputMode="decimal"
                     value={variant.compareAtPrice ?? ""}

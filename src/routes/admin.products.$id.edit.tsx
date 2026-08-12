@@ -175,8 +175,23 @@ function AdminEditProduct() {
         setStock(String(loaded.stockQuantity));
         setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
         const loadedVariants = loaded.variants ?? [];
-        const legacyConfiguration = normalizeLegacyColorConfiguration(loadedVariants);
         const hasVariants = (loaded.variantMode ?? "simple") !== "simple";
+        const hasVariantComparePrice = loadedVariants.some(
+          (variant) => variant.compareAtPrice != null,
+        );
+        const variantsWithLegacyComparePrice =
+          hasVariants && loaded.compareAtPrice && !hasVariantComparePrice
+            ? loadedVariants.map((variant) => ({
+                ...variant,
+                compareAtPrice:
+                  loaded.compareAtPrice && loaded.compareAtPrice > variant.price
+                    ? loaded.compareAtPrice
+                    : null,
+              }))
+            : loadedVariants;
+        const legacyConfiguration = normalizeLegacyColorConfiguration(
+          variantsWithLegacyComparePrice,
+        );
         setVariantMode(hasVariants ? "options" : "simple");
         setVariantAxes(
           hasVariants
@@ -188,7 +203,7 @@ function AdminEditProduct() {
         setVariants(
           hasVariants && !loaded.variantAxes?.length
             ? legacyConfiguration.variants
-            : loadedVariants,
+            : variantsWithLegacyComparePrice,
         );
         setStatus(loaded.status);
         setFeatured(loaded.isFeatured);
