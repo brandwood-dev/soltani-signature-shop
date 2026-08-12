@@ -26,6 +26,7 @@ import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
 import { ProductAttributeFields } from "@/components/admin/ProductAttributeFields";
 import { ProductVariantsEditor } from "@/components/admin/ProductVariantsEditor";
+import { serializeConfiguredProductAttributes } from "@/lib/product-attributes";
 import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
 import type { AdminProductVariant, AdminProductVariantMode } from "@/lib/admin-products-api";
 import { makeColorVariant } from "@/lib/product-variant-drafts";
@@ -227,9 +228,7 @@ function AdminNewProduct() {
         brand,
         tags,
         images: images.map((url) => ({ url, alt: name })),
-        attributes: Object.entries(attributes).flatMap(([key, values]) =>
-          values.map((value) => ({ key, value })),
-        ),
+        attributes: serializeConfiguredProductAttributes(attributes, categoryAttributes),
         seoTitle: seoTitle || name,
         seoDescription,
         status: status as "draft" | "active" | "archived",
@@ -615,6 +614,7 @@ function AdminNewProduct() {
                       attributes={categoryAttributes}
                       values={attributes}
                       onChange={setAttributes}
+                      colorManagedByVariants={variantMode === "color"}
                     />
                   )}
                 </CardContent>

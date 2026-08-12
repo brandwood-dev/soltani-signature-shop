@@ -43,6 +43,10 @@ import { ProductAttributeFields } from "@/components/admin/ProductAttributeField
 import { ProductVariantsEditor } from "@/components/admin/ProductVariantsEditor";
 import { getAdminCategoryAttributes, type CategoryAttribute } from "@/lib/catalog-attributes-api";
 import type { AdminProductVariant, AdminProductVariantMode } from "@/lib/admin-products-api";
+import {
+  sanitizeProductAttributeValues,
+  serializeConfiguredProductAttributes,
+} from "@/lib/product-attributes";
 import { makeColorVariant } from "@/lib/product-variant-drafts";
 
 const FALLBACK_BRANDS = ["Dior", "Chanel", "YSL", "Armani", "Gucci", "Prada", "Tom Ford", "Hermès"];
@@ -94,6 +98,8 @@ function AdminEditProduct() {
   const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
   const [attributesLoading, setAttributesLoading] = useState(false);
   const [attributesError, setAttributesError] = useState("");
+  const [categoryAttributeScope, setCategoryAttributeScope] = useState("");
+  const [ignoredAttributeKeys, setIgnoredAttributeKeys] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -195,20 +201,27 @@ function AdminEditProduct() {
       .find((item) => item.slug === (subcategory || category));
     if (!selectedCategory) {
       setCategoryAttributes([]);
+      setCategoryAttributeScope("");
       setAttributesError("");
       return;
     }
 
     let active = true;
     setAttributesLoading(true);
+    setCategoryAttributeScope("");
+    setIgnoredAttributeKeys([]);
     setAttributesError("");
     getAdminCategoryAttributes(selectedCategory.id)
       .then((items) => {
-        if (active) setCategoryAttributes(items);
+        if (active) {
+          setCategoryAttributes(items);
+          setCategoryAttributeScope(selectedCategory.id);
+        }
       })
       .catch((err) => {
         if (active) {
           setCategoryAttributes([]);
+          setCategoryAttributeScope("");
           setAttributesError(
             err instanceof Error
               ? err.message
@@ -224,6 +237,31 @@ function AdminEditProduct() {
       active = false;
     };
   }, [category, subcategory, categoryTree]);
+
+  useEffect(() => {
+    const selectedCategory = categoryTree
+      .flatMap((item) => [item, ...item.subs])
+      .find((item) => item.slug === (subcategory || category));
+    if (!product || !selectedCategory || categoryAttributeScope !== selectedCategory.id) return;
+
+    const sanitized = sanitizeProductAttributeValues(attributes, categoryAttributes);
+    if (sanitized.ignoredKeys.length) {
+      setIgnoredAttributeKeys((current) =>
+        Array.from(new Set([...current, ...sanitized.ignoredKeys])),
+      );
+    }
+    if (JSON.stringify(sanitized.values) !== JSON.stringify(attributes)) {
+      setAttributes(sanitized.values);
+    }
+  }, [
+    attributes,
+    category,
+    subcategory,
+    categoryTree,
+    categoryAttributes,
+    categoryAttributeScope,
+    product,
+  ]);
 
   const addImage = () => {
     if (!newImage.trim()) return;
@@ -295,9 +333,7 @@ function AdminEditProduct() {
       brand,
       tags,
       images: images.map((url) => ({ url, alt: name })),
-      attributes: Object.entries(attributes).flatMap(([key, values]) =>
-        values.map((value) => ({ key, value })),
-      ),
+      attributes: serializeConfiguredProductAttributes(attributes, categoryAttributes),
       seoTitle: seoTitle || name,
       seoDescription,
       status: status as "draft" | "active" | "archived",
@@ -716,6 +752,12 @@ function AdminEditProduct() {
                     </p>
                   </CardHeader>
                   <CardContent>
+                    {ignoredAttributeKeys.length ? (
+                      <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        Attribut historique ignoré : {ignoredAttributeKeys.join(", ")}. Les
+                        références de teinte sont maintenant enregistrées dans chaque variante.
+                      </p>
+                    ) : null}
                     {attributesError ? (
                       <p className="text-sm text-destructive">{attributesError}</p>
                     ) : attributesLoading ? (
@@ -725,6 +767,7 @@ function AdminEditProduct() {
                         attributes={categoryAttributes}
                         values={attributes}
                         onChange={setAttributes}
+                        colorManagedByVariants={variantMode === "color"}
                       />
                     )}
                   </CardContent>

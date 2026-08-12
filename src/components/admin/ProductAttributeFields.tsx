@@ -10,17 +10,20 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { CategoryAttribute } from "@/lib/catalog-attributes-api";
+import { isVariantManagedColorAttribute } from "@/lib/product-attributes";
 
 type ProductAttributeFieldsProps = {
   attributes: CategoryAttribute[];
   values: Record<string, string[]>;
   onChange: (values: Record<string, string[]>) => void;
+  colorManagedByVariants?: boolean;
 };
 
 export function ProductAttributeFields({
   attributes,
   values,
   onChange,
+  colorManagedByVariants = false,
 }: ProductAttributeFieldsProps) {
   const safeAttributes = attributes.filter((association) => association?.attributeDefinition?.key);
 
@@ -49,6 +52,9 @@ export function ProductAttributeFields({
       {safeAttributes.map((association) => {
         const definition = association.attributeDefinition;
         const current = values[definition.key] ?? [];
+        const managedByVariants =
+          colorManagedByVariants && isVariantManagedColorAttribute(association);
+        const required = association.required && !managedByVariants;
         const activeOptions = (definition.options ?? []).filter(
           (option) => option.isActive && (option.label || option.value),
         );
@@ -58,7 +64,12 @@ export function ProductAttributeFields({
             <div className="flex items-center justify-between gap-3">
               <Label className="text-sm">
                 {definition.label}
-                {association.required ? <span className="text-destructive"> *</span> : null}
+                {required ? <span className="text-destructive"> *</span> : null}
+                {managedByVariants ? (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    renseigné par les teintes
+                  </span>
+                ) : null}
               </Label>
               {current.length > 0 && (
                 <button
@@ -74,7 +85,7 @@ export function ProductAttributeFields({
             {definition.type === "TEXT" && (
               <Input
                 value={current[0] ?? ""}
-                required={association.required}
+                required={required}
                 onChange={(event) => setValue(definition.key, [event.target.value])}
               />
             )}
@@ -83,7 +94,7 @@ export function ProductAttributeFields({
               <Input
                 type="number"
                 value={current[0] ?? ""}
-                required={association.required}
+                required={required}
                 onChange={(event) => setValue(definition.key, [event.target.value])}
               />
             )}
@@ -103,7 +114,7 @@ export function ProductAttributeFields({
             {definition.type === "SELECT" && (
               <Select
                 value={current[0] ?? ""}
-                required={association.required}
+                required={required}
                 onValueChange={(value) => setValue(definition.key, [value])}
               >
                 <SelectTrigger>
