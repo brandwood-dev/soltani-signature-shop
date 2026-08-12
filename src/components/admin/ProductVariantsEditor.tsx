@@ -1,4 +1,4 @@
-import { Plus, Sparkles, Star, Trash2 } from "lucide-react";
+import { BadgeDollarSign, Plus, Sparkles, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,21 @@ type Props = {
 const MAX_AXES = 3;
 const MAX_COMBINATIONS = 100;
 
+type PriceDraft = { price: string; compareAtPrice: string };
+
+function priceFromDraft(value: string) {
+  if (!value.trim()) return null;
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0 ? price : null;
+}
+
+function displayPrice(value: number) {
+  return value
+    .toFixed(3)
+    .replace(/\.000$/, "")
+    .replace(/(\.\d*[1-9])0+$/, "$1");
+}
+
 export function ProductVariantsEditor({
   axes,
   onAxesChange,
@@ -49,7 +64,20 @@ export function ProductVariantsEditor({
   defaultLowStockThreshold,
 }: Props) {
   const [axisTemplate, setAxisTemplate] = useState("color");
+  const [bulkPrice, setBulkPrice] = useState(defaultPrice ? String(defaultPrice) : "");
+  const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
+  const [pricingAxisKey, setPricingAxisKey] = useState(axes[0]?.key ?? "");
+  const [axisPriceDrafts, setAxisPriceDrafts] = useState<Record<string, PriceDraft>>({});
+  const [pricingFeedback, setPricingFeedback] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
   const combinationCount = variantCombinationCount(axes);
+  const activeVariants = variants.filter((variant) => variant.isActive);
+  const activePrices = activeVariants.map((variant) => variant.price);
+  const priceMin = activePrices.length ? Math.min(...activePrices) : 0;
+  const priceMax = activePrices.length ? Math.max(...activePrices) : 0;
+  const pricingAxis = axes.find((axis) => axis.key === pricingAxisKey) ?? axes[0];
 
   const updateAxis = (index: number, patch: Partial<AdminProductVariantAxis>) => {
     onAxesChange(
@@ -75,13 +103,19 @@ export function ProductVariantsEditor({
   };
 
   const generate = () => {
+    const generatedPrice = priceFromDraft(bulkPrice) ?? defaultPrice;
+    if (!Number.isFinite(generatedPrice) || generatedPrice < 0) {
+      setPricingFeedback({ kind: "error", message: "Saisissez un prix initial valide." });
+      return;
+    }
     onChange(
       generateVariantCombinations(axes, variants, {
-        price: defaultPrice,
+        price: generatedPrice,
         stockQuantity: defaultStock,
         lowStockThreshold: defaultLowStockThreshold,
       }),
     );
+    setPricingFeedback(null);
   };
 
   const updateVariant = (index: number, patch: Partial<AdminProductVariant>) => {
@@ -100,6 +134,86 @@ export function ProductVariantsEditor({
         isActive: itemIndex === index ? true : variant.isActive,
       })),
     );
+  };
+
+  const applyBulkPricing = () => {
+    const nextPrice = priceFromDraft(bulkPrice);
+    const nextCompareAtPrice = priceFromDraft(bulkCompareAtPrice);
+    if (nextPrice === null) {
+      setPricingFeedback({ kind: "error", message: "Saisissez un prix de vente valide." });
+      return;
+    }
+    if (bulkCompareAtPrice.trim() && nextCompareAtPrice === null) {
+      setPricingFeedback({ kind: "error", message: "Le prix barré doit être un nombre positif." });
+      return;
+    }
+    if (nextCompareAtPrice !== null && nextCompareAtPrice <= nextPrice) {
+      setPricingFeedback({
+        kind: "error",
+        message: "Le prix barré doit être supérieur au prix de vente.",
+      });
+      return;
+    }
+    onChange(
+      variants.map((variant) => ({
+        ...variant,
+        price: nextPrice,
+        compareAtPrice: nextCompareAtPrice,
+      })),
+    );
+    setPricingFeedback({
+      kind: "success",
+      message: `Tarif appliqué à ${variants.length} combinaison${variants.length > 1 ? "s" : ""}.`,
+    });
+  };
+
+  const applyAxisPricing = () => {
+    if (!pricingAxis) return;
+    const updates = new Map<string, { price: number; compareAtPrice: number | null }>();
+    for (const value of pricingAxis.values.filter((item) => item.isActive)) {
+      const draft = axisPriceDrafts[`${pricingAxis.key}:${value.value}`];
+      if (!draft?.price.trim()) continue;
+      const nextPrice = priceFromDraft(draft.price);
+      const nextCompareAtPrice = priceFromDraft(draft.compareAtPrice);
+      if (nextPrice === null || (draft.compareAtPrice.trim() && nextCompareAtPrice === null)) {
+        setPricingFeedback({
+          kind: "error",
+          message: `Le tarif de « ${value.label} » n’est pas valide.`,
+        });
+        return;
+      }
+      if (nextCompareAtPrice !== null && nextCompareAtPrice <= nextPrice) {
+        setPricingFeedback({
+          kind: "error",
+          message: `Le prix barré de « ${value.label} » doit dépasser son prix de vente.`,
+        });
+        return;
+      }
+      updates.set(value.value, { price: nextPrice, compareAtPrice: nextCompareAtPrice });
+    }
+    if (!updates.size) {
+      setPricingFeedback({
+        kind: "error",
+        message: `Renseignez au moins un tarif pour l’axe « ${pricingAxis.label} ».`,
+      });
+      return;
+    }
+    let updatedCount = 0;
+    onChange(
+      variants.map((variant) => {
+        const selection = variant.selections?.find((item) => item.axisKey === pricingAxis.key);
+        const pricing = selection ? updates.get(selection.value) : undefined;
+        if (!pricing) return variant;
+        updatedCount += 1;
+        return { ...variant, ...pricing };
+      }),
+    );
+    setPricingFeedback({
+      kind: "success",
+      message: `${updatedCount} combinaison${updatedCount > 1 ? "s" : ""} mise${
+        updatedCount > 1 ? "s" : ""
+      } à jour par ${pricingAxis.label.toLowerCase()}.`,
+    });
   };
 
   return (
@@ -358,17 +472,35 @@ export function ProductVariantsEditor({
       ))}
 
       {axes.length > 0 ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-dashed p-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm">
-            <span className="font-semibold">{combinationCount}</span> combinaison
-            {combinationCount > 1 ? "s" : ""} à générer
-            {combinationCount > MAX_COMBINATIONS ? (
-              <span className="ml-2 text-destructive">Maximum: {MAX_COMBINATIONS}</span>
-            ) : null}
-          </p>
+        <div className="grid gap-3 rounded-lg border border-dashed p-3 lg:grid-cols-[minmax(0,1fr)_180px_auto] lg:items-end">
+          <div>
+            <p className="text-sm">
+              <span className="font-semibold">{combinationCount}</span> combinaison
+              {combinationCount > 1 ? "s" : ""} à générer
+              {combinationCount > MAX_COMBINATIONS ? (
+                <span className="ml-2 text-destructive">Maximum: {MAX_COMBINATIONS}</span>
+              ) : null}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Le prix initial reste modifiable par combinaison après la génération.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="variant-initial-price">Prix initial (DT)</Label>
+            <Input
+              id="variant-initial-price"
+              type="number"
+              min="0"
+              step="0.001"
+              inputMode="decimal"
+              value={bulkPrice}
+              onChange={(event) => setBulkPrice(event.target.value)}
+              placeholder="Ex : 49"
+            />
+          </div>
           <Button
             type="button"
-            className="min-h-11 w-full sm:w-auto"
+            className="min-h-11 w-full lg:w-auto"
             onClick={generate}
             disabled={!combinationCount || combinationCount > MAX_COMBINATIONS}
           >
@@ -378,7 +510,188 @@ export function ProductVariantsEditor({
       ) : null}
 
       {variants.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <section className="overflow-hidden rounded-xl border border-gold/30 bg-[linear-gradient(135deg,hsl(var(--card)),hsl(var(--gold)/0.08))]">
+            <div className="grid gap-4 border-b border-gold/20 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/15 text-gold">
+                  <BadgeDollarSign className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold">Assistant de tarification</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Appliquez un prix commun, puis ajustez rapidement les écarts par option.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-center sm:min-w-64">
+                <div className="rounded-lg border bg-background/80 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Actives
+                  </p>
+                  <p className="mt-1 text-sm font-semibold">{activeVariants.length}</p>
+                </div>
+                <div className="rounded-lg border bg-background/80 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Fourchette
+                  </p>
+                  <p className="mt-1 text-sm font-semibold tabular-nums">
+                    {priceMin === priceMax
+                      ? `${displayPrice(priceMin)} DT`
+                      : `${displayPrice(priceMin)} – ${displayPrice(priceMax)} DT`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-4 xl:grid-cols-2">
+              <div className="rounded-lg border bg-background/85 p-3 sm:p-4">
+                <p className="text-sm font-semibold">Même tarif partout</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Idéal pour initialiser toutes les combinaisons en une action.
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="variant-bulk-price">Prix de vente (DT) *</Label>
+                    <Input
+                      id="variant-bulk-price"
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      inputMode="decimal"
+                      value={bulkPrice}
+                      onChange={(event) => setBulkPrice(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="variant-bulk-compare">Prix barré (facultatif)</Label>
+                    <Input
+                      id="variant-bulk-compare"
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      inputMode="decimal"
+                      value={bulkCompareAtPrice}
+                      onChange={(event) => setBulkCompareAtPrice(event.target.value)}
+                      placeholder="Aucun"
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 min-h-11 w-full"
+                  onClick={applyBulkPricing}
+                >
+                  Appliquer aux {variants.length} combinaisons
+                </Button>
+              </div>
+
+              <div className="rounded-lg border bg-background/85 p-3 sm:p-4">
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+                  <div>
+                    <p className="text-sm font-semibold">Tarifs par option</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Exemple : un prix pour 30 ml, un autre pour 100 ml.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Option tarifaire</Label>
+                    <Select value={pricingAxis?.key} onValueChange={setPricingAxisKey}>
+                      <SelectTrigger className="min-h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {axes.map((axis) => (
+                          <SelectItem key={axis.key} value={axis.key}>
+                            {axis.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                  {pricingAxis?.values
+                    .filter((value) => value.isActive)
+                    .map((value) => {
+                      const key = `${pricingAxis.key}:${value.value}`;
+                      const draft = axisPriceDrafts[key] ?? { price: "", compareAtPrice: "" };
+                      return (
+                        <div
+                          key={key}
+                          className="grid gap-2 rounded-md border p-2.5 sm:grid-cols-[minmax(90px,1fr)_120px_120px] sm:items-end"
+                        >
+                          <p className="self-center truncate text-sm font-medium">{value.label}</p>
+                          <div className="space-y-1">
+                            <Label htmlFor={`axis-price-${key}`} className="text-xs">
+                              Prix (DT)
+                            </Label>
+                            <Input
+                              id={`axis-price-${key}`}
+                              type="number"
+                              min="0"
+                              step="0.001"
+                              inputMode="decimal"
+                              value={draft.price}
+                              onChange={(event) =>
+                                setAxisPriceDrafts((current) => ({
+                                  ...current,
+                                  [key]: { ...draft, price: event.target.value },
+                                }))
+                              }
+                              placeholder="Inchangé"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor={`axis-compare-${key}`} className="text-xs">
+                              Barré
+                            </Label>
+                            <Input
+                              id={`axis-compare-${key}`}
+                              type="number"
+                              min="0"
+                              step="0.001"
+                              inputMode="decimal"
+                              value={draft.compareAtPrice}
+                              onChange={(event) =>
+                                setAxisPriceDrafts((current) => ({
+                                  ...current,
+                                  [key]: { ...draft, compareAtPrice: event.target.value },
+                                }))
+                              }
+                              placeholder="Aucun"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 min-h-11 w-full"
+                  onClick={applyAxisPricing}
+                >
+                  Appliquer les tarifs renseignés
+                </Button>
+              </div>
+            </div>
+            {pricingFeedback ? (
+              <p
+                className={`border-t px-4 py-3 text-sm ${
+                  pricingFeedback.kind === "error"
+                    ? "border-destructive/20 bg-destructive/5 text-destructive"
+                    : "border-emerald-600/20 bg-emerald-600/5 text-emerald-700"
+                }`}
+                role={pricingFeedback.kind === "error" ? "alert" : "status"}
+                aria-live="polite"
+              >
+                {pricingFeedback.message}
+              </p>
+            ) : null}
+          </section>
+
           <div>
             <p className="text-sm font-semibold">Combinaisons vendables</p>
             <p className="text-xs text-muted-foreground">
@@ -411,7 +724,7 @@ export function ProductVariantsEditor({
                   />
                 </div>
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
                 <div className="space-y-1.5">
                   <Label htmlFor={`variant-sku-${index}`}>SKU</Label>
                   <Input
@@ -429,11 +742,42 @@ export function ProductVariantsEditor({
                     type="number"
                     min="0"
                     step="0.001"
+                    inputMode="decimal"
                     value={variant.price}
-                    onChange={(event) =>
-                      updateVariant(index, { price: Number(event.target.value) })
-                    }
+                    onChange={(event) => {
+                      const nextPrice = Number(event.target.value);
+                      updateVariant(index, {
+                        price: nextPrice,
+                        compareAtPrice:
+                          variant.compareAtPrice !== null && variant.compareAtPrice <= nextPrice
+                            ? null
+                            : variant.compareAtPrice,
+                      });
+                    }}
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`variant-compare-${index}`}>Prix barré</Label>
+                  <Input
+                    id={`variant-compare-${index}`}
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    inputMode="decimal"
+                    value={variant.compareAtPrice ?? ""}
+                    aria-invalid={
+                      variant.compareAtPrice !== null && variant.compareAtPrice <= variant.price
+                    }
+                    onChange={(event) =>
+                      updateVariant(index, {
+                        compareAtPrice: event.target.value ? Number(event.target.value) : null,
+                      })
+                    }
+                    placeholder="Facultatif"
+                  />
+                  {variant.compareAtPrice !== null && variant.compareAtPrice <= variant.price ? (
+                    <p className="text-xs text-destructive">Doit dépasser le prix de vente.</p>
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor={`variant-stock-${index}`}>Stock *</Label>

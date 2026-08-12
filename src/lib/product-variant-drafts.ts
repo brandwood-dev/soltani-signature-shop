@@ -68,6 +68,7 @@ export function makeColorVariant(
     colorHex: "#C47A7A",
     imageUrl: "",
     price,
+    compareAtPrice: null,
     stockQuantity,
     lowStockThreshold,
     isActive: true,
@@ -161,6 +162,7 @@ export function generateVariantCombinations(
       colorHex: swatchIndex >= 0 ? values[swatchIndex]?.colorHex : null,
       imageUrl: current?.imageUrl ?? values.find((value) => value.imageUrl)?.imageUrl ?? null,
       price: current?.price ?? defaults.price,
+      compareAtPrice: current?.compareAtPrice ?? null,
       stockQuantity: current?.stockQuantity ?? defaults.stockQuantity,
       lowStockThreshold: current?.lowStockThreshold ?? defaults.lowStockThreshold,
       isActive: current?.isActive ?? true,
@@ -169,4 +171,20 @@ export function generateVariantCombinations(
       selections,
     } satisfies AdminProductVariant;
   });
+}
+
+export function getActiveVariantPriceSummary(variants: AdminProductVariant[]) {
+  const activeVariants = variants.filter((variant) => variant.isActive);
+  if (!activeVariants.length) {
+    return { min: 0, max: 0, compareAtPrice: null, count: 0 };
+  }
+  const cheapestVariant = activeVariants.reduce((cheapest, variant) =>
+    variant.price < cheapest.price ? variant : cheapest,
+  );
+  return {
+    min: cheapestVariant.price,
+    max: Math.max(...activeVariants.map((variant) => variant.price)),
+    compareAtPrice: cheapestVariant.compareAtPrice,
+    count: activeVariants.length,
+  };
 }

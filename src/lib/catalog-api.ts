@@ -8,6 +8,7 @@ type ApiProduct = {
   description?: string | null;
   basePrice: string | number;
   compareAtPrice?: string | number | null;
+  priceRange?: { min: string | number; max: string | number };
   variantMode?: string;
   isFeatured?: boolean;
   section?: string;
@@ -39,6 +40,7 @@ type ApiProduct = {
     colorHex?: string | null;
     imageUrl?: string | null;
     price: string | number;
+    compareAtPrice?: string | number | null;
     stockQuantity: number;
     isActive: boolean;
     isDefault?: boolean;
@@ -197,6 +199,7 @@ export function mapApiProduct(product: ApiProduct): Product {
       colorHex: item.colorHex ?? undefined,
       imageUrl: item.imageUrl ?? undefined,
       price: numberValue(item.price),
+      compareAtPrice: item.compareAtPrice ? numberValue(item.compareAtPrice) : undefined,
       stockQuantity: item.stockQuantity,
       isActive: item.isActive,
       isDefault: Boolean(item.isDefault),
@@ -221,6 +224,21 @@ export function mapApiProduct(product: ApiProduct): Product {
         Number(right.isDefault) - Number(left.isDefault) || left.sortOrder - right.sortOrder,
     );
   const variant = variants.find((item) => item.isDefault) ?? variants[0];
+  const variantPrices = variants.map((item) => item.price);
+  const priceMin = product.priceRange
+    ? numberValue(product.priceRange.min)
+    : variantPrices.length
+      ? Math.min(...variantPrices)
+      : numberValue(product.basePrice);
+  const priceMax = product.priceRange
+    ? numberValue(product.priceRange.max)
+    : variantPrices.length
+      ? Math.max(...variantPrices)
+      : numberValue(product.basePrice);
+  const cheapestVariant = variants.reduce<(typeof variants)[number] | undefined>(
+    (cheapest, item) => (!cheapest || item.price < cheapest.price ? item : cheapest),
+    undefined,
+  );
   const tags = product.tags ?? [];
   const isPromotion = tags.some((tag) => tag.toLowerCase() === PROMOTION_TAG);
   const discountTag = tags.find((tag) => tag.toLowerCase().startsWith(DISCOUNT_TAG_PREFIX));
@@ -241,8 +259,12 @@ export function mapApiProduct(product: ApiProduct): Product {
     category: product.category.slug,
     categoryName: product.category.name,
     section: product.section,
-    price: numberValue(variant?.price ?? product.basePrice),
-    oldPrice: product.compareAtPrice ? numberValue(product.compareAtPrice) : undefined,
+    price: priceMin,
+    priceMin,
+    priceMax,
+    oldPrice:
+      cheapestVariant?.compareAtPrice ??
+      (product.compareAtPrice ? numberValue(product.compareAtPrice) : undefined),
     image: product.images[0]?.url ?? "/placeholder.svg",
     badge: isBestSeller ? "Best Seller" : isPromotion ? "Promo" : undefined,
     isPromotion,

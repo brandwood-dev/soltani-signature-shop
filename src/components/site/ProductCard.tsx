@@ -13,6 +13,8 @@ export type Product = {
   categoryName?: string;
   section?: string;
   price: number;
+  priceMin?: number;
+  priceMax?: number;
   oldPrice?: number;
   image: string;
   badge?: "Best Seller" | "Nouveau" | "Promo";
@@ -44,6 +46,7 @@ export type ProductVariant = {
   colorHex?: string;
   imageUrl?: string;
   price: number;
+  compareAtPrice?: number;
   stockQuantity: number;
   isActive: boolean;
   isDefault: boolean;
@@ -88,6 +91,10 @@ export function ProductCard({ p }: { p: Product }) {
   const navigate = useNavigate();
   const fav = has(p.slug);
   const promoDiscount = p.discountPercentage;
+  const priceMin = p.priceMin ?? p.price;
+  const priceMax = p.priceMax ?? p.price;
+  const hasPriceRange = priceMax > priceMin;
+  const hasValidComparePrice = Boolean(p.oldPrice && p.oldPrice > priceMin);
   const requiresSelection =
     p.variantMode === "color" || p.variantMode === "options" || (p.variants?.length ?? 0) > 1;
 
@@ -194,9 +201,9 @@ export function ProductCard({ p }: { p: Product }) {
           </h3>
           <div className="mt-2 flex items-center gap-2">
             <span className="text-base font-semibold text-foreground tabular-nums">
-              {p.price} DT
+              {hasPriceRange ? `À partir de ${priceMin} DT` : `${priceMin} DT`}
             </span>
-            {p.oldPrice && (
+            {hasValidComparePrice && (
               <span className="text-xs text-muted-foreground line-through tabular-nums">
                 {p.oldPrice} DT
               </span>
