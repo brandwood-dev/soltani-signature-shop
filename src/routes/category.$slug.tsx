@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { FilterableProductListing } from "@/components/site/FilterableProductListing";
 import { PageHero, SiteLayout } from "@/components/site/SiteLayout";
-import { findCategory } from "@/data/catalog";
+import { findCategory } from "@/data/categories";
 import {
   fallbackCategoryTree,
   findInCategoryTree,

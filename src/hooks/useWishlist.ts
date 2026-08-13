@@ -27,7 +27,7 @@ const cleanupLegacyPersistentWishlist = () => {
   try {
     localStorage.removeItem(LEGACY_KEY);
   } catch {
-    undefined;
+    // Storage can be disabled by the browser or privacy settings.
   }
 };
 

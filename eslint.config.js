@@ -37,4 +37,10 @@ export default tseslint.config(
     },
   },
   eslintPluginPrettier,
+  {
+    // Formatting is enforced separately; lint remains focused on code defects.
+    rules: {
+      "prettier/prettier": "off",
+    },
+  },
 );

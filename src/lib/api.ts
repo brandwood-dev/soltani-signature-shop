@@ -235,7 +235,7 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
     fetchWithRetry(
       buildApiUrl(path),
       {
-        cache: "no-store",
+        cache: publicRequestCacheMode(path, method, includeAuth),
         ...init,
         headers,
       },
@@ -433,6 +433,27 @@ function getAdminCacheTtl(path: string, method: string) {
   const normalizedPath = stripQuery(path);
   const rule = ADMIN_CACHE_RULES.find(({ prefix }) => normalizedPath.startsWith(prefix));
   return rule?.ttlMs ?? 0;
+}
+
+export function publicRequestCacheMode(
+  path: string,
+  method: string,
+  includeAuth: boolean,
+): RequestCache {
+  if (includeAuth || method !== "GET") return "no-store";
+  const normalizedPath = stripQuery(path);
+  if (normalizedPath.includes("/preview/") || normalizedPath.includes("/reviews")) {
+    return "no-store";
+  }
+  return normalizedPath.startsWith("/catalog/") ||
+    normalizedPath.startsWith("/hero") ||
+    normalizedPath.startsWith("/marquee") ||
+    normalizedPath.startsWith("/featured-brands") ||
+    normalizedPath.startsWith("/promo-banners") ||
+    normalizedPath.startsWith("/testimonials") ||
+    normalizedPath.startsWith("/settings")
+    ? "default"
+    : "no-store";
 }
 
 function stripQuery(path: string) {

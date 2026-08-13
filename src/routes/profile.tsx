@@ -303,7 +303,7 @@ function writeCachedProfile(profile: CustomerProfile) {
   try {
     sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), profile }));
   } catch {
-    undefined;
+    // Profile loading remains functional when session storage is unavailable.
   }
 }
 

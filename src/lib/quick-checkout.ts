@@ -7,6 +7,7 @@ export function saveQuickCheckoutLine(line: CartLine) {
   try {
     sessionStorage.setItem(KEY, JSON.stringify([line]));
   } catch {
+    // Checkout still works when browser storage is unavailable.
   }
 }
 
