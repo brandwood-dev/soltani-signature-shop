@@ -1,6 +1,7 @@
 import { BadgeDollarSign, Plus, Sparkles, Star, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { type Dispatch, type SetStateAction, useRef, useState } from "react";
 
+import { ProductVariantImageField } from "@/components/admin/ProductVariantImageField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,12 +29,13 @@ import {
 
 type Props = {
   axes: AdminProductVariantAxis[];
-  onAxesChange: (axes: AdminProductVariantAxis[]) => void;
+  onAxesChange: Dispatch<SetStateAction<AdminProductVariantAxis[]>>;
   variants: AdminProductVariant[];
-  onChange: (variants: AdminProductVariant[]) => void;
+  onChange: Dispatch<SetStateAction<AdminProductVariant[]>>;
   defaultPrice: number;
   defaultStock: number;
   defaultLowStockThreshold: number;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
 const MAX_AXES = 3;
@@ -62,6 +64,7 @@ export function ProductVariantsEditor({
   defaultPrice,
   defaultStock,
   defaultLowStockThreshold,
+  onUploadingChange,
 }: Props) {
   const [axisTemplate, setAxisTemplate] = useState("color");
   const [bulkPrice, setBulkPrice] = useState(defaultPrice ? String(defaultPrice) : "");
@@ -72,6 +75,8 @@ export function ProductVariantsEditor({
     kind: "success" | "error";
     message: string;
   } | null>(null);
+  const [imagesUploading, setImagesUploading] = useState(false);
+  const pendingImageUploads = useRef(0);
   const combinationCount = variantCombinationCount(axes);
   const activeVariants = variants.filter((variant) => variant.isActive);
   const activePrices = activeVariants.map((variant) => variant.price);
@@ -79,9 +84,25 @@ export function ProductVariantsEditor({
   const priceMax = activePrices.length ? Math.max(...activePrices) : 0;
   const pricingAxis = axes.find((axis) => axis.key === pricingAxisKey) ?? axes[0];
 
+  const startImageUpload = () => {
+    pendingImageUploads.current += 1;
+    if (pendingImageUploads.current === 1) {
+      setImagesUploading(true);
+      onUploadingChange?.(true);
+    }
+  };
+
+  const endImageUpload = () => {
+    pendingImageUploads.current = Math.max(0, pendingImageUploads.current - 1);
+    if (pendingImageUploads.current === 0) {
+      setImagesUploading(false);
+      onUploadingChange?.(false);
+    }
+  };
+
   const updateAxis = (index: number, patch: Partial<AdminProductVariantAxis>) => {
-    onAxesChange(
-      axes.map((axis, itemIndex) => (itemIndex === index ? { ...axis, ...patch } : axis)),
+    onAxesChange((current) =>
+      current.map((axis, itemIndex) => (itemIndex === index ? { ...axis, ...patch } : axis)),
     );
   };
 
@@ -119,8 +140,8 @@ export function ProductVariantsEditor({
   };
 
   const updateVariant = (index: number, patch: Partial<AdminProductVariant>) => {
-    onChange(
-      variants.map((variant, itemIndex) =>
+    onChange((current) =>
+      current.map((variant, itemIndex) =>
         itemIndex === index ? { ...variant, ...patch } : variant,
       ),
     );
@@ -217,7 +238,18 @@ export function ProductVariantsEditor({
   };
 
   return (
-    <div className="min-w-0 space-y-4 [&_input]:min-h-11 [&_[role=combobox]]:min-h-11 sm:space-y-5">
+    <fieldset
+      disabled={imagesUploading}
+      className="min-w-0 space-y-4 border-0 p-0 [&_input]:min-h-11 [&_[role=combobox]]:min-h-11 sm:space-y-5"
+    >
+      {imagesUploading ? (
+        <p
+          aria-live="polite"
+          className="rounded-md border border-gold/30 bg-gold/5 px-3 py-2 text-xs"
+        >
+          Conversion WebP en cours. Les options seront réactivées automatiquement.
+        </p>
+      ) : null}
       <div className="rounded-lg border border-gold/25 bg-gold/5 p-3 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
@@ -426,28 +458,28 @@ export function ProductVariantsEditor({
                       />
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`value-image-${axisIndex}-${valueIndex}`}>
-                      Image spécifique
-                    </Label>
-                    <Input
-                      id={`value-image-${axisIndex}-${valueIndex}`}
-                      type="url"
-                      value={value.imageUrl ?? ""}
-                      onChange={(event) =>
-                        updateAxis(axisIndex, {
-                          values: axis.values.map((item, itemIndex) =>
-                            itemIndex === valueIndex
-                              ? { ...item, imageUrl: event.target.value }
-                              : item,
-                          ),
-                        })
-                      }
-                      placeholder="https://..."
-                    />
-                  </div>
-                )}
+                ) : null}
+                <ProductVariantImageField
+                  id={`value-image-${axisIndex}-${valueIndex}`}
+                  label="Photo associée à cette valeur"
+                  value={value.imageUrl}
+                  onChange={(imageUrl) =>
+                    onAxesChange((current) =>
+                      current.map((currentAxis, currentAxisIndex) =>
+                        currentAxisIndex === axisIndex
+                          ? {
+                              ...currentAxis,
+                              values: currentAxis.values.map((item, itemIndex) =>
+                                itemIndex === valueIndex ? { ...item, imageUrl } : item,
+                              ),
+                            }
+                          : currentAxis,
+                      ),
+                    )
+                  }
+                  onUploadStart={startImageUpload}
+                  onUploadEnd={endImageUpload}
+                />
                 <Button
                   type="button"
                   variant="ghost"
@@ -806,16 +838,14 @@ export function ProductVariantsEditor({
                     }
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor={`variant-image-${index}`}>Image spécifique</Label>
-                  <Input
-                    id={`variant-image-${index}`}
-                    type="url"
-                    value={variant.imageUrl ?? ""}
-                    onChange={(event) => updateVariant(index, { imageUrl: event.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
+                <ProductVariantImageField
+                  id={`variant-image-${index}`}
+                  label="Photo de cette combinaison"
+                  value={variant.imageUrl}
+                  onChange={(imageUrl) => updateVariant(index, { imageUrl })}
+                  onUploadStart={startImageUpload}
+                  onUploadEnd={endImageUpload}
+                />
                 <div className="flex items-end">
                   <Button
                     type="button"
@@ -833,6 +863,6 @@ export function ProductVariantsEditor({
           ))}
         </div>
       ) : null}
-    </div>
+    </fieldset>
   );
 }
