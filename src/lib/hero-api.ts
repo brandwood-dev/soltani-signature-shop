@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type HeroSlide = {
   id: string;
@@ -18,7 +18,7 @@ export type HeroSlide = {
 export type HeroSlideInput = Omit<HeroSlide, "id" | "sortOrder" | "createdAt" | "updatedAt">;
 
 export async function getActiveHeroSlides() {
-  const response = await apiFetch<{ slides: HeroSlide[] }>("/content/hero");
+  const response = await publicApiFetch<{ slides: HeroSlide[] }>("/content/hero");
   return response.slides;
 }
 

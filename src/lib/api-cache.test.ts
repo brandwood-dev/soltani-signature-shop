@@ -4,6 +4,8 @@ import { publicRequestCacheMode } from "./api";
 describe("public API cache mode", () => {
   test("allows shared public catalog reads", () => {
     expect(publicRequestCacheMode("/catalog/products?page=1", "GET", false)).toBe("default");
+    expect(publicRequestCacheMode("/content/hero", "GET", false)).toBe("default");
+    expect(publicRequestCacheMode("/content/settings", "GET", false)).toBe("default");
   });
 
   test("keeps authenticated, preview and review requests private", () => {

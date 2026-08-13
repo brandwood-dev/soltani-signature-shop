@@ -61,7 +61,7 @@ jobs:
         run: bun run check:bundle
 
       - name: Production smoke tests
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail

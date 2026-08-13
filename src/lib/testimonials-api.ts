@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type Testimonial = {
   id: string;
@@ -22,7 +22,7 @@ export type TestimonialInput = {
 };
 
 export async function getPublicTestimonials() {
-  const response = await apiFetch<{ testimonials: Testimonial[] }>("/content/testimonials");
+  const response = await publicApiFetch<{ testimonials: Testimonial[] }>("/content/testimonials");
   return response.testimonials;
 }
 

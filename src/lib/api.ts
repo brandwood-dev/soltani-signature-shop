@@ -446,12 +446,7 @@ export function publicRequestCacheMode(
     return "no-store";
   }
   return normalizedPath.startsWith("/catalog/") ||
-    normalizedPath.startsWith("/hero") ||
-    normalizedPath.startsWith("/marquee") ||
-    normalizedPath.startsWith("/featured-brands") ||
-    normalizedPath.startsWith("/promo-banners") ||
-    normalizedPath.startsWith("/testimonials") ||
-    normalizedPath.startsWith("/settings")
+    normalizedPath.startsWith("/content/")
     ? "default"
     : "no-store";
 }
