@@ -31,6 +31,7 @@ import {
 import {
   createAdminProductPreview,
   getAdminProduct,
+  importAdminProductImageUrl,
   MAX_PRODUCT_IMAGE_SIZE_MB,
   updateAdminProduct,
   uploadAdminProductImage,
@@ -92,8 +93,10 @@ function AdminEditProduct() {
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [variantImagesUploading, setVariantImagesUploading] = useState(false);
   const [error, setError] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const imageUploadInProgress = useRef(false);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -312,15 +315,28 @@ function AdminEditProduct() {
     product,
   ]);
 
-  const addImage = () => {
-    if (!newImage.trim()) return;
-    setImages((s) => [...s, newImage.trim()]);
-    setNewImage("");
+  const addImage = async () => {
+    const sourceUrl = newImage.trim();
+    if (!sourceUrl || imageUploadInProgress.current) return;
+    try {
+      imageUploadInProgress.current = true;
+      setUploading(true);
+      setError("");
+      const uploadedUrl = await importAdminProductImageUrl(sourceUrl);
+      setImages((current) => [...current, uploadedUrl]);
+      setNewImage((current) => (current.trim() === sourceUrl ? "" : current));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import image impossible.");
+    } finally {
+      imageUploadInProgress.current = false;
+      setUploading(false);
+    }
   };
   const removeImage = (i: number) => setImages((s) => s.filter((_, idx) => idx !== i));
   const uploadImages = async (files: FileList | null) => {
-    if (!files?.length) return;
+    if (!files?.length || imageUploadInProgress.current) return;
     try {
+      imageUploadInProgress.current = true;
       setUploading(true);
       setError("");
       const uploaded = await Promise.all(
@@ -330,6 +346,7 @@ function AdminEditProduct() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload image impossible.");
     } finally {
+      imageUploadInProgress.current = false;
       setUploading(false);
     }
   };
@@ -390,6 +407,10 @@ function AdminEditProduct() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (variantImagesUploading) {
+      setError("Attendez la fin de la conversion des images de variantes.");
+      return;
+    }
     if (!attributeConfigurationReady) {
       setError(
         attributesError ||
@@ -411,6 +432,10 @@ function AdminEditProduct() {
   };
 
   const handlePreview = async () => {
+    if (variantImagesUploading) {
+      setError("Attendez la fin de la conversion des images de variantes.");
+      return;
+    }
     if (!formRef.current?.reportValidity()) return;
     if (!attributeConfigurationReady) {
       setError(
@@ -460,7 +485,12 @@ function AdminEditProduct() {
               size="sm"
               className="min-h-11 w-full sm:w-auto"
               disabled={
-                saving || previewing || uploading || loading || !attributeConfigurationReady
+                saving ||
+                previewing ||
+                uploading ||
+                variantImagesUploading ||
+                loading ||
+                !attributeConfigurationReady
               }
             >
               <Save className="h-4 w-4" />
@@ -547,14 +577,20 @@ function AdminEditProduct() {
                       value={newImage}
                       onChange={(e) => setNewImage(e.target.value)}
                       placeholder="URL de l'image"
+                      disabled={uploading}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                        if (e.key === "Enter" && !uploading) {
                           e.preventDefault();
-                          addImage();
+                          void addImage();
                         }
                       }}
                     />
-                    <Button type="button" variant="outline" onClick={addImage}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void addImage()}
+                      disabled={uploading || !newImage.trim()}
+                    >
                       <ImagePlus className="h-4 w-4" />
                       <span className="hidden sm:inline">Ajouter</span>
                     </Button>
@@ -744,6 +780,7 @@ function AdminEditProduct() {
                         defaultPrice={Number(price || 0)}
                         defaultStock={Number(stock || 0)}
                         defaultLowStockThreshold={Number(lowStockAlert || 5)}
+                        onUploadingChange={setVariantImagesUploading}
                       />
                       <div className="grid gap-3 rounded-lg border bg-muted/30 p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-end">
                         <p className="text-xs leading-relaxed text-muted-foreground">
@@ -890,7 +927,12 @@ function AdminEditProduct() {
                     size="sm"
                     onClick={handlePreview}
                     disabled={
-                      previewing || saving || uploading || loading || !attributeConfigurationReady
+                      previewing ||
+                      saving ||
+                      uploading ||
+                      variantImagesUploading ||
+                      loading ||
+                      !attributeConfigurationReady
                     }
                     aria-busy={previewing}
                   >
@@ -1069,7 +1111,12 @@ function AdminEditProduct() {
                   type="submit"
                   className="min-h-11 min-w-0"
                   disabled={
-                    saving || previewing || uploading || loading || !attributeConfigurationReady
+                    saving ||
+                    previewing ||
+                    uploading ||
+                    variantImagesUploading ||
+                    loading ||
+                    !attributeConfigurationReady
                   }
                 >
                   Enregistrer

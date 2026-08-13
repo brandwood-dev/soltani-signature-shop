@@ -228,13 +228,33 @@ export async function uploadAdminProductImage(file: File) {
     reader.readAsDataURL(file);
   });
 
-  const response = await apiFetch<{ url: string }>("/products/admin/images", {
+  const response = await apiFetch<{
+    url: string;
+    format: "webp";
+    width: number;
+    height: number;
+    bytes: number;
+  }>("/products/admin/images", {
     method: "POST",
     body: JSON.stringify({
       fileName: file.name,
       mimeType: file.type,
       base64,
     }),
+  });
+  return response.url;
+}
+
+export async function importAdminProductImageUrl(sourceUrl: string) {
+  const response = await apiFetch<{
+    url: string;
+    format: "webp";
+    width: number;
+    height: number;
+    bytes: number;
+  }>("/products/admin/images", {
+    method: "POST",
+    body: JSON.stringify({ sourceUrl }),
   });
   return response.url;
 }
