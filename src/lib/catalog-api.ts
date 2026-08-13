@@ -5,6 +5,7 @@ type ApiProduct = {
   id: string;
   slug: string;
   name: string;
+  shortDescription?: string | null;
   description?: string | null;
   basePrice: string | number;
   compareAtPrice?: string | number | null;
@@ -282,6 +283,7 @@ export function mapApiProduct(product: ApiProduct): Product {
     variantId: variant?.id,
     variantLabel: variant?.label ?? "Standard",
     stockQuantity: variant?.stockQuantity ?? 0,
+    shortDescription: product.shortDescription ?? undefined,
     description: product.description ?? undefined,
     gallery: product.images.map((image) => image.url),
     attributes,

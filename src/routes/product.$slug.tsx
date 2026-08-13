@@ -110,6 +110,7 @@ export const Route = createFileRoute("/product/$slug")({
       ? `${product.name} ? ${product.brand} | Soltani Signature`
       : "Produit ? Soltani Signature";
     const description =
+      product?.shortDescription ||
       product?.description ||
       (product
         ? `${product.name} par ${product.brand}, disponible chez Soltani Signature en Tunisie.`
@@ -449,7 +450,7 @@ function ProductPage() {
       if (navigator.share) {
         await navigator.share({
           title: product.name,
-          text: product.description ?? product.name,
+          text: product.shortDescription ?? product.description ?? product.name,
           url,
         });
         setShareMessage("Produit partagé.");
@@ -598,7 +599,8 @@ function ProductPage() {
           )}
 
           <p className="text-sm text-foreground/80 mb-6 leading-relaxed">
-            {product.description ??
+            {product.shortDescription?.trim() ||
+              product.description?.trim() ||
               `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
           </p>
 
@@ -836,7 +838,9 @@ function ProductPage() {
         {tab === "desc" && (
           <div className="max-w-3xl text-foreground/80 leading-relaxed space-y-4">
             <p className="whitespace-pre-line">
-              {product.description?.trim() || "Description complète bientôt disponible."}
+              {product.description?.trim() ||
+                product.shortDescription?.trim() ||
+                "Description complète bientôt disponible."}
             </p>
           </div>
         )}

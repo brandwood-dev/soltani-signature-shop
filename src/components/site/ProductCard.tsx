@@ -29,6 +29,7 @@ export type Product = {
   variantId?: string;
   variantLabel?: string;
   stockQuantity?: number;
+  shortDescription?: string;
   description?: string;
   gallery?: string[];
   attributes?: Record<string, string[]>;
