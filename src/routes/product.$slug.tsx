@@ -17,6 +17,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 import { getCategoryDisplayName } from "@/lib/category-name";
+import { buildUnifiedProductGallery, findContextualGalleryItem } from "@/lib/product-gallery";
 import {
   breadcrumbJsonLd,
   canonicalLink,
@@ -242,15 +243,15 @@ function ProductPage() {
         )
       : undefined
     : initialVariant;
-  const gallery = useMemo(() => {
-    const baseGallery = product.gallery?.length ? product.gallery : [product.image];
-    return selectedVariant?.imageUrl
-      ? [
-          selectedVariant.imageUrl,
-          ...baseGallery.filter((image) => image !== selectedVariant.imageUrl),
-        ]
-      : baseGallery;
-  }, [product.gallery, product.image, selectedVariant?.imageUrl]);
+  const gallery = buildUnifiedProductGallery({
+    name: product.name,
+    image: product.image,
+    gallery: product.gallery,
+    variants: productVariants,
+    variantAxes,
+  });
+  const galleryKey = JSON.stringify(gallery.map((item) => item.url));
+  const firstGalleryUrl = gallery[0]?.url ?? product.image;
   const priceMin = product.priceMin ?? product.price;
   const priceMax = product.priceMax ?? product.price;
   const showsPriceRange = !selectedVariant && priceMax > priceMin;
@@ -270,7 +271,7 @@ function ProductPage() {
     (!requiresOptionSelection || Boolean(selectedVariant));
   const parentSlug = product.category;
   const parentName = getCategoryDisplayName(product.categoryName, product.category);
-  const [active, setActive] = useState(0);
+  const [activeImageUrl, setActiveImageUrl] = useState(() => gallery[0]?.url ?? product.image);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<"desc" | "specs" | "reviews">("desc");
   const [shareMessage, setShareMessage] = useState("");
@@ -287,8 +288,26 @@ function ProductPage() {
 
   useEffect(() => {
     setQty(1);
-    setActive(0);
   }, [selectedVariant?.id]);
+
+  const contextualGalleryItem = findContextualGalleryItem(
+    gallery,
+    selectedVariant,
+    selectedOptions,
+  );
+  const contextualGalleryUrl = contextualGalleryItem?.url;
+
+  useEffect(() => {
+    setActiveImageUrl((current) =>
+      (JSON.parse(galleryKey) as string[]).includes(current) ? current : firstGalleryUrl,
+    );
+  }, [firstGalleryUrl, galleryKey, product.slug]);
+
+  useEffect(() => {
+    if (contextualGalleryUrl) setActiveImageUrl(contextualGalleryUrl);
+  }, [contextualGalleryUrl]);
+
+  const activeGalleryItem = gallery.find((item) => item.url === activeImageUrl) ?? gallery[0];
 
   const selectOption = (axisIndex: number, axisKey: string, value: string) => {
     setSelectedOptions((current) => {
@@ -509,33 +528,42 @@ function ProductPage() {
         <span className="text-foreground line-clamp-1">{product.name}</span>
       </div>
 
-      <section className="container-luxe py-8 grid lg:grid-cols-2 gap-12">
-        <div className="flex flex-col-reverse gap-3 lg:grid lg:grid-cols-[80px_1fr] lg:gap-4 lg:flex-row">
-          <div className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
+      <section className="container-luxe grid gap-8 py-6 sm:py-8 lg:grid-cols-2 lg:gap-12">
+        <div className="flex min-w-0 flex-col-reverse gap-3 lg:grid lg:grid-cols-[80px_minmax(0,1fr)] lg:gap-4">
+          <div className="scrollbar-none -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 lg:max-h-[min(80vh,720px)] lg:flex-col lg:gap-3 lg:overflow-x-hidden lg:overflow-y-auto lg:pr-1">
             {gallery.map((g, i) => (
               <button
-                key={i}
-                onClick={() => setActive(i)}
-                className={`shrink-0 w-16 h-16 lg:w-auto lg:h-auto aspect-square overflow-hidden rounded-sm border-2 transition ${active === i ? "border-gold" : "border-border hover:border-gold/50"}`}
+                key={g.url}
+                type="button"
+                onClick={() => setActiveImageUrl(g.url)}
+                aria-label={`Afficher ${g.label ?? `la vue ${i + 1}`} de ${product.name}`}
+                aria-pressed={activeGalleryItem?.url === g.url}
+                title={g.label}
+                className={`relative h-16 w-16 shrink-0 snap-start overflow-hidden rounded-sm border-2 bg-card transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 sm:h-20 sm:w-20 lg:h-auto lg:w-full ${activeGalleryItem?.url === g.url ? "border-gold" : "border-border hover:border-gold/50"}`}
               >
                 <img
-                  src={g}
-                  alt=""
+                  src={g.url}
+                  alt={g.alt}
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
                   onError={(event) => {
                     event.currentTarget.src = "/placeholder.svg";
                   }}
-                  className="h-full w-full object-contain object-center p-1 lg:p-2"
+                  className="h-full w-full object-contain object-center p-1.5 lg:p-2"
                 />
+                {!g.available && g.source !== "product" ? (
+                  <span className="absolute inset-x-0 bottom-0 bg-ink/75 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-cream">
+                    Indisponible
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
-          <div className="relative group aspect-square overflow-hidden rounded-sm bg-card">
+          <div className="group relative aspect-square min-w-0 overflow-hidden rounded-sm bg-card">
             <img
-              src={gallery[active]}
-              alt={product.name}
+              src={activeGalleryItem?.url ?? product.image}
+              alt={activeGalleryItem?.alt ?? product.name}
               loading="eager"
               decoding="async"
               fetchPriority="high"
@@ -544,6 +572,12 @@ function ProductPage() {
               }}
               className="h-full w-full object-contain object-center p-3 lg:p-4 transition-transform duration-500 group-hover:scale-150 cursor-zoom-in"
             />
+            {activeGalleryItem?.label ? (
+              <span className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] rounded-sm bg-ink/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cream backdrop-blur-sm sm:bottom-4 sm:left-4 sm:text-xs">
+                {activeGalleryItem.label}
+                {!activeGalleryItem.available ? " · Indisponible" : ""}
+              </span>
+            ) : null}
             {product.isPromotion && discount > 0 && (
               <span className="absolute top-3 left-3 lg:top-4 lg:left-4 px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-destructive text-cream rounded-sm">
                 -{discount}%
