@@ -178,3 +178,31 @@ export function findContextualGalleryItem(
     gallery.find((item) => matchesSelection(item, false))
   );
 }
+
+export function getContextualGalleryAvailability(
+  item: ProductGalleryItem,
+  selectedVariant?: GalleryVariant,
+  selectedOptions: Record<string, string> = {},
+) {
+  if (selectedVariant) {
+    const variantAssociation = item.associations.find(
+      (association) => association.variantId === selectedVariant.id,
+    );
+    if (variantAssociation) return variantAssociation.available;
+  }
+
+  const selectedEntries = Object.entries(selectedOptions).filter(([, value]) => Boolean(value));
+  if (!selectedEntries.length) return item.available;
+
+  const matchingAssociation = [...item.associations]
+    .sort(
+      (left, right) => Object.keys(right.selections).length - Object.keys(left.selections).length,
+    )
+    .find((association) =>
+      Object.entries(association.selections).every(
+        ([key, value]) => selectedOptions[key] === value,
+      ),
+    );
+
+  return matchingAssociation?.available ?? item.available;
+}

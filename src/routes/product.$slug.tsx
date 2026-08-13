@@ -17,7 +17,11 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 import { getCategoryDisplayName } from "@/lib/category-name";
-import { buildUnifiedProductGallery, findContextualGalleryItem } from "@/lib/product-gallery";
+import {
+  buildUnifiedProductGallery,
+  findContextualGalleryItem,
+  getContextualGalleryAvailability,
+} from "@/lib/product-gallery";
 import {
   breadcrumbJsonLd,
   canonicalLink,
@@ -313,6 +317,9 @@ function ProductPage() {
   }, [contextualGalleryUrl, firstGalleryUrl, hasSelectedOptions]);
 
   const activeGalleryItem = gallery.find((item) => item.url === activeImageUrl) ?? gallery[0];
+  const activeGalleryItemAvailable = activeGalleryItem
+    ? getContextualGalleryAvailability(activeGalleryItem, selectedVariant, selectedOptions)
+    : true;
 
   const selectOption = (axisIndex: number, axisKey: string, value: string) => {
     setSelectedOptions((current) => {
@@ -580,7 +587,7 @@ function ProductPage() {
             {activeGalleryItem?.label ? (
               <span className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] rounded-sm bg-ink/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cream backdrop-blur-sm sm:bottom-4 sm:left-4 sm:text-xs">
                 {activeGalleryItem.label}
-                {!activeGalleryItem.available ? " · Indisponible" : ""}
+                {!activeGalleryItemAvailable ? " · Indisponible" : ""}
               </span>
             ) : null}
             {product.isPromotion && discount > 0 && (

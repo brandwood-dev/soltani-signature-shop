@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { buildUnifiedProductGallery, findContextualGalleryItem } from "./product-gallery";
+import {
+  buildUnifiedProductGallery,
+  findContextualGalleryItem,
+  getContextualGalleryAvailability,
+} from "./product-gallery";
 
 const product = {
   name: "Rouge test",
@@ -81,5 +85,15 @@ describe("unified product gallery", () => {
       "https://images.test/red.webp",
     );
     expect(gallery).toHaveLength(4);
+  });
+
+  test("uses the selected variant availability for a shared image", () => {
+    const gallery = buildUnifiedProductGallery(product);
+    const sharedImage = gallery.find((item) => item.url.endsWith("red.webp"));
+
+    expect(sharedImage?.available).toBe(true);
+    expect(sharedImage && getContextualGalleryAvailability(sharedImage, product.variants[1])).toBe(
+      false,
+    );
   });
 });
