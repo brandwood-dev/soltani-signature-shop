@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
-import { findCategoryName } from "@/data/catalog";
+import { findCategoryName } from "@/data/categories";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 import type { Product } from "@/components/site/ProductCard";

@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   frontend-critical:
     name: Frontend critical checks
@@ -44,14 +48,35 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
+      - name: Lint
+        run: bun run lint
+
+      - name: Unit tests
+        run: bun test
+
       - name: Build frontend
         run: bun run build
 
+      - name: Bundle budgets
+        run: bun run check:bundle
+
       - name: Production smoke tests
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
+          version_url="https://www.soltanisignature.com/version.json"
+          deployed=false
+          for _ in $(seq 1 80); do
+            payload="$(curl -fsS "$version_url" || true)"
+            if echo "$payload" | grep -q "\"commit\":\"${GITHUB_SHA}\""; then
+              deployed=true
+              break
+            fi
+            sleep 3
+          done
+          test "$deployed" = "true"
+
           home_status="$(curl -sS -o /tmp/home.html -w "%{http_code}" "https://www.soltanisignature.com/")"
           test "$home_status" = "200"
           grep -qi "Soltani" /tmp/home.html

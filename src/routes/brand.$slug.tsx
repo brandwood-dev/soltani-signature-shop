@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { ProductCard, type Product } from "@/components/site/ProductCard";
-import { findCategoryName } from "@/data/catalog";
+import { findCategoryName } from "@/data/categories";
 import { ChevronRight } from "lucide-react";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { toUserFriendlyErrorMessage } from "@/lib/error-messages";

@@ -1,4 +1,4 @@
-import { CATEGORY_TREE, type ParentCategory, slugify } from "@/data/catalog";
+import { CATEGORY_TREE, type ParentCategory, slugify } from "@/data/categories";
 import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type ApiCategory = {

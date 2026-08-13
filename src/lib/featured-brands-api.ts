@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type FeaturedBrand = {
   id: string;
@@ -20,7 +20,7 @@ export type FeaturedBrandInput = {
 };
 
 export async function getActiveFeaturedBrands() {
-  const response = await apiFetch<{ brands: FeaturedBrand[] }>("/content/featured-brands");
+  const response = await publicApiFetch<{ brands: FeaturedBrand[] }>("/content/featured-brands");
   return response.brands;
 }
 

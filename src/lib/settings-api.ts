@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
 export type ShopSettings = {
   shopName: string;
@@ -34,7 +34,7 @@ export function calculateShipping(subtotal: number, settings: ShopSettings) {
 }
 
 export async function getPublicShopSettings() {
-  const response = await apiFetch<{ settings: ShopSettings }>("/content/settings");
+  const response = await publicApiFetch<{ settings: ShopSettings }>("/content/settings");
   return response.settings;
 }
 
