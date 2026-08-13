@@ -296,6 +296,7 @@ function ProductPage() {
     selectedOptions,
   );
   const contextualGalleryUrl = contextualGalleryItem?.url;
+  const hasSelectedOptions = Object.values(selectedOptions).some(Boolean);
 
   useEffect(() => {
     setActiveImageUrl((current) =>
@@ -304,8 +305,12 @@ function ProductPage() {
   }, [firstGalleryUrl, galleryKey, product.slug]);
 
   useEffect(() => {
-    if (contextualGalleryUrl) setActiveImageUrl(contextualGalleryUrl);
-  }, [contextualGalleryUrl]);
+    if (contextualGalleryUrl) {
+      setActiveImageUrl(contextualGalleryUrl);
+    } else if (!hasSelectedOptions) {
+      setActiveImageUrl(firstGalleryUrl);
+    }
+  }, [contextualGalleryUrl, firstGalleryUrl, hasSelectedOptions]);
 
   const activeGalleryItem = gallery.find((item) => item.url === activeImageUrl) ?? gallery[0];
 
