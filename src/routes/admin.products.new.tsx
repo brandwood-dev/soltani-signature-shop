@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ImagePlus, X, Save } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -108,6 +108,7 @@ function AdminNewProduct() {
   const [seoDescription, setSeoDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const imageUploadInProgress = useRef(false);
   const [variantImagesUploading, setVariantImagesUploading] = useState(false);
   const [error, setError] = useState("");
 
@@ -185,23 +186,26 @@ function AdminNewProduct() {
 
   const addImage = async () => {
     const sourceUrl = newImage.trim();
-    if (!sourceUrl) return;
+    if (!sourceUrl || imageUploadInProgress.current) return;
     try {
+      imageUploadInProgress.current = true;
       setUploading(true);
       setError("");
       const uploadedUrl = await importAdminProductImageUrl(sourceUrl);
       setImages((current) => [...current, uploadedUrl]);
-      setNewImage("");
+      setNewImage((current) => (current.trim() === sourceUrl ? "" : current));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import image impossible.");
     } finally {
+      imageUploadInProgress.current = false;
       setUploading(false);
     }
   };
   const removeImage = (i: number) => setImages((s) => s.filter((_, idx) => idx !== i));
   const uploadImages = async (files: FileList | null) => {
-    if (!files?.length) return;
+    if (!files?.length || imageUploadInProgress.current) return;
     try {
+      imageUploadInProgress.current = true;
       setUploading(true);
       setError("");
       const uploaded = await Promise.all(
@@ -211,6 +215,7 @@ function AdminNewProduct() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload image impossible.");
     } finally {
+      imageUploadInProgress.current = false;
       setUploading(false);
     }
   };
@@ -396,8 +401,9 @@ function AdminNewProduct() {
                     value={newImage}
                     onChange={(e) => setNewImage(e.target.value)}
                     placeholder="URL de l'image"
+                    disabled={uploading}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (e.key === "Enter" && !uploading) {
                         e.preventDefault();
                         void addImage();
                       }

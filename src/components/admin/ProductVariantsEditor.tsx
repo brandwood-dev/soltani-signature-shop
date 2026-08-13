@@ -463,20 +463,48 @@ export function ProductVariantsEditor({
                   id={`value-image-${axisIndex}-${valueIndex}`}
                   label="Photo associée à cette valeur"
                   value={value.imageUrl}
-                  onChange={(imageUrl) =>
-                    onAxesChange((current) =>
-                      current.map((currentAxis, currentAxisIndex) =>
-                        currentAxisIndex === axisIndex
-                          ? {
-                              ...currentAxis,
-                              values: currentAxis.values.map((item, itemIndex) =>
-                                itemIndex === valueIndex ? { ...item, imageUrl } : item,
-                              ),
-                            }
-                          : currentAxis,
-                      ),
-                    )
-                  }
+                  onChange={(imageUrl) => {
+                    const previousImageUrl = value.imageUrl;
+                    const selectedValue = value.value || slugifyVariantValue(value.label);
+                    const updatedAxes = axes.map((currentAxis, currentAxisIndex) =>
+                      currentAxisIndex === axisIndex
+                        ? {
+                            ...currentAxis,
+                            values: currentAxis.values.map((item, itemIndex) =>
+                              itemIndex === valueIndex ? { ...item, imageUrl } : item,
+                            ),
+                          }
+                        : currentAxis,
+                    );
+
+                    onAxesChange(updatedAxes);
+                    onChange((current) =>
+                      current.map((variant) => {
+                        const usesValue = variant.selections?.some(
+                          (selection) =>
+                            selection.axisKey === axis.key && selection.value === selectedValue,
+                        );
+                        const usesInheritedImage =
+                          variant.imageUrl === previousImageUrl ||
+                          (!variant.imageUrl && !previousImageUrl);
+                        if (!usesValue || !usesInheritedImage) return variant;
+
+                        const inheritedImage = variant.selections
+                          ?.map(
+                            (selection) =>
+                              updatedAxes
+                                .find((item) => item.key === selection.axisKey)
+                                ?.values.find(
+                                  (item) =>
+                                    (item.value || slugifyVariantValue(item.label)) ===
+                                    selection.value,
+                                )?.imageUrl,
+                          )
+                          .find(Boolean);
+                        return { ...variant, imageUrl: inheritedImage ?? null };
+                      }),
+                    );
+                  }}
                   onUploadStart={startImageUpload}
                   onUploadEnd={endImageUpload}
                 />
