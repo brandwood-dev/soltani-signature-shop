@@ -18,14 +18,10 @@ import { trackPageView } from "@/lib/meta-pixel";
 import { faviconLinks, jsonLdScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 const FloatingButtons = lazy(() =>
-  import("@/components/site/FloatingButtons").then((module) => ({
-    default: module.FloatingButtons,
-  })),
+  import("@/components/site/FloatingButtons").then((module) => ({ default: module.FloatingButtons })),
 );
 const MobileBottomNav = lazy(() =>
-  import("@/components/site/MobileBottomNav").then((module) => ({
-    default: module.MobileBottomNav,
-  })),
+  import("@/components/site/MobileBottomNav").then((module) => ({ default: module.MobileBottomNav })),
 );
 
 function NotFoundComponent() {
@@ -106,12 +102,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       { rel: "preconnect", href: "https://res.cloudinary.com", crossOrigin: "" },
       { rel: "dns-prefetch", href: "https://res.cloudinary.com" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap",
-      },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" },
     ],
-    scripts: [jsonLdScript(websiteJsonLd()), jsonLdScript(organizationJsonLd())],
+    scripts: [
+      jsonLdScript(websiteJsonLd()),
+      jsonLdScript(organizationJsonLd()),
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
