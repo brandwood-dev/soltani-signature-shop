@@ -147,9 +147,7 @@ export function Header() {
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <Link to="/" className="mx-auto lg:mx-0 min-w-0 flex items-center">
-          <Logo height={42} />
-        </Link>
+        <Logo height={42} className="mx-auto min-w-0 lg:mx-0" />
 
         <div className="hidden md:flex flex-1 max-w-xl mx-auto">
           <SearchBox />
