@@ -1,8 +1,5 @@
 {
-  "buildCommand": "bun run build:dev",
-  "regions": [
-    "fra1"
-  ],
+  "regions": ["fra1"],
   "rewrites": [
     {
       "source": "/api/v1/:path*",
