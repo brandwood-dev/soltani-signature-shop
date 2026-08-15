@@ -40,9 +40,15 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 }
 
 function getApiOrigin(env: unknown) {
-  if (!env || typeof env !== "object" || !("API_ORIGIN" in env)) return undefined;
-  const value = (env as Record<string, unknown>).API_ORIGIN;
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  if (env && typeof env === "object" && "API_ORIGIN" in env) {
+    const value = (env as Record<string, unknown>).API_ORIGIN;
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+
+  const processValue = process.env.API_ORIGIN;
+  return typeof processValue === "string" && processValue.length > 0
+    ? processValue
+    : undefined;
 }
 
 async function proxyApiRequest(request: Request, apiOrigin: string) {
