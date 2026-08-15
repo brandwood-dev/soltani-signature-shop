@@ -7,6 +7,8 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
+const API_PATH_PREFIX = "/api/v1";
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -37,9 +39,41 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+function getApiOrigin(env: unknown) {
+  if (env && typeof env === "object" && "API_ORIGIN" in env) {
+    const value = (env as Record<string, unknown>).API_ORIGIN;
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+
+  const processValue = process.env.API_ORIGIN;
+  return typeof processValue === "string" && processValue.length > 0
+    ? processValue
+    : undefined;
+}
+
+async function proxyApiRequest(request: Request, apiOrigin: string) {
+  const incomingUrl = new URL(request.url);
+  const targetOrigin = new URL(apiOrigin);
+  incomingUrl.protocol = targetOrigin.protocol;
+  incomingUrl.host = targetOrigin.host;
+
+  const proxyRequest = new Request(incomingUrl, request);
+  proxyRequest.headers.set("x-forwarded-host", new URL(request.url).host);
+  return fetch(proxyRequest);
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const pathname = new URL(request.url).pathname;
+      if (pathname === API_PATH_PREFIX || pathname.startsWith(`${API_PATH_PREFIX}/`)) {
+        const apiOrigin = getApiOrigin(env);
+        if (!apiOrigin) {
+          return new Response("API temporairement indisponible", { status: 503 });
+        }
+        return await proxyApiRequest(request, apiOrigin);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
