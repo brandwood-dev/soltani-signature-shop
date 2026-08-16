@@ -20,6 +20,8 @@ type ExecutionContextWithWaitUntil = {
 
 const API_PATH_PREFIX = "/api/v1";
 const CACHE_LOOKUP_TIMEOUT_MS = 200;
+// Cache API reads currently stall the production isolate; keep availability independent of them.
+const WORKER_CACHE_ENABLED = false;
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 let apiCacheUnavailable = false;
@@ -189,7 +191,8 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
     url.pathname,
     request.headers.has("authorization"),
   );
-  const cache = policy && !apiCacheUnavailable ? getDefaultCache() : undefined;
+  const cache =
+    policy && WORKER_CACHE_ENABLED && !apiCacheUnavailable ? getDefaultCache() : undefined;
 
   if (!policy) {
     return fetch(toOriginRequest(request, apiOrigin, false));
