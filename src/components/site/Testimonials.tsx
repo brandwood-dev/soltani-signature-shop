@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Star, Quote } from "lucide-react";
 import type { Testimonial } from "@/lib/testimonials-api";
 import { getPublicTestimonials } from "@/lib/testimonials-api";
 import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
+import { SmartLink } from "./SmartLink";
 
 function Card({ t }: { t: Testimonial }) {
   return (
@@ -23,9 +24,9 @@ function Card({ t }: { t: Testimonial }) {
         <p className="text-xs text-muted-foreground mt-0.5">
           {t.gouvernorat} <span aria-hidden="true">&middot;</span>{" "}
           {t.productUrl ? (
-            <a href={t.productUrl} className="underline underline-offset-2">
+            <SmartLink href={t.productUrl} className="underline underline-offset-2">
               {t.productTitle}
-            </a>
+            </SmartLink>
           ) : (
             t.productTitle
           )}
@@ -67,7 +68,8 @@ export function Testimonials() {
       ? testimonials
       : Array.from({ length: 3 }, (_, offset) => testimonials[(i + offset) % testimonials.length]);
   const currentTestimonial = testimonials[i % testimonials.length];
-  const previous = () => setI((current) => (current - 1 + testimonials.length) % testimonials.length);
+  const previous = () =>
+    setI((current) => (current - 1 + testimonials.length) % testimonials.length);
   const next = () => setI((current) => (current + 1) % testimonials.length);
 
   return (

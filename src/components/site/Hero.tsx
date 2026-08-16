@@ -2,8 +2,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { HeroSlide } from "@/lib/hero-api";
-import { getActiveHeroSlides } from "@/lib/hero-api";
 import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
+import { SmartLink } from "@/components/site/SmartLink";
 
 export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
@@ -18,17 +18,6 @@ export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
       setIndex(0);
     }
   }, [initialSlides]);
-
-  useEffect(() => {
-    getActiveHeroSlides()
-      .then((apiSlides) => {
-        if (apiSlides.length > 0) {
-          setSlides(apiSlides);
-          setIndex(0);
-        }
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (slides.length <= 1 || !inView || reducedMotion) return;
@@ -111,19 +100,19 @@ export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
                 {slide.subtitle}. {slide.description}
               </p>
               <div className="flex flex-wrap gap-3 md:gap-4">
-                <a
+                <SmartLink
                   href={slide.ctaPrimary.link}
                   className="group inline-flex items-center gap-2 rounded-sm bg-gold px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink shadow-gold transition hover:bg-gold-soft md:gap-3 md:px-7 md:py-4 md:text-[12px] md:tracking-[0.25em]"
                 >
                   {slide.ctaPrimary.text}
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                </a>
-                <a
+                </SmartLink>
+                <SmartLink
                   href={slide.ctaSecondary.link}
                   className="inline-flex items-center gap-2 rounded-sm border border-foreground/30 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground transition hover:bg-foreground hover:text-background md:gap-3 md:px-7 md:py-4 md:text-[12px] md:tracking-[0.25em]"
                 >
                   {slide.ctaSecondary.text}
-                </a>
+                </SmartLink>
               </div>
             </motion.div>
           </AnimatePresence>

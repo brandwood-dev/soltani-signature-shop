@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { MarqueeMessage } from "@/lib/marquee-api";
 import { getActiveMarqueeMessages } from "@/lib/marquee-api";
+import { SmartLink } from "./SmartLink";
 
 export function TopBar() {
   const [messages, setMessages] = useState<MarqueeMessage[]>([]);
@@ -49,9 +50,12 @@ export function TopBar() {
               }`}
             >
               {message.link ? (
-                <a href={message.link} className="flex min-w-0 items-center justify-center gap-2 hover:text-gold">
+                <SmartLink
+                  href={message.link}
+                  className="flex min-w-0 items-center justify-center gap-2 hover:text-gold"
+                >
                   {content}
-                </a>
+                </SmartLink>
               ) : (
                 <span className="flex min-w-0 items-center justify-center gap-2">{content}</span>
               )}

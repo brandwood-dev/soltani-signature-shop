@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { SmartLink } from "./SmartLink";
 
 type Props = {
   eyebrow: string;
@@ -11,7 +12,15 @@ type Props = {
   secondaryCta?: { label: string; href: string };
 };
 
-export function LifestyleHero({ eyebrow, title, titleAccent, subtitle, image, cta, secondaryCta }: Props) {
+export function LifestyleHero({
+  eyebrow,
+  title,
+  titleAccent,
+  subtitle,
+  image,
+  cta,
+  secondaryCta,
+}: Props) {
   return (
     <section className="relative h-[72vh] min-h-[520px] w-full overflow-hidden bg-background">
       <motion.div
@@ -33,7 +42,9 @@ export function LifestyleHero({ eyebrow, title, titleAccent, subtitle, image, ct
         >
           <div className="flex items-center gap-3 mb-6">
             <span className="h-px w-12 bg-gold" />
-            <span className="text-[11px] uppercase tracking-[0.4em] text-gold font-medium">{eyebrow}</span>
+            <span className="text-[11px] uppercase tracking-[0.4em] text-gold font-medium">
+              {eyebrow}
+            </span>
           </div>
           <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-light text-foreground leading-[1] mb-6">
             {title}
@@ -49,21 +60,21 @@ export function LifestyleHero({ eyebrow, title, titleAccent, subtitle, image, ct
           </p>
           <div className="flex flex-wrap gap-4">
             {cta && (
-              <a
+              <SmartLink
                 href={cta.href}
                 className="group inline-flex items-center gap-3 bg-gold text-ink px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-gold-soft transition shadow-gold rounded-sm"
               >
                 {cta.label}
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
-              </a>
+              </SmartLink>
             )}
             {secondaryCta && (
-              <a
+              <SmartLink
                 href={secondaryCta.href}
                 className="inline-flex items-center gap-3 border border-foreground/30 text-foreground px-7 py-4 text-[12px] uppercase tracking-[0.25em] font-semibold hover:bg-foreground hover:text-background transition rounded-sm"
               >
                 {secondaryCta.label}
-              </a>
+              </SmartLink>
             )}
           </div>
         </motion.div>
