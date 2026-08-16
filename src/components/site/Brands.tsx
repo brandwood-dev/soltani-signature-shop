@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import type { FeaturedBrand } from "@/lib/featured-brands-api";
 import { getActiveFeaturedBrands } from "@/lib/featured-brands-api";
-
+import { SmartLink } from "./SmartLink";
 
 export function Brands() {
   const [brands, setBrands] = useState<FeaturedBrand[]>([]);
@@ -41,11 +41,18 @@ export function Brands() {
               "flex h-16 w-32 shrink-0 items-center justify-center px-2 md:h-20 md:w-40";
 
             return brand.link ? (
-              <a key={`${brand.id}-${index}`} href={brand.link} aria-label={brand.name} className={itemClass}>
+              <SmartLink
+                key={`${brand.id}-${index}`}
+                href={brand.link}
+                ariaLabel={brand.name}
+                className={itemClass}
+              >
                 {logo}
-              </a>
+              </SmartLink>
             ) : (
-              <div key={`${brand.id}-${index}`} className={itemClass}>{logo}</div>
+              <div key={`${brand.id}-${index}`} className={itemClass}>
+                {logo}
+              </div>
             );
           })}
         </div>
@@ -55,5 +62,3 @@ export function Brands() {
     </section>
   );
 }
-
-

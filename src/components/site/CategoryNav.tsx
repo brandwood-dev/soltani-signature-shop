@@ -1,10 +1,12 @@
+import { Link } from "@tanstack/react-router";
+
 const ITEMS = [
   { label: "Homme", href: "/homme" },
   { label: "Femme", href: "/femme" },
   { label: "Enfant", href: "/enfant" },
   { label: "Maison", href: "/maison" },
   { label: "Bien-être", href: "/bien-etre" },
-];
+] as const;
 
 export function CategoryNav() {
   return (
@@ -15,13 +17,13 @@ export function CategoryNav() {
           <ul className="flex items-center justify-center gap-10 h-[46px]">
             {ITEMS.map((cat) => (
               <li key={cat.label}>
-                <a
-                  href={cat.href}
+                <Link
+                  to={cat.href}
                   className="text-[13px] tracking-[0.15em] text-foreground/70 hover:text-foreground transition-colors relative group py-3.5 font-medium"
                 >
                   {cat.label}
                   <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-[2px] w-0 bg-gold group-hover:w-full transition-all duration-300 ease-out" />
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -34,12 +36,12 @@ export function CategoryNav() {
           <ul className="flex items-center justify-between h-11 gap-1">
             {ITEMS.map((cat) => (
               <li key={cat.label} className="flex-1 min-w-0">
-                <a
-                  href={cat.href}
+                <Link
+                  to={cat.href}
                   className="block text-center text-[11px] tracking-[0.06em] text-foreground/70 hover:text-foreground transition-colors py-3 font-medium whitespace-nowrap"
                 >
                   {cat.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>

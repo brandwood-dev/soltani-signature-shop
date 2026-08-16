@@ -14,6 +14,7 @@ import { toUserFriendlyErrorMessage } from "@/lib/error-messages";
 import { breadcrumbJsonLd, canonicalLink, jsonLdScript, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/category/$slug")({
+  staleTime: 30_000,
   loader: async ({ params }) => {
     const categoryTree = await loadCategoryTree().catch(() => fallbackCategoryTree());
     const category = findInCategoryTree(params.slug, categoryTree) ?? findCategory(params.slug);
@@ -76,7 +77,8 @@ function CategoryPage() {
   const parent = isParent
     ? findParentInTree(category.slug, categoryTree)
     : findParentInTree(category.parent.slug, categoryTree);
-  const subcategories = isParent && parent ? parent.subs.map(({ slug, name }) => ({ slug, name })) : [];
+  const subcategories =
+    isParent && parent ? parent.subs.map(({ slug, name }) => ({ slug, name })) : [];
 
   return (
     <SiteLayout>
@@ -93,7 +95,11 @@ function CategoryPage() {
         <ChevronRight className="h-3 w-3" />
         {!isParent && (
           <>
-            <Link to="/category/$slug" params={{ slug: category.parent.slug }} className="hover:text-gold">
+            <Link
+              to="/category/$slug"
+              params={{ slug: category.parent.slug }}
+              className="hover:text-gold"
+            >
               {category.parent.name}
             </Link>
             <ChevronRight className="h-3 w-3" />

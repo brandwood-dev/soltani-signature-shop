@@ -31,6 +31,7 @@ const Footer = lazy(() => import("@/components/site/Footer").then((m) => ({ defa
 
 export const Route = createFileRoute("/")({
   loader: () => loadHomeData(),
+  staleTime: 30_000,
   head: () => ({
     meta: seoMeta({
       title: "Soltani Signature — Beauté, parfums & lifestyle en Tunisie",

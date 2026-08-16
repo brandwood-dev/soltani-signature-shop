@@ -1,6 +1,10 @@
 import { CATEGORY_TREE, type ParentCategory, slugify } from "@/data/categories";
 import { apiFetch, publicApiFetch } from "@/lib/api";
 
+const PUBLIC_CATEGORY_CACHE_MS = 30_000;
+let publicCategoryCache: { expiresAt: number; value: CategoryTree[] } | undefined;
+let publicCategoryRequest: Promise<CategoryTree[]> | undefined;
+
 export type ApiCategory = {
   id: string;
   parentId: string | null;
@@ -133,8 +137,24 @@ export function fallbackCategoryTree(): CategoryTree[] {
 }
 
 export async function loadCategoryTree({ admin = false } = {}) {
-  const categories = admin ? await getAdminCategories() : await getCatalogCategories();
-  return toCategoryTree(categories);
+  if (admin) return toCategoryTree(await getAdminCategories());
+
+  if (publicCategoryCache && publicCategoryCache.expiresAt > Date.now()) {
+    return publicCategoryCache.value;
+  }
+  if (publicCategoryRequest) return publicCategoryRequest;
+
+  publicCategoryRequest = getCatalogCategories()
+    .then((categories) => {
+      const value = toCategoryTree(categories);
+      publicCategoryCache = { expiresAt: Date.now() + PUBLIC_CATEGORY_CACHE_MS, value };
+      return value;
+    })
+    .finally(() => {
+      publicCategoryRequest = undefined;
+    });
+
+  return publicCategoryRequest;
 }
 
 export function findInCategoryTree(slug: string, tree: CategoryTree[]) {
