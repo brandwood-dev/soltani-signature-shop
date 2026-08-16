@@ -64,10 +64,10 @@ describe("home data resilience", () => {
       },
     });
 
-    expect(calls).toBe(3);
+    expect(calls).toBe(2);
     expect(progress[1]?.bestsellers).toEqual([product]);
     expect(recovered.bestsellers).toEqual([product]);
     expect(recovered.newArrivals).toEqual([product]);
-    expect(recovered.failedSections).toEqual(["newArrivals"]);
+    expect(recovered.failedSections).toEqual([]);
   });
 });

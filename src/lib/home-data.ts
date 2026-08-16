@@ -91,6 +91,7 @@ export async function loadHomeData(loaders: HomeDataLoaders = defaultLoaders): P
 
 export function mergeHomeData(previous: HomeData, next: HomeData): HomeData {
   const failed = new Set(next.failedSections);
+  const unresolved = previous.failedSections.filter((section) => failed.has(section));
   return {
     heroSlides: failed.has("heroSlides") ? previous.heroSlides : next.heroSlides,
     bestsellers: failed.has("bestsellers") ? previous.bestsellers : next.bestsellers,
@@ -98,7 +99,7 @@ export function mergeHomeData(previous: HomeData, next: HomeData): HomeData {
     packs: failed.has("packs") ? previous.packs : next.packs,
     promoBanners: failed.has("promoBanners") ? previous.promoBanners : next.promoBanners,
     limitedOffer: failed.has("limitedOffer") ? previous.limitedOffer : next.limitedOffer,
-    failedSections: next.failedSections,
+    failedSections: unresolved,
   };
 }
 
