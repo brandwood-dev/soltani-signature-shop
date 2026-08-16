@@ -5,6 +5,7 @@ import { renderErrorPage } from "./lib/error-page";
 import {
   publicApiCacheKey,
   publicApiCachePolicy,
+  settleCacheLookup,
   type PublicApiCachePolicy,
 } from "./lib/public-api-cache";
 
@@ -18,8 +19,10 @@ type ExecutionContextWithWaitUntil = {
 };
 
 const API_PATH_PREFIX = "/api/v1";
+const CACHE_LOOKUP_TIMEOUT_MS = 200;
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
+let apiCacheUnavailable = false;
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -118,7 +121,7 @@ function storedApiResponse(response: Response, seconds: number, tag: string) {
   });
 }
 
-function clientApiResponse(response: Response, cacheStatus: "HIT" | "STALE" | "MISS") {
+function clientApiResponse(response: Response, cacheStatus: "HIT" | "STALE" | "MISS" | "BYPASS") {
   const headers = new Headers(response.headers);
   headers.set("Cache-Control", "public, max-age=0, must-revalidate");
   headers.set("X-Soltani-Edge-Cache", cacheStatus);
@@ -130,6 +133,23 @@ function clientApiResponse(response: Response, cacheStatus: "HIT" | "STALE" | "M
     statusText: response.statusText,
     headers,
   });
+}
+
+async function matchApiCache(cache: Cache, key: Request, path: string) {
+  const result = await settleCacheLookup(cache.match(key), CACHE_LOOKUP_TIMEOUT_MS);
+  if (result.status === "resolved") return result.value;
+
+  apiCacheUnavailable = true;
+  console.warn({
+    event: "public_api_cache_bypassed",
+    path,
+    reason: result.status,
+    message:
+      result.status === "rejected" && result.error instanceof Error
+        ? result.error.message
+        : undefined,
+  });
+  return undefined;
 }
 
 async function persistApiResponse(
@@ -169,16 +189,24 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
     url.pathname,
     request.headers.has("authorization"),
   );
-  const cache = policy ? getDefaultCache() : undefined;
+  const cache = policy && !apiCacheUnavailable ? getDefaultCache() : undefined;
 
-  if (!policy || !cache) {
+  if (!policy) {
     return fetch(toOriginRequest(request, apiOrigin, false));
   }
+  if (!cache) {
+    const response = await fetch(toOriginRequest(request, apiOrigin, true));
+    return clientApiResponse(response, "BYPASS");
+  }
 
-  const fresh = await cache.match(publicApiCacheKey(request.url, "fresh"));
+  const fresh = await matchApiCache(cache, publicApiCacheKey(request.url, "fresh"), url.pathname);
   if (fresh) return clientApiResponse(fresh, "HIT");
+  if (apiCacheUnavailable) {
+    const response = await fetch(toOriginRequest(request, apiOrigin, true));
+    return clientApiResponse(response, "BYPASS");
+  }
 
-  const stale = await cache.match(publicApiCacheKey(request.url, "stale"));
+  const stale = await matchApiCache(cache, publicApiCacheKey(request.url, "stale"), url.pathname);
   if (stale) {
     const refresh = refreshApiCache(cache, request, apiOrigin, policy).catch((error) => {
       console.warn({
@@ -189,6 +217,10 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
     });
     await scheduleBackground(ctx, refresh);
     return clientApiResponse(stale, "STALE");
+  }
+  if (apiCacheUnavailable) {
+    const response = await fetch(toOriginRequest(request, apiOrigin, true));
+    return clientApiResponse(response, "BYPASS");
   }
 
   const response = await fetch(toOriginRequest(request, apiOrigin, true));
