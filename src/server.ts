@@ -2,9 +2,19 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import {
+  publicApiCacheKey,
+  publicApiCachePolicy,
+  type PublicApiCachePolicy,
+} from "./lib/public-api-cache";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
+};
+
+type CloudflareCacheStorage = CacheStorage & { default?: Cache };
+type ExecutionContextWithWaitUntil = {
+  waitUntil: (promise: Promise<unknown>) => void;
 };
 
 const API_PATH_PREFIX = "/api/v1";
@@ -46,12 +56,31 @@ function getApiOrigin(env: unknown) {
   }
 
   const processValue = process.env.API_ORIGIN;
-  return typeof processValue === "string" && processValue.length > 0
-    ? processValue
-    : undefined;
+  return typeof processValue === "string" && processValue.length > 0 ? processValue : undefined;
 }
 
-async function proxyApiRequest(request: Request, apiOrigin: string) {
+function getDefaultCache() {
+  return (globalThis.caches as CloudflareCacheStorage | undefined)?.default;
+}
+
+function hasWaitUntil(ctx: unknown): ctx is ExecutionContextWithWaitUntil {
+  return Boolean(
+    ctx &&
+    typeof ctx === "object" &&
+    "waitUntil" in ctx &&
+    typeof (ctx as ExecutionContextWithWaitUntil).waitUntil === "function",
+  );
+}
+
+async function scheduleBackground(ctx: unknown, promise: Promise<unknown>) {
+  if (hasWaitUntil(ctx)) {
+    ctx.waitUntil(promise);
+    return;
+  }
+  await promise;
+}
+
+function toOriginRequest(request: Request, apiOrigin: string, anonymous: boolean) {
   const incomingUrl = new URL(request.url);
   const targetOrigin = new URL(apiOrigin);
   incomingUrl.protocol = targetOrigin.protocol;
@@ -59,7 +88,114 @@ async function proxyApiRequest(request: Request, apiOrigin: string) {
 
   const proxyRequest = new Request(incomingUrl, request);
   proxyRequest.headers.set("x-forwarded-host", new URL(request.url).host);
-  return fetch(proxyRequest);
+  if (anonymous) {
+    proxyRequest.headers.delete("authorization");
+    proxyRequest.headers.delete("cookie");
+  }
+  return proxyRequest;
+}
+
+function isCacheableApiResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  return (
+    response.status === 200 &&
+    contentType.includes("application/json") &&
+    !response.headers.has("set-cookie")
+  );
+}
+
+function storedApiResponse(response: Response, seconds: number, tag: string) {
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", `public, max-age=${seconds}`);
+  headers.set("Cache-Tag", tag);
+  headers.delete("CDN-Cache-Control");
+  headers.delete("Cloudflare-CDN-Cache-Control");
+  headers.delete("Vercel-CDN-Cache-Control");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function clientApiResponse(response: Response, cacheStatus: "HIT" | "STALE" | "MISS") {
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+  headers.set("X-Soltani-Edge-Cache", cacheStatus);
+  headers.delete("CDN-Cache-Control");
+  headers.delete("Cloudflare-CDN-Cache-Control");
+  headers.delete("Vercel-CDN-Cache-Control");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function persistApiResponse(
+  cache: Cache,
+  request: Request,
+  response: Response,
+  policy: PublicApiCachePolicy,
+) {
+  const fresh = storedApiResponse(response.clone(), policy.freshSeconds, policy.tag);
+  const stale = storedApiResponse(
+    response.clone(),
+    policy.freshSeconds + policy.staleSeconds,
+    policy.tag,
+  );
+  await Promise.all([
+    cache.put(publicApiCacheKey(request.url, "fresh"), fresh),
+    cache.put(publicApiCacheKey(request.url, "stale"), stale),
+  ]);
+}
+
+async function refreshApiCache(
+  cache: Cache,
+  request: Request,
+  apiOrigin: string,
+  policy: PublicApiCachePolicy,
+) {
+  const response = await fetch(toOriginRequest(request, apiOrigin, true));
+  if (isCacheableApiResponse(response)) {
+    await persistApiResponse(cache, request, response, policy);
+  }
+}
+
+async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown) {
+  const url = new URL(request.url);
+  const policy = publicApiCachePolicy(
+    request.method,
+    url.pathname,
+    request.headers.has("authorization"),
+  );
+  const cache = policy ? getDefaultCache() : undefined;
+
+  if (!policy || !cache) {
+    return fetch(toOriginRequest(request, apiOrigin, false));
+  }
+
+  const fresh = await cache.match(publicApiCacheKey(request.url, "fresh"));
+  if (fresh) return clientApiResponse(fresh, "HIT");
+
+  const stale = await cache.match(publicApiCacheKey(request.url, "stale"));
+  if (stale) {
+    const refresh = refreshApiCache(cache, request, apiOrigin, policy).catch((error) => {
+      console.warn({
+        event: "public_api_cache_refresh_failed",
+        path: url.pathname,
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    });
+    await scheduleBackground(ctx, refresh);
+    return clientApiResponse(stale, "STALE");
+  }
+
+  const response = await fetch(toOriginRequest(request, apiOrigin, true));
+  if (isCacheableApiResponse(response)) {
+    await scheduleBackground(ctx, persistApiResponse(cache, request, response.clone(), policy));
+  }
+  return clientApiResponse(response, "MISS");
 }
 
 export default {
@@ -71,7 +207,19 @@ export default {
         if (!apiOrigin) {
           return new Response("API temporairement indisponible", { status: 503 });
         }
-        return await proxyApiRequest(request, apiOrigin);
+        try {
+          return await proxyApiRequest(request, apiOrigin, ctx);
+        } catch (error) {
+          console.error({
+            event: "api_proxy_failed",
+            path: pathname,
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
+          return Response.json(
+            { message: "API temporairement indisponible" },
+            { status: 502, headers: { "Cache-Control": "private, no-store" } },
+          );
+        }
       }
 
       const handler = await getServerEntry();

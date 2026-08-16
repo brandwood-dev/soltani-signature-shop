@@ -5,13 +5,19 @@ import type { HeroSlide } from "@/lib/hero-api";
 import { getActiveHeroSlides } from "@/lib/hero-api";
 import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 
-
 export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
   const [slides, setSlides] = useState<HeroSlide[]>(initialSlides);
   const sectionRef = useRef<HTMLElement | null>(null);
   const inView = useInViewport(sectionRef, "200px");
   const reducedMotion = usePrefersReducedMotion();
+
+  useEffect(() => {
+    if (initialSlides.length > 0) {
+      setSlides(initialSlides);
+      setIndex(0);
+    }
+  }, [initialSlides]);
 
   useEffect(() => {
     getActiveHeroSlides()
@@ -52,7 +58,10 @@ export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
   }
 
   return (
-    <section ref={sectionRef} className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]">
+    <section
+      ref={sectionRef}
+      className="relative h-[70vh] min-h-[440px] w-full overflow-hidden bg-background md:h-[88vh] md:min-h-[600px]"
+    >
       <h1 className="sr-only">
         Soltani Signature — Parfumerie, Horlogerie et Maroquinerie de Luxe en Tunisie
       </h1>
@@ -158,4 +167,3 @@ export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
     </section>
   );
 }
-

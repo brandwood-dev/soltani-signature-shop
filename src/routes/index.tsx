@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy } from "react";
+import { lazy, useEffect, useState } from "react";
 import { TopBar } from "@/components/site/TopBar";
 import { CategoryNav } from "@/components/site/CategoryNav";
 import { Header } from "@/components/site/Header";
@@ -8,18 +8,14 @@ import { Categories } from "@/components/site/Categories";
 import { ProductGrid } from "@/components/site/ProductGrid";
 import { TrustBar } from "@/components/site/TrustBar";
 import { LazySection } from "@/components/site/LazySection";
-import { getCatalogProducts } from "@/lib/catalog-api";
-import { getActiveHeroSlides, type HeroSlide } from "@/lib/hero-api";
-import { getActivePromoBanners, type PromoBanner as PromoBannerItem } from "@/lib/promo-banners-api";
-import type { Product } from "@/components/site/ProductCard";
+import type { PromoBanner as PromoBannerItem } from "@/lib/promo-banners-api";
+import { loadHomeData, recoverHomeData, type HomeSection } from "@/lib/home-data";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 
 const CollectionBanners = lazy(() =>
   import("@/components/site/CollectionBanners").then((m) => ({ default: m.CollectionBanners })),
 );
-const Brands = lazy(() =>
-  import("@/components/site/Brands").then((m) => ({ default: m.Brands })),
-);
+const Brands = lazy(() => import("@/components/site/Brands").then((m) => ({ default: m.Brands })));
 const Packs = lazy(() => import("@/components/site/Packs").then((m) => ({ default: m.Packs })));
 const PromoBanner = lazy(() =>
   import("@/components/site/PromoBanner").then((m) => ({ default: m.PromoBanner })),
@@ -31,36 +27,10 @@ const Testimonials = lazy(() =>
 const Newsletter = lazy(() =>
   import("@/components/site/Newsletter").then((m) => ({ default: m.Newsletter })),
 );
-const Footer = lazy(() =>
-  import("@/components/site/Footer").then((m) => ({ default: m.Footer })),
-);
+const Footer = lazy(() => import("@/components/site/Footer").then((m) => ({ default: m.Footer })));
 
 export const Route = createFileRoute("/")({
-  loader: async (): Promise<{
-    heroSlides: HeroSlide[];
-    bestsellers: Product[];
-    newArrivals: Product[];
-    packs: Product[];
-    promoBanners: PromoBannerItem[];
-    limitedOffer: PromoBannerItem | null;
-  }> => {
-    const [heroSlides, bestsellers, newArrivals, packs, promoBanners, limitedOffers] = await Promise.all([
-      getActiveHeroSlides().catch(() => []),
-      getCatalogProducts({ bestSeller: true, limit: 8, summary: true }).catch(() => []),
-      getCatalogProducts({ featured: true, limit: 8, summary: true }).catch(() => []),
-      getCatalogProducts({ category: "coffrets-parfum" }).catch(() => []),
-      getActivePromoBanners("home", "promotion").catch(() => []),
-      getActivePromoBanners("home", "limited_offer").catch(() => []),
-    ]);
-    return {
-      heroSlides,
-      bestsellers,
-      newArrivals,
-      packs,
-      promoBanners,
-      limitedOffer: limitedOffers[0] ?? null,
-    };
-  },
+  loader: () => loadHomeData(),
   head: () => ({
     meta: seoMeta({
       title: "Soltani Signature — Beauté, parfums & lifestyle en Tunisie",
@@ -74,7 +44,30 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { heroSlides, bestsellers, newArrivals, packs, promoBanners, limitedOffer } = Route.useLoaderData();
+  const initialData = Route.useLoaderData();
+  const [homeData, setHomeData] = useState(initialData);
+  const [isRecovering, setIsRecovering] = useState(initialData.failedSections.length > 0);
+
+  useEffect(() => {
+    if (initialData.failedSections.length === 0) return;
+    let active = true;
+
+    void recoverHomeData(initialData, {
+      onProgress: (recovered) => {
+        if (active) setHomeData(recovered);
+      },
+    }).then(() => {
+      if (active) setIsRecovering(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [initialData]);
+
+  const hasFailed = (section: HomeSection) => homeData.failedSections.includes(section);
+  const retryPage = () => window.location.reload();
+  const { heroSlides, bestsellers, newArrivals, packs, promoBanners, limitedOffer } = homeData;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -89,6 +82,8 @@ function Home() {
           eyebrow="Les Indispensables"
           title="Meilleures Ventes"
           items={bestsellers}
+          loadState={hasFailed("bestsellers") ? (isRecovering ? "loading" : "error") : "ready"}
+          onRetry={retryPage}
           kicker="Les pièces les plus convoitées par notre clientèle."
           viewAllTo="/meilleures-ventes"
         />
@@ -103,6 +98,8 @@ function Home() {
             eyebrow="Just Dropped"
             title="Nouvelles Arrivées"
             items={newArrivals}
+            loadState={hasFailed("newArrivals") ? (isRecovering ? "loading" : "error") : "ready"}
+            onRetry={retryPage}
             kicker="Les dernières créations des maisons que nous distribuons."
             viewAllTo="/nouvelles-arrivees"
           />

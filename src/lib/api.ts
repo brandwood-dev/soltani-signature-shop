@@ -375,8 +375,11 @@ async function fetchWithRetry(
 ) {
   let lastError: unknown;
   const isGet = options.method === "GET";
-  const attempts = isGet ? 2 : 1;
-  const timeoutMs = isGet && isAdminPath(options.path) ? 10_000 : 15_000;
+  const { attempts, timeoutMs } = apiRetryPolicy(
+    options.path,
+    options.method,
+    typeof window !== "undefined",
+  );
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
@@ -435,6 +438,13 @@ function getAdminCacheTtl(path: string, method: string) {
   return rule?.ttlMs ?? 0;
 }
 
+export function apiRetryPolicy(path: string, method: string, isBrowser: boolean) {
+  if (method !== "GET") return { attempts: 1, timeoutMs: 15_000 };
+  if (isAdminPath(path)) return { attempts: 2, timeoutMs: 10_000 };
+  if (!isBrowser) return { attempts: 1, timeoutMs: 8_000 };
+  return { attempts: 2, timeoutMs: 20_000 };
+}
+
 export function publicRequestCacheMode(
   path: string,
   method: string,
@@ -445,8 +455,7 @@ export function publicRequestCacheMode(
   if (normalizedPath.includes("/preview/") || normalizedPath.includes("/reviews")) {
     return "no-store";
   }
-  return normalizedPath.startsWith("/catalog/") ||
-    normalizedPath.startsWith("/content/")
+  return normalizedPath.startsWith("/catalog/") || normalizedPath.startsWith("/content/")
     ? "default"
     : "no-store";
 }
