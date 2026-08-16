@@ -13,6 +13,11 @@ describe("public API cache mode", () => {
     expect(publicRequestCacheMode("/products/preview/token", "GET", false)).toBe("no-store");
     expect(publicRequestCacheMode("/catalog/products/item/reviews", "GET", false)).toBe("no-store");
   });
+
+  test("omits Request.cache during SSR for Cloudflare compatibility", () => {
+    expect(publicRequestCacheMode("/catalog/products", "GET", false, false)).toBeUndefined();
+    expect(publicRequestCacheMode("/content/hero", "GET", false, false)).toBeUndefined();
+  });
 });
 
 describe("API retry policy", () => {
