@@ -218,6 +218,12 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
   const method = (init.method ?? "GET").toUpperCase();
   const cacheKey = buildCacheKey(path, method, headers.get("Authorization"));
   const ttlMs = getAdminCacheTtl(path, method);
+  const requestCache = publicRequestCacheMode(
+    path,
+    method,
+    includeAuth,
+    typeof window !== "undefined",
+  );
 
   if (ttlMs > 0) {
     const cached = responseCache.get(cacheKey);
@@ -235,7 +241,7 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
     fetchWithRetry(
       buildApiUrl(path),
       {
-        cache: publicRequestCacheMode(path, method, includeAuth),
+        ...(requestCache ? { cache: requestCache } : {}),
         ...init,
         headers,
       },
@@ -449,7 +455,9 @@ export function publicRequestCacheMode(
   path: string,
   method: string,
   includeAuth: boolean,
-): RequestCache {
+  isBrowser = true,
+): RequestCache | undefined {
+  if (!isBrowser) return undefined;
   if (includeAuth || method !== "GET") return "no-store";
   const normalizedPath = stripQuery(path);
   if (normalizedPath.includes("/preview/") || normalizedPath.includes("/reviews")) {
