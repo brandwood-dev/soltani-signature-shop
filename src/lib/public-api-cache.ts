@@ -4,6 +4,11 @@ export type PublicApiCachePolicy = {
   tag: string;
 };
 
+export type CacheLookupResult<T> =
+  | { status: "resolved"; value: T }
+  | { status: "rejected"; error: unknown }
+  | { status: "timeout" };
+
 const LONG_LIVED_CONTENT = [
   /^\/api\/v1\/catalog\/(categories|brands)\/?$/,
   /^\/api\/v1\/catalog\/categories\/[^/]+\/attributes\/?$/,
@@ -37,4 +42,24 @@ export function publicApiCacheKey(requestUrl: string, kind: "fresh" | "stale") {
   const url = new URL(requestUrl);
   url.searchParams.set("__soltani_edge_cache", kind);
   return new Request(url, { method: "GET" });
+}
+
+export async function settleCacheLookup<T>(
+  lookup: Promise<T>,
+  timeoutMs: number,
+): Promise<CacheLookupResult<T>> {
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
+  const settled = lookup.then<CacheLookupResult<T>, CacheLookupResult<T>>(
+    (value) => ({ status: "resolved", value }),
+    (error: unknown) => ({ status: "rejected", error }),
+  );
+  const timeout = new Promise<CacheLookupResult<T>>((resolve) => {
+    timeoutId = globalThis.setTimeout(() => resolve({ status: "timeout" }), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([settled, timeout]);
+  } finally {
+    if (timeoutId !== undefined) globalThis.clearTimeout(timeoutId);
+  }
 }

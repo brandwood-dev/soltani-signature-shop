@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { publicApiCacheKey, publicApiCachePolicy } from "./public-api-cache";
+import { publicApiCacheKey, publicApiCachePolicy, settleCacheLookup } from "./public-api-cache";
 
 describe("Cloudflare public API cache policy", () => {
   test("caches only anonymous public catalog and content reads", () => {
@@ -31,5 +31,15 @@ describe("Cloudflare public API cache policy", () => {
     expect(publicApiCacheKey(source, "stale").url).toBe(
       "https://www.soltanisignature.com/api/v1/catalog/products?featured=1&__soltani_edge_cache=stale",
     );
+  });
+
+  test("bounds a stalled Cache API lookup without leaving a rejected promise", async () => {
+    const hit = await settleCacheLookup(Promise.resolve("cached"), 10);
+    const rejected = await settleCacheLookup(Promise.reject(new Error("cache unavailable")), 10);
+    const timeout = await settleCacheLookup(new Promise<never>(() => undefined), 1);
+
+    expect(hit).toEqual({ status: "resolved", value: "cached" });
+    expect(rejected.status).toBe("rejected");
+    expect(timeout).toEqual({ status: "timeout" });
   });
 });
