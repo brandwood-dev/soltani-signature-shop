@@ -4,6 +4,7 @@ import { getSession } from "@/lib/supabase";
 
 export type CartLine = {
   id: string;
+  productId?: string;
   productSlug?: string;
   variantId: string;
   name: string;

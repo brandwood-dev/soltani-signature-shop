@@ -258,6 +258,7 @@ function ProductPage() {
   const firstGalleryUrl = gallery[0]?.url ?? product.image;
   const priceMin = product.priceMin ?? product.price;
   const priceMax = product.priceMax ?? product.price;
+  const metaProductId = product.id ?? product.slug;
   const showsPriceRange = !selectedVariant && priceMax > priceMin;
   const selectedPrice = selectedVariant?.price ?? priceMin;
   const selectedCompareAtPrice = selectedVariant
@@ -411,13 +412,13 @@ function ProductPage() {
   useEffect(() => {
     if (isPreview) return;
     trackMetaPixelEvent("ViewContent", {
-      content_ids: [product.variantId ?? product.id ?? product.slug],
+      content_ids: [metaProductId],
       content_name: product.name,
       content_type: "product",
       value: product.price,
       currency: "TND",
     });
-  }, [isPreview, product.id, product.name, product.price, product.slug, product.variantId]);
+  }, [isPreview, metaProductId, product.name, product.price]);
 
   const handleAddToCart = () => {
     const variantId = selectedVariant?.id ?? product.variantId;
@@ -426,6 +427,7 @@ function ProductPage() {
     const image = selectedVariant?.imageUrl ?? product.image;
     add({
       id: variantId,
+      productId: product.id,
       productSlug: product.slug,
       variantId,
       name: product.name,
@@ -438,10 +440,10 @@ function ProductPage() {
       qty,
     });
     trackMetaPixelEvent("AddToCart", {
-      content_ids: [variantId],
+      content_ids: [metaProductId],
       content_name: product.name,
       content_type: "product",
-      contents: [{ id: variantId, quantity: qty, item_price: selectedPrice }],
+      contents: [{ id: metaProductId, quantity: qty, item_price: selectedPrice }],
       value: selectedPrice * qty,
       currency: "TND",
     });
@@ -454,6 +456,7 @@ function ProductPage() {
     const image = selectedVariant?.imageUrl ?? product.image;
     saveQuickCheckoutLine({
       id: variantId,
+      productId: product.id,
       productSlug: product.slug,
       variantId,
       name: product.name,
@@ -466,10 +469,10 @@ function ProductPage() {
       qty,
     });
     trackMetaPixelEvent("InitiateCheckout", {
-      content_ids: [variantId],
+      content_ids: [metaProductId],
       content_name: product.name,
       content_type: "product",
-      contents: [{ id: variantId, quantity: qty, item_price: selectedPrice }],
+      contents: [{ id: metaProductId, quantity: qty, item_price: selectedPrice }],
       value: selectedPrice * qty,
       currency: "TND",
     });
@@ -805,7 +808,7 @@ function ProductPage() {
                     if (!isFavorite) {
                       trackMetaPixelEvent("AddToWishlist", {
                         content_ids: [
-                          selectedVariant?.id ?? product.variantId ?? product.id ?? product.slug,
+                          metaProductId,
                         ],
                         content_name: product.name,
                         content_type: "product",
