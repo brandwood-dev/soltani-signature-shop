@@ -44,7 +44,7 @@ const config: LifestyleConfig = {
       eyebrow: "Confort raffiné",
       title: "Textiles",
       kicker: "Plaids, coussins et linges de maison signés des plus grandes maisons.",
-      subSlugs: ["sacs-a-main"],
+      subSlugs: ["sacs"],
       ctaLabel: "Voir les textiles",
       ctaHref: "/category/mode-style?audience=maison&type=textile",
     },

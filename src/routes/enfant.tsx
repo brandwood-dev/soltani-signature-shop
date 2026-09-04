@@ -22,7 +22,7 @@ const config: LifestyleConfig = {
       kicker: "Formules ultra-douces, hypoallergéniques et testées dermatologiquement.",
       subSlugs: ["cremes-hydratantes", "nettoyants", "masques"],
       ctaLabel: "Voir les soins",
-      ctaHref: "/category/soins-visage?audience=enfant",
+      ctaHref: "/category/soins-du-visage?audience=enfant",
     },
     {
       eyebrow: "Eaux légères",

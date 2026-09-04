@@ -10,7 +10,7 @@ const COLS: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: "Parfums & Fragrances", to: "/category/$slug", params: { slug: "parfums-fragrances" } },
       { label: "Maquillage", to: "/category/$slug", params: { slug: "maquillage" } },
-      { label: "Soins du Visage", to: "/category/$slug", params: { slug: "soins-visage" } },
+      { label: "Soins du Visage", to: "/category/$slug", params: { slug: "soins-du-visage" } },
       { label: "Cheveux", to: "/category/$slug", params: { slug: "cheveux" } },
       { label: "Protection Solaire", to: "/category/$slug", params: { slug: "protection-solaire" } },
       { label: "Mode & Style", to: "/category/$slug", params: { slug: "mode-style" } },

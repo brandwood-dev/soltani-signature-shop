@@ -46,7 +46,7 @@ const CATEGORY_DEFINITIONS = [
     ],
   },
   {
-    slug: "soins-visage",
+    slug: "soins-du-visage",
     name: "Soins du Visage",
     image: cosmetics,
     subs: [
@@ -84,7 +84,7 @@ const CATEGORY_DEFINITIONS = [
     name: "Mode & Style",
     image: bags,
     subs: [
-      { slug: "sacs-a-main", name: "Sacs à main" },
+      { slug: "sacs", name: "Sacs" },
       { slug: "montres", name: "Montres" },
       { slug: "lunettes", name: "Lunettes" },
       { slug: "bijoux", name: "Bijoux" },
