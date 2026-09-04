@@ -456,6 +456,7 @@ function ProductPage() {
     const image = selectedVariant?.imageUrl ?? product.image;
     saveQuickCheckoutLine({
       id: variantId,
+      productId: product.id,
       productSlug: product.slug,
       variantId,
       name: product.name,

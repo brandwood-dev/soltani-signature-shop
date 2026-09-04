@@ -108,6 +108,7 @@ export function ProductCard({ p }: { p: Product }) {
     }
     add({
       id: p.variantId,
+      productId: p.id,
       productSlug: p.slug,
       variantId: p.variantId,
       name: p.name,
