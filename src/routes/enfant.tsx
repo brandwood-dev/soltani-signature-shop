@@ -44,7 +44,7 @@ const config: LifestyleConfig = {
       eyebrow: "Petits Accessoires",
       title: "Mode & Accessoires Enfant",
       kicker: "Lunettes, petits sacs et accessoires fantaisie pour les plus jeunes.",
-      subSlugs: ["lunettes", "sacs-a-main"],
+      subSlugs: ["lunettes", "sacs"],
       ctaLabel: "Voir la mode enfant",
       ctaHref: "/category/mode-style?audience=enfant",
     },
