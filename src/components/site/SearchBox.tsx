@@ -49,7 +49,7 @@ export function SearchBox({
     if (!query) return;
     trackMetaPixelEvent("Search", {
       search_string: query,
-      content_ids: results.map((product) => product.variantId ?? product.slug).slice(0, 10),
+      content_ids: results.map((product) => product.id ?? product.slug).slice(0, 10),
       content_type: "product",
     });
     if (results[0]) {
@@ -68,7 +68,7 @@ export function SearchBox({
     if (query) {
       trackMetaPixelEvent("Search", {
         search_string: query,
-        content_ids: results.map((product) => product.variantId ?? product.slug).slice(0, 10),
+        content_ids: results.map((product) => product.id ?? product.slug).slice(0, 10),
         content_type: "product",
       });
     }
