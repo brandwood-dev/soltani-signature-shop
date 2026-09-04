@@ -2,6 +2,7 @@ import { Heart, Eye, ShoppingBag } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
+import { trackMetaPixelEvent } from "@/lib/meta-pixel";
 
 export type Product = {
   id?: string;
@@ -116,6 +117,15 @@ export function ProductCard({ p }: { p: Product }) {
       price: p.price,
       image: p.image,
       variant: p.variantLabel ?? "Standard",
+    });
+    const catalogProductId = p.id ?? p.slug;
+    trackMetaPixelEvent("AddToCart", {
+      content_ids: [catalogProductId],
+      content_name: p.name,
+      content_type: "product",
+      contents: [{ id: catalogProductId, quantity: 1, item_price: p.price }],
+      value: p.price,
+      currency: "TND",
     });
   };
 
