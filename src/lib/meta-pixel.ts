@@ -12,10 +12,21 @@ type MetaPixelEvent =
 
 type MetaPixelParamValue = string | number | boolean | string[] | Array<Record<string, string | number>> | undefined;
 type MetaPixelParams = Record<string, MetaPixelParamValue>;
+type MetaPixelTrackOptions = { eventID?: string };
+
+type MetaServerEvent = {
+  eventName: MetaPixelEvent;
+  eventId: string;
+  eventSourceUrl?: string;
+  fbp?: string;
+  fbc?: string;
+  userAgent?: string;
+  customData?: Record<string, unknown>;
+};
 
 declare global {
   interface Window {
-    fbq?: ((action: "init" | "track", eventOrPixelId: string, params?: MetaPixelParams) => void) & {
+    fbq?: ((action: "init" | "track", eventOrPixelId: string, params?: MetaPixelParams, options?: MetaPixelTrackOptions) => void) & {
       callMethod?: (...args: unknown[]) => void;
       queue?: unknown[];
       loaded?: boolean;
@@ -70,7 +81,17 @@ export function initMetaPixel() {
 export function trackMetaPixelEvent(event: MetaPixelEvent, params?: MetaPixelParams) {
   if (!isBrowser()) return;
   initMetaPixel();
-  window.fbq?.("track", event, sanitizeParams(params));
+  const eventId = createEventId();
+  window.fbq?.("track", event, sanitizeParams(params), { eventID: eventId });
+  void sendMetaServerEvent({
+    eventName: event,
+    eventId,
+    eventSourceUrl: window.location.href,
+    fbp: readCookie("_fbp"),
+    fbc: readCookie("_fbc"),
+    userAgent: navigator.userAgent,
+    customData: sanitizeParams(params),
+  });
 }
 
 export function trackPageView(path: string) {
@@ -84,4 +105,27 @@ export function trackPageView(path: string) {
 function sanitizeParams(params?: MetaPixelParams) {
   if (!params) return undefined;
   return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined && value !== ""));
+}
+
+function createEventId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+}
+
+function readCookie(name: string) {
+  const value = document.cookie.split("; ").find((item) => item.startsWith(`${name}=`))?.split("=")[1];
+  return value ? decodeURIComponent(value) : undefined;
+}
+
+async function sendMetaServerEvent(event: MetaServerEvent) {
+  try {
+    await fetch(`${publicEnv.apiUrl}/catalog/meta/events`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(event),
+      keepalive: true,
+    });
+  } catch {
+    // Browser Pixel remains the fallback when the server event cannot be queued.
+  }
 }

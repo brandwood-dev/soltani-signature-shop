@@ -101,6 +101,7 @@ export type ApiWishlistProduct = {
 
 export type ApiCartLine = {
   id: string;
+  productId?: string;
   productSlug?: string;
   variantId: string;
   name: string;

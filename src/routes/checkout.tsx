@@ -122,9 +122,9 @@ function CheckoutPage() {
     if (initiatedCheckoutRef.current || !lines.length) return;
     initiatedCheckoutRef.current = true;
     trackMetaPixelEvent("InitiateCheckout", {
-      content_ids: lines.map((line) => line.variantId),
+      content_ids: lines.map((line) => line.productId ?? line.variantId),
       content_type: "product",
-      contents: lines.map((line) => ({ id: line.variantId, quantity: line.qty, item_price: line.price })),
+      contents: lines.map((line) => ({ id: line.productId ?? line.variantId, quantity: line.qty, item_price: line.price })),
       num_items: lines.reduce((sum, line) => sum + line.qty, 0),
       value: subtotal,
       currency: "TND",
@@ -135,9 +135,9 @@ function CheckoutPage() {
     if (step !== 3 || addedPaymentInfoRef.current || !lines.length) return;
     addedPaymentInfoRef.current = true;
     trackMetaPixelEvent("AddPaymentInfo", {
-      content_ids: lines.map((line) => line.variantId),
+      content_ids: lines.map((line) => line.productId ?? line.variantId),
       content_type: "product",
-      contents: lines.map((line) => ({ id: line.variantId, quantity: line.qty, item_price: line.price })),
+      contents: lines.map((line) => ({ id: line.productId ?? line.variantId, quantity: line.qty, item_price: line.price })),
       payment_method: paymentMethod,
       value: subtotal,
       currency: "TND",

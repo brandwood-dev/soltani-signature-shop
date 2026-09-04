@@ -48,9 +48,9 @@ function OrderConfirmationPage() {
     if (sessionStorage.getItem(purchaseKey)) return;
     sessionStorage.setItem(purchaseKey, "1");
     trackMetaPixelEvent("Purchase", {
-      content_ids: order.lines.map((line) => line.variantId),
+      content_ids: order.lines.map((line) => line.productId ?? line.variantId),
       content_type: "product",
-      contents: order.lines.map((line) => ({ id: line.variantId, quantity: line.qty, item_price: line.price })),
+      contents: order.lines.map((line) => ({ id: line.productId ?? line.variantId, quantity: line.qty, item_price: line.price })),
       num_items: order.lines.reduce((sum, line) => sum + line.qty, 0),
       value: order.total,
       currency: "TND",
