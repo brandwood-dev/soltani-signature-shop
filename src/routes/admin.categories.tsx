@@ -361,8 +361,13 @@ function AdminCategories() {
                         /{category.slug} · {category.subs.length} sous-catégorie
                         {category.subs.length > 1 ? "s" : ""}
                       </p>
+                      {category.slug === "idees-cadeaux" && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          Catégorie unique, sans sous-catégories.
+                        </p>
+                      )}
                     </div>
-                    <Button
+                    {category.slug !== "idees-cadeaux" && <Button
                       variant="outline"
                       size="sm"
                       className="h-8 shrink-0 gap-1 px-2"
@@ -373,7 +378,7 @@ function AdminCategories() {
                     >
                       <Plus className="h-4 w-4" />
                       <span className="hidden lg:inline">Sous-catégorie</span>
-                    </Button>
+                    </Button>}
                     <div className="hidden shrink-0 gap-1 sm:flex">
                       <Button
                         variant="ghost"

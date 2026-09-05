@@ -68,7 +68,7 @@ const config: LifestyleConfig = {
       eyebrow: "Cadeaux pour elle",
       title: "L'Art d'offrir",
       kicker: "Coffrets précieux, accessoires emblématiques — des cadeaux pensés pour la marquer.",
-      subSlugs: ["coffrets-parfum", "sacs"],
+      subSlugs: "idees-cadeaux",
       ctaLabel: "Voir tous les cadeaux",
       ctaHref: "/category/parfums-fragrances?audience=femme&type=cadeau",
     },

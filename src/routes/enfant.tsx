@@ -52,7 +52,7 @@ const config: LifestyleConfig = {
       eyebrow: "Cadeaux Enfant",
       title: "L'Art d'offrir aux Petits",
       kicker: "Coffrets émerveillants pour les anniversaires et grandes occasions.",
-      subSlugs: ["coffrets-parfum", "accessoires-maquillage"],
+      subSlugs: "idees-cadeaux",
       ctaLabel: "Voir tous les cadeaux",
       ctaHref: "/category/parfums-fragrances?audience=enfant&type=cadeau",
     },

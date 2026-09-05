@@ -106,6 +106,7 @@ function AdminNewProduct() {
   const [tags, setTags] = useState<string[]>([]);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  const isGiftCategory = category === "idees-cadeaux";
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const imageUploadInProgress = useRef(false);
@@ -772,6 +773,7 @@ function AdminNewProduct() {
                     onValueChange={(v) => {
                       setCategory(v);
                       setSubcategory("");
+                      if (v === "idees-cadeaux") setBrand("");
                       setAttributes({});
                     }}
                   >
@@ -787,7 +789,7 @@ function AdminNewProduct() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
+                {!isGiftCategory && <div className="space-y-1.5">
                   <Label>Sous-catégorie</Label>
                   <Select
                     value={subcategory}
@@ -810,8 +812,8 @@ function AdminNewProduct() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-1.5">
+                </div>}
+                {!isGiftCategory && <div className="space-y-1.5">
                   <Label>Marque</Label>
                   <Select value={brand} onValueChange={setBrand}>
                     <SelectTrigger>
@@ -825,7 +827,7 @@ function AdminNewProduct() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div>}
                 <div className="space-y-1.5">
                   <Label>Tags</Label>
                   <div className="flex gap-2">
