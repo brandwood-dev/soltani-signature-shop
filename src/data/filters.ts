@@ -118,7 +118,7 @@ export const FILTERS_BY_SUB: Record<string, FacetDef[]> = {
   ],
 
   // Mode & Style
-  "sacs-a-main": [
+  sacs: [
     { key: "couleur", label: "Couleur", options: ["Noir", "Brun", "Beige", "Blanc", "Rouge", "Bleu", "Or"] },
     { key: "matiere", label: "Matière", options: ["Cuir lisse", "Cuir grainé", "Toile", "Daim", "Matelassé"] },
     { key: "style", label: "Style", options: ["Cabas", "Pochette", "Bandoulière", "Tote", "Crossbody", "Hobo"] },

@@ -30,7 +30,7 @@ const config: LifestyleConfig = {
       kicker: "Sérums, hydratants et rituels visage spécialement formulés pour la peau masculine.",
       subSlugs: ["serums", "cremes-hydratantes", "nettoyants"],
       ctaLabel: "Voir les soins",
-      ctaHref: "/category/soins-visage?audience=homme",
+      ctaHref: "/category/soins-du-visage?audience=homme",
     },
     {
       eyebrow: "Garde-temps",

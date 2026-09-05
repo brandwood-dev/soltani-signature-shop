@@ -38,7 +38,7 @@ const config: LifestyleConfig = {
       kicker: "Sérums repulpants, crèmes hydratantes et masques d'exception pour une peau radieuse.",
       subSlugs: ["serums", "cremes-hydratantes", "contour-yeux"],
       ctaLabel: "Voir les soins",
-      ctaHref: "/category/soins-visage?audience=femme",
+      ctaHref: "/category/soins-du-visage?audience=femme",
     },
     {
       eyebrow: "Précieux & Signature",
@@ -68,7 +68,7 @@ const config: LifestyleConfig = {
       eyebrow: "Cadeaux pour elle",
       title: "L'Art d'offrir",
       kicker: "Coffrets précieux, accessoires emblématiques — des cadeaux pensés pour la marquer.",
-      subSlugs: ["coffrets-parfum", "sacs-a-main"],
+      subSlugs: "idees-cadeaux",
       ctaLabel: "Voir tous les cadeaux",
       ctaHref: "/category/parfums-fragrances?audience=femme&type=cadeau",
     },

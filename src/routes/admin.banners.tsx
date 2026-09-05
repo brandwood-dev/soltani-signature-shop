@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, ImagePlus, Eye, EyeOff } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -33,6 +33,7 @@ import {
   updatePromoBanner,
   type PromoBanner,
 } from "@/lib/promo-banners-api";
+import { uploadAdminProductImage } from "@/lib/admin-products-api";
 
 export const Route = createFileRoute("/admin/banners")({
   component: AdminBanners,
@@ -88,6 +89,9 @@ function AdminBanners() {
   const [pageSize, setPageSize] = useState(12);
   const [total, setTotal] = useState(0);
   const [countsByPage, setCountsByPage] = useState<Record<string, number>>({});
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
 
   const load = async () => {
     try {
@@ -149,11 +153,13 @@ function AdminBanners() {
   };
 
   const openNew = () => {
+    setImageUploadError("");
     setEditing(empty(tab === "all" ? "home" : tab));
     setOpen(true);
   };
 
   const openEdit = (banner: PromoBanner) => {
+    setImageUploadError("");
     setEditing({ ...banner });
     setOpen(true);
   };
@@ -373,10 +379,46 @@ function AdminBanners() {
                 <Label>Image</Label>
                 <div className="flex gap-2">
                   <Input value={editing.image} onChange={(event) => setEditing({ ...editing, image: event.target.value })} placeholder="URL de l'image" />
-                  <Button variant="outline" size="icon" className="shrink-0" aria-label="Téléverser">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    aria-label="Téléverser une image"
+                    aria-busy={uploadingImage}
+                    disabled={uploadingImage}
+                    onClick={() => imageInputRef.current?.click()}
+                  >
                     <ImagePlus className="h-4 w-4" />
                   </Button>
                 </div>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="sr-only"
+                  disabled={uploadingImage}
+                  onChange={async (event) => {
+                    const file = event.currentTarget.files?.[0];
+                    event.currentTarget.value = "";
+                    if (!file || !editing) return;
+                    setUploadingImage(true);
+                    setImageUploadError("");
+                    try {
+                      const image = await uploadAdminProductImage(file);
+                      setEditing((current) => (current ? { ...current, image } : current));
+                    } catch (caught) {
+                      setImageUploadError(caught instanceof Error ? caught.message : "Téléversement de l'image impossible.");
+                    } finally {
+                      setUploadingImage(false);
+                    }
+                  }}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  JPEG, PNG, WebP ou GIF · 5 Mo maximum · conversion automatique en WebP.
+                </p>
+                {uploadingImage && <p className="text-xs text-muted-foreground">Conversion WebP en cours…</p>}
+                {imageUploadError && <p role="alert" className="text-xs text-destructive">{imageUploadError}</p>}
                 {editing.image && <img src={editing.image} alt="" className="mt-2 aspect-[2/1] w-full rounded-md object-cover" />}
               </div>
               <div className="space-y-1.5">

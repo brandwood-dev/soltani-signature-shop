@@ -23,6 +23,22 @@ function CountBadge({ count, tone = "gold" }: { count: number; tone?: "gold" | "
 type MegaGroup = CategoryTree;
 
 function MegaTrigger({ group }: { group: MegaGroup }) {
+  const activeSubs = group.subs.filter((sub) => sub.active);
+
+  if (activeSubs.length === 0) {
+    return (
+      <li>
+        <Link
+          to="/category/$slug"
+          params={{ slug: group.slug }}
+          className="inline-flex items-center py-3 text-foreground/80 hover:text-gold transition-colors"
+        >
+          {group.name}
+        </Link>
+      </li>
+    );
+  }
+
   return (
     <li className="relative group/mega">
       <Link
@@ -48,7 +64,7 @@ function MegaTrigger({ group }: { group: MegaGroup }) {
                 Tout voir
               </Link>
             </li>
-            {group.subs.map((sub) => (
+            {activeSubs.map((sub) => (
               <li key={sub.slug}>
                 <Link
                   to="/category/$slug"
@@ -68,6 +84,23 @@ function MegaTrigger({ group }: { group: MegaGroup }) {
 
 function MobileGroup({ group, onNavigate }: { group: MegaGroup; onNavigate: () => void }) {
   const [open, setOpen] = useState(false);
+  const activeSubs = group.subs.filter((sub) => sub.active);
+
+  if (activeSubs.length === 0) {
+    return (
+      <li className="border-b border-border">
+        <Link
+          to="/category/$slug"
+          params={{ slug: group.slug }}
+          onClick={onNavigate}
+          className="block py-3 text-sm tracking-widest text-foreground/90"
+        >
+          {group.name}
+        </Link>
+      </li>
+    );
+  }
+
   return (
     <li className="border-b border-border">
       <button
@@ -89,7 +122,7 @@ function MobileGroup({ group, onNavigate }: { group: MegaGroup; onNavigate: () =
               Tout voir
             </Link>
           </li>
-          {group.subs.map((sub) => (
+          {activeSubs.map((sub) => (
             <li key={sub.slug}>
               <Link
                 to="/category/$slug"

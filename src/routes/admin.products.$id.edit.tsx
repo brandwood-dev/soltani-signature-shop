@@ -136,6 +136,7 @@ function AdminEditProduct() {
   const [tags, setTags] = useState<string[]>([]);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  const isGiftCategory = category === "idees-cadeaux";
 
   const selectedCategoryConfig = categoryTree
     .flatMap((item) => [item, ...item.subs])
@@ -969,11 +970,12 @@ function AdminEditProduct() {
                     <Label>Catégorie *</Label>
                     <Select
                       value={category}
-                      onValueChange={(value) => {
-                        setCategory(value);
-                        setSubcategory("");
-                        setAttributes({});
-                      }}
+                    onValueChange={(value) => {
+                      setCategory(value);
+                      setSubcategory("");
+                      if (value === "idees-cadeaux") setBrand("");
+                      setAttributes({});
+                    }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choisir" />
@@ -987,7 +989,7 @@ function AdminEditProduct() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
+                  {!isGiftCategory && <div className="space-y-1.5">
                     <Label>Sous-catégorie</Label>
                     <Select
                       value={subcategory}
@@ -1010,8 +1012,8 @@ function AdminEditProduct() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="space-y-1.5">
+                  </div>}
+                  {!isGiftCategory && <div className="space-y-1.5">
                     <Label>Marque</Label>
                     <Select value={brand} onValueChange={setBrand}>
                       <SelectTrigger>
@@ -1025,7 +1027,7 @@ function AdminEditProduct() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div>}
                   <div className="space-y-1.5">
                     <Label>Tags</Label>
                     <div className="flex gap-2">

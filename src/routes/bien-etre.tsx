@@ -30,7 +30,7 @@ const config: LifestyleConfig = {
       kicker: "Laits hydratants, gommages et baumes nourrissants pour une peau de velours.",
       subSlugs: ["cremes-hydratantes", "masques", "nettoyants"],
       ctaLabel: "Voir les soins corps",
-      ctaHref: "/category/soins-visage?audience=bien-etre",
+      ctaHref: "/category/soins-du-visage?audience=bien-etre",
     },
     {
       eyebrow: "Énergie & Vitalité",
@@ -38,7 +38,7 @@ const config: LifestyleConfig = {
       kicker: "Compléments alimentaires et boosters naturels pour soutenir votre équilibre.",
       subSlugs: ["serums", "contour-yeux"],
       ctaLabel: "Voir les compléments",
-      ctaHref: "/category/soins-visage?audience=bien-etre&type=complement",
+      ctaHref: "/category/soins-du-visage?audience=bien-etre&type=complement",
     },
     {
       eyebrow: "Atmosphère",

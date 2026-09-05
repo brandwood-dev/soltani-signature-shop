@@ -35,6 +35,7 @@ type Props = {
 type State = {
   brands: string[];
   subcategory: string;
+  section: string;
   minPrice?: number;
   maxPrice?: number;
   minDiscount: number;
@@ -51,7 +52,7 @@ const DISCOUNT_TIERS = [
 
 const initialState = (defaultSort: string): State => {
   if (typeof window === "undefined") {
-    return { brands: [], subcategory: "all", minDiscount: 0, sort: defaultSort, page: 1, attributes: {} };
+    return { brands: [], subcategory: "all", section: "", minDiscount: 0, sort: defaultSort, page: 1, attributes: {} };
   }
 
   const params = new URLSearchParams(window.location.search);
@@ -66,6 +67,7 @@ const initialState = (defaultSort: string): State => {
   return {
     brands: splitParam(params.get("brand")),
     subcategory: params.get("sub") || "all",
+    section: params.get("section") || "",
     minPrice: numberParam(params.get("minPrice")),
     maxPrice: numberParam(params.get("maxPrice")),
     minDiscount: numberParam(params.get("discount")) ?? 0,
@@ -125,7 +127,7 @@ export function FilterableProductListing({
     () => ({
       category: activeCategorySlug ?? categorySlug,
       query,
-      section,
+      section: section ?? (state.section || undefined),
       featured,
       bestSeller,
       promotion,
@@ -170,6 +172,7 @@ export function FilterableProductListing({
     const params = new URLSearchParams();
     if (state.brands.length) params.set("brand", state.brands.join(","));
     if (state.subcategory !== "all") params.set("sub", state.subcategory);
+    if (!section && state.section) params.set("section", state.section);
     if (Number.isFinite(state.minPrice)) params.set("minPrice", String(state.minPrice));
     if (Number.isFinite(state.maxPrice)) params.set("maxPrice", String(state.maxPrice));
     if (state.minDiscount > 0) params.set("discount", String(state.minDiscount));
@@ -180,7 +183,7 @@ export function FilterableProductListing({
     });
     const next = `${window.location.pathname}${params.size ? `?${params}` : ""}`;
     window.history.replaceState(null, "", next);
-  }, [defaultSort, state]);
+  }, [defaultSort, section, state]);
 
   const products = result?.products ?? [];
   const pagination = result?.pagination ?? { page: state.page, pageSize: PAGE_SIZE, total: 0, totalPages: 1 };
@@ -217,18 +220,49 @@ export function FilterableProductListing({
   };
 
   const resetFilters = () => {
-    setState({ brands: [], subcategory: "all", minDiscount: 0, sort: defaultSort, page: 1, attributes: {} });
+    setState({ brands: [], subcategory: "all", section: "", minDiscount: 0, sort: defaultSort, page: 1, attributes: {} });
   };
 
   const activeCount =
     state.brands.length +
     Object.values(state.attributes).reduce((total, values) => total + values.length, 0) +
     (state.subcategory !== "all" ? 1 : 0) +
+    (!section && state.section ? 1 : 0) +
     (state.minDiscount > 0 ? 1 : 0) +
     (Number.isFinite(state.minPrice) || Number.isFinite(state.maxPrice) ? 1 : 0);
 
   const renderFilters = (scope: string, isMobile = false) => (
     <div className="space-y-8">
+      {categorySlug === "idees-cadeaux" && !section && (
+        <FilterBlock title="Section">
+          <div className="space-y-2.5">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name={`${scope}-section`}
+                checked={!state.section}
+                onChange={() => setPartial({ section: "" })}
+                className="accent-gold"
+              />
+              <span className="text-sm text-foreground/80">Toutes</span>
+            </label>
+            {["homme", "femme", "enfant", "maison", "bien-etre"].map((value) => (
+              <label key={value} className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`${scope}-section`}
+                  checked={state.section === value}
+                  onChange={() => setPartial({ section: value })}
+                  className="accent-gold"
+                />
+                <span className="text-sm text-foreground/80">
+                  {{ homme: "Homme", femme: "Femme", enfant: "Enfant", maison: "Maison", "bien-etre": "Bien-être" }[value]}
+                </span>
+              </label>
+            ))}
+          </div>
+        </FilterBlock>
+      )}
       {subcategories.length > 0 && (
         <FilterBlock title="Sous-catégorie">
           <div className="space-y-2.5">

@@ -17,7 +17,7 @@ export function Packs({ items }: { items: Product[] }) {
           </div>
           <Link
             to="/category/$slug"
-            params={{ slug: "coffrets-parfum" }}
+            params={{ slug: "idees-cadeaux" }}
             className="text-[11px] uppercase tracking-[0.3em] text-gold hover:text-cream transition underline-offset-4 hover:underline"
           >
             Voir tout →
@@ -26,7 +26,7 @@ export function Packs({ items }: { items: Product[] }) {
 
         {items.length === 0 ? (
           <div className="rounded-sm border border-dashed border-border bg-card/40 px-6 py-12 text-center text-sm text-muted-foreground">
-            Aucun coffret parfum disponible pour le moment.
+            Aucun coffret disponible pour le moment.
           </div>
         ) : (
           <ProductCarousel items={items} />

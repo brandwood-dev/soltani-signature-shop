@@ -22,7 +22,7 @@ const config: LifestyleConfig = {
       kicker: "Formules ultra-douces, hypoallergéniques et testées dermatologiquement.",
       subSlugs: ["cremes-hydratantes", "nettoyants", "masques"],
       ctaLabel: "Voir les soins",
-      ctaHref: "/category/soins-visage?audience=enfant",
+      ctaHref: "/category/soins-du-visage?audience=enfant",
     },
     {
       eyebrow: "Eaux légères",
@@ -52,7 +52,7 @@ const config: LifestyleConfig = {
       eyebrow: "Cadeaux Enfant",
       title: "L'Art d'offrir aux Petits",
       kicker: "Coffrets émerveillants pour les anniversaires et grandes occasions.",
-      subSlugs: ["coffrets-parfum", "accessoires-maquillage"],
+      subSlugs: "idees-cadeaux",
       ctaLabel: "Voir tous les cadeaux",
       ctaHref: "/category/parfums-fragrances?audience=enfant&type=cadeau",
     },
