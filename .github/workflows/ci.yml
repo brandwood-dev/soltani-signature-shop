@@ -60,6 +60,15 @@ jobs:
       - name: Bundle budgets
         run: bun run check:bundle
 
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Critical E2E tests
+        run: bun run test:e2e
+        env:
+          E2E_BASE_URL: https://www.soltanisignature.com
+          E2E_API_BASE_URL: https://soltani-signature-api.onrender.com
+
       - name: Production smoke tests
         if: github.ref == 'refs/heads/main'
         shell: bash
