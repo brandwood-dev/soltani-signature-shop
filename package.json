@@ -10,7 +10,7 @@
     "check:bundle": "bun scripts/check-bundle-budget.ts",
     "check:cloudflare": "wrangler deploy --dry-run --config wrangler.jsonc && wrangler deploy --dry-run --config wrangler.cron.jsonc",
     "cf:typegen:cron": "wrangler types --config wrangler.cron.jsonc workers/mail-outbox-cron-env.d.ts",
-    "deploy:cloudflare": "bun run build && wrangler deploy --config wrangler.jsonc",
+    "deploy:cloudflare": "bun run build && bun scripts/deploy-cloudflare.ts",
     "deploy:cron": "wrangler deploy --config wrangler.cron.jsonc",
     "test": "bun test",
     "preview": "vite preview",
