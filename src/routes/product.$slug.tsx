@@ -602,7 +602,9 @@ function ProductPage() {
         </div>
 
         <div>
-          <p className="text-[11px] uppercase tracking-[0.3em] text-gold mb-2">{product.brand}</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-gold mb-2">
+            {displayProductBrand(product)}
+          </p>
           <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
             {product.name}
           </h1>
@@ -650,7 +652,7 @@ function ProductPage() {
           <p className="text-sm text-foreground/80 mb-6 leading-relaxed">
             {product.shortDescription?.trim() ||
               product.description?.trim() ||
-              `Une pièce d'exception sélectionnée par nos experts. ${product.brand} incarne le raffinement et la précision dans les moindres détails.`}
+              `Une pièce d'exception sélectionnée par nos experts. ${displayProductBrand(product)} incarne le raffinement et la précision dans les moindres détails.`}
           </p>
 
           {variantAxes.length > 0 && productVariants.length > 0 ? (
@@ -807,9 +809,7 @@ function ProductPage() {
                   onClick={() => {
                     if (!isFavorite) {
                       trackMetaPixelEvent("AddToWishlist", {
-                        content_ids: [
-                          metaProductId,
-                        ],
+                        content_ids: [metaProductId],
                         content_name: product.name,
                         content_type: "product",
                         value: selectedPrice,
@@ -967,11 +967,18 @@ function buildSpecifications(
     .filter(([, value]) => value.trim().length > 0);
 
   return [
-    ["Marque", product.brand],
+    ["Marque", displayProductBrand(product)],
     ["Catégorie", categoryName],
     ["Référence", selectedVariant?.reference || selectedVariant?.sku || product.slug.toUpperCase()],
     ...dynamicSpecs,
   ];
+}
+
+function displayProductBrand(product: Product) {
+  return product.category === "idees-cadeaux" ||
+    product.brand.trim().toLowerCase() === "sans marque"
+    ? "Pack"
+    : product.brand;
 }
 
 function formatSpecLabel(value: string) {

@@ -52,7 +52,15 @@ const DISCOUNT_TIERS = [
 
 const initialState = (defaultSort: string): State => {
   if (typeof window === "undefined") {
-    return { brands: [], subcategory: "all", section: "", minDiscount: 0, sort: defaultSort, page: 1, attributes: {} };
+    return {
+      brands: [],
+      subcategory: "all",
+      section: "",
+      minDiscount: 0,
+      sort: defaultSort,
+      page: 1,
+      attributes: {},
+    };
   }
 
   const params = new URLSearchParams(window.location.search);
@@ -60,7 +68,10 @@ const initialState = (defaultSort: string): State => {
   params.forEach((value, key) => {
     if (!key.startsWith("attr_")) return;
     const attrKey = key.slice(5);
-    const values = value.split(",").map((item) => item.trim()).filter(Boolean);
+    const values = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
     if (attrKey && values.length) attributes[attrKey] = values;
   });
 
@@ -131,7 +142,7 @@ export function FilterableProductListing({
       featured,
       bestSeller,
       promotion,
-      brands: state.brands,
+      brands: categorySlug === "idees-cadeaux" ? [] : state.brands,
       minPrice: state.minPrice,
       maxPrice: state.maxPrice,
       minDiscount: showDiscountFilter && state.minDiscount > 0 ? state.minDiscount : undefined,
@@ -140,7 +151,17 @@ export function FilterableProductListing({
       pageSize: PAGE_SIZE,
       attributes: state.attributes,
     }),
-    [activeCategorySlug, bestSeller, categorySlug, featured, promotion, query, section, showDiscountFilter, state],
+    [
+      activeCategorySlug,
+      bestSeller,
+      categorySlug,
+      featured,
+      promotion,
+      query,
+      section,
+      showDiscountFilter,
+      state,
+    ],
   );
 
   useEffect(() => {
@@ -186,7 +207,12 @@ export function FilterableProductListing({
   }, [defaultSort, section, state]);
 
   const products = result?.products ?? [];
-  const pagination = result?.pagination ?? { page: state.page, pageSize: PAGE_SIZE, total: 0, totalPages: 1 };
+  const pagination = result?.pagination ?? {
+    page: state.page,
+    pageSize: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  };
   const priceBounds = result?.facets.price ?? { min: 0, max: 0 };
   const selectedPriceRange: [number, number] = [
     state.minPrice ?? priceBounds.min,
@@ -195,7 +221,11 @@ export function FilterableProductListing({
   const brandOptions = result?.facets.brands ?? [];
 
   const setPartial = (partial: Partial<State>, resetPage = true) => {
-    setState((current) => ({ ...current, ...partial, page: resetPage ? 1 : partial.page ?? current.page }));
+    setState((current) => ({
+      ...current,
+      ...partial,
+      page: resetPage ? 1 : (partial.page ?? current.page),
+    }));
   };
 
   const toggleBrand = (slug: string) => {
@@ -220,11 +250,19 @@ export function FilterableProductListing({
   };
 
   const resetFilters = () => {
-    setState({ brands: [], subcategory: "all", section: "", minDiscount: 0, sort: defaultSort, page: 1, attributes: {} });
+    setState({
+      brands: [],
+      subcategory: "all",
+      section: "",
+      minDiscount: 0,
+      sort: defaultSort,
+      page: 1,
+      attributes: {},
+    });
   };
 
   const activeCount =
-    state.brands.length +
+    (categorySlug === "idees-cadeaux" ? 0 : state.brands.length) +
     Object.values(state.attributes).reduce((total, values) => total + values.length, 0) +
     (state.subcategory !== "all" ? 1 : 0) +
     (!section && state.section ? 1 : 0) +
@@ -256,7 +294,15 @@ export function FilterableProductListing({
                   className="accent-gold"
                 />
                 <span className="text-sm text-foreground/80">
-                  {{ homme: "Homme", femme: "Femme", enfant: "Enfant", maison: "Maison", "bien-etre": "Bien-être" }[value]}
+                  {
+                    {
+                      homme: "Homme",
+                      femme: "Femme",
+                      enfant: "Enfant",
+                      maison: "Maison",
+                      "bien-etre": "Bien-être",
+                    }[value]
+                  }
                 </span>
               </label>
             ))}
@@ -301,7 +347,7 @@ export function FilterableProductListing({
         />
       </FilterBlock>
 
-      {brandOptions.length > 0 && (
+      {categorySlug !== "idees-cadeaux" && brandOptions.length > 0 && (
         <FilterBlock title="Marque">
           <div className="space-y-2.5">
             {brandOptions.map((brand) => (
@@ -312,7 +358,9 @@ export function FilterableProductListing({
                   onChange={() => toggleBrand(brand.slug)}
                   className="h-4 w-4 accent-gold border-border"
                 />
-                <span className="text-sm text-foreground/80 group-hover:text-gold transition">{brand.name}</span>
+                <span className="text-sm text-foreground/80 group-hover:text-gold transition">
+                  {brand.name}
+                </span>
               </label>
             ))}
           </div>
@@ -357,14 +405,19 @@ export function FilterableProductListing({
               {definition.options.map((option) => {
                 const checked = (state.attributes[definition.key] ?? []).includes(option.value);
                 return (
-                  <label key={option.value} className="flex items-center gap-3 cursor-pointer group">
+                  <label
+                    key={option.value}
+                    className="flex items-center gap-3 cursor-pointer group"
+                  >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleAttribute(definition.key, option.value)}
                       className="h-4 w-4 accent-gold border-border"
                     />
-                    <span className="text-sm text-foreground/80 group-hover:text-gold transition">{option.label}</span>
+                    <span className="text-sm text-foreground/80 group-hover:text-gold transition">
+                      {option.label}
+                    </span>
                   </label>
                 );
               })}
@@ -398,7 +451,8 @@ export function FilterableProductListing({
             {activeCount > 0 && <span className="text-gold">({activeCount})</span>}
           </button>
           <p className="text-sm text-muted-foreground hidden lg:block">
-            {pagination.total} {countLabel}{pagination.total > 1 ? "s" : ""}
+            {pagination.total} {countLabel}
+            {pagination.total > 1 ? "s" : ""}
           </p>
           <select
             value={state.sort}
@@ -427,7 +481,9 @@ export function FilterableProductListing({
             </a>
           </div>
         ) : products.length === 0 ? (
-          <p className="text-center py-20 text-muted-foreground">Aucun produit ne correspond à vos filtres.</p>
+          <p className="text-center py-20 text-muted-foreground">
+            Aucun produit ne correspond à vos filtres.
+          </p>
         ) : (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
@@ -442,7 +498,8 @@ export function FilterableProductListing({
                 totalPages={pagination.totalPages}
                 onChange={(page) => {
                   setPartial({ page }, false);
-                  if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+                  if (typeof window !== "undefined")
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
               />
             )}
@@ -494,7 +551,9 @@ export function FilterableProductListing({
 function FilterBlock({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="pb-6 border-b border-border">
-      <h4 className="text-[11px] uppercase tracking-[0.3em] text-gold font-semibold mb-4">{title}</h4>
+      <h4 className="text-[11px] uppercase tracking-[0.3em] text-gold font-semibold mb-4">
+        {title}
+      </h4>
       {children}
     </div>
   );
@@ -545,7 +604,12 @@ function Pagination({
 }
 
 function splitParam(value: string | null) {
-  return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+  return (
+    value
+      ?.split(",")
+      .map((item) => item.trim())
+      .filter(Boolean) ?? []
+  );
 }
 
 function numberParam(value: string | null) {

@@ -99,6 +99,10 @@ export function ProductCard({ p }: { p: Product }) {
   const hasValidComparePrice = Boolean(p.oldPrice && p.oldPrice > priceMin);
   const requiresSelection =
     p.variantMode === "color" || p.variantMode === "options" || (p.variants?.length ?? 0) > 1;
+  const displayBrand =
+    p.category === "idees-cadeaux" || p.brand.trim().toLowerCase() === "sans marque"
+      ? "Pack"
+      : p.brand;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -207,7 +211,7 @@ export function ProductCard({ p }: { p: Product }) {
         </div>
 
         <div className="pt-4 pb-2">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-gold mb-1.5">{p.brand}</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-gold mb-1.5">{displayBrand}</p>
           <h3 className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-gold transition">
             {p.name}
           </h3>
