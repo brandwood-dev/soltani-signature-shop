@@ -36,6 +36,53 @@ const LIMITS = {
   ctaText: 25,
 };
 
+const MAX_HERO_IMAGE_CHARS = 490_000;
+
+function optimizeHeroImage(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      try {
+        let width = Math.min(image.naturalWidth, 2400);
+        let height = Math.min(image.naturalHeight, 1600);
+        const initialScale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+        width = Math.max(1, Math.round(image.naturalWidth * initialScale));
+        height = Math.max(1, Math.round(image.naturalHeight * initialScale));
+
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Impossible de préparer l'image.");
+          context.drawImage(image, 0, 0, width, height);
+
+          const quality = Math.max(0.62, 0.88 - attempt * 0.04);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          if (dataUrl.length <= MAX_HERO_IMAGE_CHARS) {
+            resolve(dataUrl);
+            return;
+          }
+
+          width = Math.max(1, Math.round(width * 0.85));
+          height = Math.max(1, Math.round(height * 0.85));
+        }
+
+        reject(new Error("Cette image reste trop volumineuse après optimisation."));
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Impossible de lire cette image."));
+    };
+    image.src = objectUrl;
+  });
+}
+
 function AdminHero() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [editing, setEditing] = useState<HeroSlide | null>(null);
@@ -72,19 +119,19 @@ function AdminHero() {
     setOpen(true);
   };
 
-  const readImageFile = (file: File) => {
+  const readImageFile = async (file: File) => {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       setError("Image invalide. Formats acceptés : jpg, jpeg, png, webp.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setEditing((current) =>
-        current && typeof reader.result === "string" ? { ...current, image: reader.result } : current,
-      );
-    };
-    reader.readAsDataURL(file);
+    try {
+      setError("");
+      const optimizedImage = await optimizeHeroImage(file);
+      setEditing((current) => (current ? { ...current, image: optimizedImage } : current));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible d'optimiser cette image.");
+    }
   };
 
   const validate = (slide: HeroSlide) => {
@@ -250,14 +297,36 @@ function AdminHero() {
                   </div>
                   <div className="flex items-center justify-between border-t border-border pt-3">
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => move(index, -1)} disabled={index === 0}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => move(index, -1)}
+                        disabled={index === 0}
+                      >
                         <ArrowUp className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => move(index, 1)} disabled={index === slides.length - 1}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => move(index, 1)}
+                        disabled={index === slides.length - 1}
+                      >
                         <ArrowDown className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggle(slide)} aria-label={slide.active ? "Désactiver" : "Activer"}>
-                        {slide.active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => toggle(slide)}
+                        aria-label={slide.active ? "Désactiver" : "Activer"}
+                      >
+                        {slide.active ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                     <Button size="sm" variant="outline" onClick={() => openEdit(slide)}>
@@ -303,48 +372,127 @@ function AdminHero() {
                       if (file) readImageFile(file);
                     }}
                   />
-                  <Button variant="outline" size="icon" className="shrink-0" aria-label="Téléverser" onClick={() => fileInputRef.current?.click()}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    aria-label="Téléverser"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <ImagePlus className="h-4 w-4" />
                   </Button>
                 </div>
-                {editing.image && <img src={editing.image} alt="" className="mt-2 aspect-[16/9] w-full rounded-md object-cover" />}
+                {editing.image && (
+                  <img
+                    src={editing.image}
+                    alt=""
+                    className="mt-2 aspect-[16/9] w-full rounded-md object-cover"
+                  />
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <LimitedInput label="Tagline" value={editing.tagline} max={LIMITS.tagline} onChange={(tagline) => updateEditing({ tagline })} />
-                <LimitedInput label="Sous-titre" value={editing.subtitle} max={LIMITS.subtitle} onChange={(subtitle) => updateEditing({ subtitle })} />
+                <LimitedInput
+                  label="Tagline"
+                  value={editing.tagline}
+                  max={LIMITS.tagline}
+                  onChange={(tagline) => updateEditing({ tagline })}
+                />
+                <LimitedInput
+                  label="Sous-titre"
+                  value={editing.subtitle}
+                  max={LIMITS.subtitle}
+                  onChange={(subtitle) => updateEditing({ subtitle })}
+                />
               </div>
 
-              <LimitedInput label="Titre principal" value={editing.title} max={LIMITS.title} onChange={(title) => updateEditing({ title })} />
+              <LimitedInput
+                label="Titre principal"
+                value={editing.title}
+                max={LIMITS.title}
+                onChange={(title) => updateEditing({ title })}
+              />
 
               <div className="space-y-1.5">
-                <FieldLabel label="Description" value={editing.description} max={LIMITS.description} />
-                <Textarea rows={2} value={editing.description} onChange={(event) => updateEditing({ description: event.target.value })} maxLength={LIMITS.description + 20} />
+                <FieldLabel
+                  label="Description"
+                  value={editing.description}
+                  max={LIMITS.description}
+                />
+                <Textarea
+                  rows={2}
+                  value={editing.description}
+                  onChange={(event) => updateEditing({ description: event.target.value })}
+                  maxLength={LIMITS.description + 20}
+                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2 rounded-md border border-border p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">CTA principal</p>
-                  <LimitedInput label="Texte" value={editing.ctaPrimary.text} max={LIMITS.ctaText} onChange={(text) => setEditing({ ...editing, ctaPrimary: { ...editing.ctaPrimary, text } })} />
-                  <Input placeholder="Lien (/femme)" value={editing.ctaPrimary.link} onChange={(event) => setEditing({ ...editing, ctaPrimary: { ...editing.ctaPrimary, link: event.target.value } })} />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    CTA principal
+                  </p>
+                  <LimitedInput
+                    label="Texte"
+                    value={editing.ctaPrimary.text}
+                    max={LIMITS.ctaText}
+                    onChange={(text) =>
+                      setEditing({ ...editing, ctaPrimary: { ...editing.ctaPrimary, text } })
+                    }
+                  />
+                  <Input
+                    placeholder="Lien (/femme)"
+                    value={editing.ctaPrimary.link}
+                    onChange={(event) =>
+                      setEditing({
+                        ...editing,
+                        ctaPrimary: { ...editing.ctaPrimary, link: event.target.value },
+                      })
+                    }
+                  />
                 </div>
                 <div className="space-y-2 rounded-md border border-border p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">CTA secondaire</p>
-                  <LimitedInput label="Texte" value={editing.ctaSecondary.text} max={LIMITS.ctaText} onChange={(text) => setEditing({ ...editing, ctaSecondary: { ...editing.ctaSecondary, text } })} />
-                  <Input placeholder="Lien (/promotions)" value={editing.ctaSecondary.link} onChange={(event) => setEditing({ ...editing, ctaSecondary: { ...editing.ctaSecondary, link: event.target.value } })} />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    CTA secondaire
+                  </p>
+                  <LimitedInput
+                    label="Texte"
+                    value={editing.ctaSecondary.text}
+                    max={LIMITS.ctaText}
+                    onChange={(text) =>
+                      setEditing({ ...editing, ctaSecondary: { ...editing.ctaSecondary, text } })
+                    }
+                  />
+                  <Input
+                    placeholder="Lien (/promotions)"
+                    value={editing.ctaSecondary.link}
+                    onChange={(event) =>
+                      setEditing({
+                        ...editing,
+                        ctaSecondary: { ...editing.ctaSecondary, link: event.target.value },
+                      })
+                    }
+                  />
                 </div>
               </div>
 
               <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                 <Label className="text-sm">Slide actif</Label>
-                <Switch checked={editing.active} onCheckedChange={(active) => updateEditing({ active })} />
+                <Switch
+                  checked={editing.active}
+                  onCheckedChange={(active) => updateEditing({ active })}
+                />
               </div>
             </div>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button onClick={save} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={save} disabled={saving}>
+              {saving ? "Enregistrement…" : "Enregistrer"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -378,9 +526,15 @@ function LimitedInput({
   return (
     <div className="space-y-1.5">
       <FieldLabel label={label} value={value} max={max} />
-      <Input value={value} onChange={(event) => onChange(event.target.value)} maxLength={max + 10} />
+      <Input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        maxLength={max + 10}
+      />
       {value.length > max && (
-        <p className="text-xs text-destructive">{label} ne doit pas dépasser {max} caractères.</p>
+        <p className="text-xs text-destructive">
+          {label} ne doit pas dépasser {max} caractères.
+        </p>
       )}
     </div>
   );

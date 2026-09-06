@@ -1,9 +1,8 @@
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { markAdminRouteVisible } from "@/lib/admin-performance";
@@ -38,16 +37,7 @@ export function AdminHeader({ title, subtitle, actions }: Props) {
     <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="flex h-14 items-center gap-2 px-3 sm:px-6">
         <SidebarTrigger className="shrink-0" />
-        <div className="hidden flex-1 max-w-md md:flex">
-          <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Rechercher produit, commande, client…" className="h-9 pl-9" />
-          </div>
-        </div>
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
-          <Button variant="ghost" size="icon" className="md:hidden" aria-label="Rechercher">
-            <Search className="h-4 w-4" />
-          </Button>
           <Button
             variant="ghost"
             size="icon"
