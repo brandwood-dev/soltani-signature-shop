@@ -188,9 +188,26 @@ test.describe("authenticated admin flows", () => {
       const categoriesBody = (await categoriesResponse.json()) as {
         categories: Array<{ id: string; name: string; slug: string; isActive: boolean; parentId: string | null }>;
       };
-      const category = categoriesBody.categories.find(
+      const categoryCandidates = categoriesBody.categories.filter(
         (item) => item.isActive && item.parentId === null && item.slug !== "idees-cadeaux",
       );
+      let category: (typeof categoryCandidates)[number] | undefined;
+      for (const candidate of categoryCandidates) {
+        const attributesResponse = await adminRequest(
+          request,
+          page,
+          `/admin/categories/${candidate.id}/attributes`,
+        );
+        if (attributesResponse.status() !== 200) continue;
+        const attributesBody = (await attributesResponse.json()) as
+          | Array<{ required?: boolean }>
+          | { attributes?: Array<{ required?: boolean }> };
+        const attributes = Array.isArray(attributesBody) ? attributesBody : (attributesBody.attributes ?? []);
+        if (!attributes.some((attribute) => attribute.required === true)) {
+          category = candidate;
+          break;
+        }
+      }
       expect(category, "Une catégorie active non-cadeau est requise").toBeTruthy();
 
       const brandsResponse = await adminRequest(request, page, "/admin/featured-brands");
