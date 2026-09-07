@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Check, CreditCard, Lock, Truck, User } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import {
+  createClickToPayOrder,
   createCodOrder,
+  createCustomerClickToPayOrder,
   createCustomerCodOrder,
+  type CreateClickToPayOrderInput,
   type CreateCodOrderInput,
 } from "@/lib/catalog-api";
 import { getCustomerProfile, type CustomerProfile } from "@/lib/api";
@@ -46,7 +49,7 @@ const STEPS = [
 const SHIPPING_LABEL = "Livraison standard Tunisie";
 const EMPTY_CART_MESSAGE =
   "Votre panier est vide. Ajoutez au moins un produit avant de passer commande.";
-type CheckoutPaymentMethod = "CASH_ON_DELIVERY" | "CARD";
+type CheckoutPaymentMethod = "CASH_ON_DELIVERY" | "CLICK_TO_PAY";
 
 function CheckoutPage() {
   const navigate = useNavigate();
@@ -81,7 +84,9 @@ function CheckoutPage() {
       .then((next) => {
         setSettings(next);
         setPaymentMethod(
-          !next.cashOnDeliveryEnabled && next.cardPaymentEnabled ? "CARD" : "CASH_ON_DELIVERY",
+          !next.cashOnDeliveryEnabled && next.onlinePaymentAvailable
+            ? "CLICK_TO_PAY"
+            : "CASH_ON_DELIVERY",
         );
       })
       .catch(() => setSettings(DEFAULT_SHOP_SETTINGS));
@@ -126,8 +131,8 @@ function CheckoutPage() {
   const total = subtotal + shipping;
   const paymentIntro = settings.cashOnDeliveryEnabled
     ? "Paiement à la livraison disponible partout en Tunisie."
-    : settings.cardPaymentEnabled
-      ? "Paiement par carte disponible."
+    : settings.onlinePaymentAvailable
+      ? "Paiement en ligne ClicToPay SMT disponible."
       : "Aucun moyen de paiement disponible pour le moment.";
 
   useEffect(() => {
@@ -220,15 +225,15 @@ function CheckoutPage() {
       setError(EMPTY_CART_MESSAGE);
       return;
     }
-    if (!settings.cashOnDeliveryEnabled && !settings.cardPaymentEnabled) {
+    if (!settings.cashOnDeliveryEnabled && !settings.onlinePaymentAvailable) {
       setError("Aucun moyen de paiement n'est disponible pour le moment.");
       return;
     }
-    if (paymentMethod === "CARD") {
-      setError("Le paiement par carte sera activé prochainement.");
+    if (paymentMethod === "CLICK_TO_PAY" && !settings.onlinePaymentAvailable) {
+      setError("Le paiement ClicToPay SMT n'est pas encore disponible.");
       return;
     }
-    if (!settings.cashOnDeliveryEnabled) {
+    if (paymentMethod === "CASH_ON_DELIVERY" && !settings.cashOnDeliveryEnabled) {
       setError("Le paiement à la livraison est désactivé.");
       return;
     }
@@ -237,9 +242,8 @@ function CheckoutPage() {
     setError(null);
 
     try {
-      const orderInput: CreateCodOrderInput = {
+      const orderDetails = {
         customerEmail: form.email,
-        paymentMethod: "CASH_ON_DELIVERY",
         shippingAddress: {
           fullName: `${form.firstName} ${form.lastName}`.trim(),
           phone: form.phone,
@@ -253,6 +257,44 @@ function CheckoutPage() {
           variantId: line.variantId,
           quantity: line.qty,
         })),
+      };
+      if (paymentMethod === "CLICK_TO_PAY") {
+        if (settings.onlinePaymentMode === "demo") {
+          sessionStorage.setItem(
+            "soltani-demo-payment",
+            JSON.stringify({
+              reference: `DEMO-${Date.now().toString(36).toUpperCase()}`,
+              amount: total,
+              subtotal,
+              shipping,
+              lines: lines.map((line) => ({
+                name: line.name,
+                qty: line.qty,
+                price: line.price,
+                image: line.image,
+              })),
+            }),
+          );
+          await navigate({ to: "/payment-demo" });
+          return;
+        }
+        const orderInput: CreateClickToPayOrderInput = {
+          ...orderDetails,
+          paymentMethod: "CLICK_TO_PAY",
+        };
+        const order = customerProfile
+          ? await createCustomerClickToPayOrder(orderInput)
+          : await createClickToPayOrder(orderInput);
+        if (!order.payment?.checkoutUrl) {
+          throw new Error("La session de paiement ClicToPay SMT est indisponible.");
+        }
+        window.location.assign(order.payment.checkoutUrl);
+        return;
+      }
+
+      const orderInput: CreateCodOrderInput = {
+        ...orderDetails,
+        paymentMethod: "CASH_ON_DELIVERY",
       };
       const order = customerProfile
         ? await createCustomerCodOrder(orderInput)
@@ -464,24 +506,24 @@ function CheckoutPage() {
                     <CreditCard className="h-5 w-5 text-gold" />
                   </label>
                 )}
-                {settings.cardPaymentEnabled && (
+                {settings.onlinePaymentAvailable && (
                   <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-border bg-background p-4">
                     <input
                       type="radio"
-                      checked={paymentMethod === "CARD"}
-                      onChange={() => setPaymentMethod("CARD")}
+                      checked={paymentMethod === "CLICK_TO_PAY"}
+                      onChange={() => setPaymentMethod("CLICK_TO_PAY")}
                       className="accent-gold mt-1"
                     />
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">Paiement par carte</p>
+                      <p className="font-semibold text-sm">Paiement en ligne ClicToPay SMT</p>
                       <p className="text-xs text-muted-foreground">
-                        Activation du paiement en ligne en cours.
+                        Paiement sécurisé par carte via ClicToPay SMT.
                       </p>
                     </div>
                     <CreditCard className="h-5 w-5 text-gold" />
                   </label>
                 )}
-                {!settings.cashOnDeliveryEnabled && !settings.cardPaymentEnabled && (
+                {!settings.cashOnDeliveryEnabled && !settings.onlinePaymentAvailable && (
                   <div className="rounded-sm border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                     Aucun moyen de paiement n'est disponible actuellement.
                   </div>

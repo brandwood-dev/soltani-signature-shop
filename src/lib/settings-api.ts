@@ -9,10 +9,12 @@ export type ShopSettings = {
   freeShippingEnabled: boolean;
   cashOnDeliveryEnabled: boolean;
   cardPaymentEnabled: boolean;
+  onlinePaymentAvailable: boolean;
+  onlinePaymentMode: "disabled" | "demo" | "live";
   updatedAt: string;
 };
 
-export type ShopSettingsInput = Omit<ShopSettings, "updatedAt">;
+export type ShopSettingsInput = Omit<ShopSettings, "updatedAt" | "onlinePaymentAvailable" | "onlinePaymentMode">;
 
 export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
   shopName: "Soltani Signature",
@@ -23,6 +25,8 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
   freeShippingEnabled: false,
   cashOnDeliveryEnabled: true,
   cardPaymentEnabled: false,
+  onlinePaymentAvailable: false,
+  onlinePaymentMode: "disabled",
   updatedAt: "",
 };
 
