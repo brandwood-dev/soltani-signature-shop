@@ -207,7 +207,8 @@ test.describe("authenticated admin flows", () => {
       await page.locator("#stock").fill("1");
 
       const comboboxes = page.locator('[role="combobox"]');
-      await selectOption(page, comboboxes.nth(2), category!.name);
+      await selectOption(page, comboboxes.nth(2), "Femme");
+      await selectOption(page, comboboxes.nth(3), category!.name);
       await selectOption(page, comboboxes.last(), brand!.name);
       await expect(page.getByRole("button", { name: "Enregistrer" }).first()).toBeEnabled({ timeout: 20_000 });
 
