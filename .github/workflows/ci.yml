@@ -69,6 +69,16 @@ jobs:
           E2E_BASE_URL: https://www.soltanisignature.com
           E2E_API_BASE_URL: https://soltani-signature-api.onrender.com
 
+      - name: Authenticated admin E2E tests
+        run: bun run test:e2e:admin
+        env:
+          E2E_BASE_URL: https://www.soltanisignature.com
+          E2E_API_BASE_URL: https://soltani-signature-api.onrender.com
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_ADMIN_ORDER_ID: ${{ secrets.E2E_ADMIN_ORDER_ID }}
+          E2E_ADMIN_ORDER_MUTATION: ${{ secrets.E2E_ADMIN_ORDER_MUTATION }}
+
       - name: Production smoke tests
         if: github.ref == 'refs/heads/main'
         shell: bash
