@@ -263,9 +263,10 @@ test.describe("authenticated admin flows", () => {
     await expect(page.getByRole("heading", { name: "Commandes" })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(genericError);
 
-    const orderLink = page.locator('a[href^="/admin/orders/"]').last();
+    const orderLink = page.locator('a[href^="/admin/orders/"]:visible').last();
+    const emptyState = page.getByText("Aucune commande.", { exact: true }).last();
+    await expect(orderLink.or(emptyState)).toBeVisible({ timeout: 20_000 });
     if ((await orderLink.count()) === 0) {
-      await expect(page.getByText("Aucune commande.", { exact: true })).toBeVisible();
       return;
     }
 
