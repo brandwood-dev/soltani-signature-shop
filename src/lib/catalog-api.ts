@@ -105,6 +105,10 @@ export type CreateCodOrderInput = {
   items: Array<{ variantId: string; quantity: number }>;
 };
 
+export type CreateClickToPayOrderInput = Omit<CreateCodOrderInput, "paymentMethod"> & {
+  paymentMethod: "CLICK_TO_PAY";
+};
+
 export type CreatedOrder = {
   id: string;
   reference: string;
@@ -121,6 +125,11 @@ export type CreatedOrder = {
     unitPrice: string | number;
     totalPrice: string | number;
   }>;
+  payment?: {
+    status: string;
+    checkoutUrl: string;
+    providerTransactionId: string;
+  } | null;
 };
 
 export type ProductReview = {
@@ -403,6 +412,20 @@ export async function createCodOrder(input: CreateCodOrderInput) {
 }
 
 export async function createCustomerCodOrder(input: CreateCodOrderInput) {
+  return apiFetch<CreatedOrder>("/orders/customer", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function createClickToPayOrder(input: CreateClickToPayOrderInput) {
+  return apiFetch<CreatedOrder>("/orders", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function createCustomerClickToPayOrder(input: CreateClickToPayOrderInput) {
   return apiFetch<CreatedOrder>("/orders/customer", {
     method: "POST",
     body: JSON.stringify(input),

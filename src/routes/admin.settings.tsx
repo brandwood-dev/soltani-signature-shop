@@ -172,8 +172,8 @@ function AdminSettings() {
             </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
               <div>
-                <p className="text-sm font-medium">Paiement par carte</p>
-                <p className="text-xs text-muted-foreground">Activer le paiement en ligne</p>
+                <p className="text-sm font-medium">Paiement en ligne ClicToPay SMT</p>
+                <p className="text-xs text-muted-foreground">Activation après configuration bancaire</p>
               </div>
               <Switch checked={settings.cardPaymentEnabled} onCheckedChange={(cardPaymentEnabled) => update({ cardPaymentEnabled })} />
             </div>

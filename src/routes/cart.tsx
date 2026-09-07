@@ -38,8 +38,8 @@ function CartPage() {
   const total = subtotal + shipping;
   const paymentMessage = settings.cashOnDeliveryEnabled
     ? "Paiement à la livraison disponible partout en Tunisie."
-    : settings.cardPaymentEnabled
-      ? "Paiement par carte disponible au checkout."
+    : settings.onlinePaymentAvailable
+      ? "Paiement en ligne ClicToPay SMT disponible au checkout."
       : "Aucun moyen de paiement disponible pour le moment.";
 
   return (

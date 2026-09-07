@@ -24,6 +24,7 @@ import { Route as MaisonRouteImport } from './routes/maison'
 import { Route as MeilleuresVentesRouteImport } from './routes/meilleures-ventes'
 import { Route as NouvellesArriveesRouteImport } from './routes/nouvelles-arrivees'
 import { Route as OrderConfirmationRouteImport } from './routes/order-confirmation'
+import { Route as PaymentDemoRouteImport } from './routes/payment-demo'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -128,6 +129,11 @@ const NouvellesArriveesRoute = NouvellesArriveesRouteImport.update({
 const OrderConfirmationRoute = OrderConfirmationRouteImport.update({
   id: '/order-confirmation',
   path: '/order-confirmation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentDemoRoute = PaymentDemoRouteImport.update({
+  id: '/payment-demo',
+  path: '/payment-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/meilleures-ventes': typeof MeilleuresVentesRoute
   '/nouvelles-arrivees': typeof NouvellesArriveesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
+  '/payment-demo': typeof PaymentDemoRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/meilleures-ventes': typeof MeilleuresVentesRoute
   '/nouvelles-arrivees': typeof NouvellesArriveesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
+  '/payment-demo': typeof PaymentDemoRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
@@ -389,6 +397,7 @@ export interface FileRoutesById {
   '/meilleures-ventes': typeof MeilleuresVentesRoute
   '/nouvelles-arrivees': typeof NouvellesArriveesRoute
   '/order-confirmation': typeof OrderConfirmationRoute
+  '/payment-demo': typeof PaymentDemoRoute
   '/profile': typeof ProfileRoute
   '/promotions': typeof PromotionsRoute
   '/register': typeof RegisterRoute
@@ -438,6 +447,7 @@ export interface FileRouteTypes {
     | '/meilleures-ventes'
     | '/nouvelles-arrivees'
     | '/order-confirmation'
+    | '/payment-demo'
     | '/profile'
     | '/promotions'
     | '/register'
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/meilleures-ventes'
     | '/nouvelles-arrivees'
     | '/order-confirmation'
+    | '/payment-demo'
     | '/profile'
     | '/promotions'
     | '/register'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/meilleures-ventes'
     | '/nouvelles-arrivees'
     | '/order-confirmation'
+    | '/payment-demo'
     | '/profile'
     | '/promotions'
     | '/register'
@@ -577,6 +589,7 @@ export interface RootRouteChildren {
   MeilleuresVentesRoute: typeof MeilleuresVentesRoute
   NouvellesArriveesRoute: typeof NouvellesArriveesRoute
   OrderConfirmationRoute: typeof OrderConfirmationRoute
+  PaymentDemoRoute: typeof PaymentDemoRoute
   ProfileRoute: typeof ProfileRoute
   PromotionsRoute: typeof PromotionsRoute
   RegisterRoute: typeof RegisterRoute
@@ -696,6 +709,13 @@ declare module '@tanstack/react-router' {
       path: '/order-confirmation'
       fullPath: '/order-confirmation'
       preLoaderRoute: typeof OrderConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-demo': {
+      id: '/payment-demo'
+      path: '/payment-demo'
+      fullPath: '/payment-demo'
+      preLoaderRoute: typeof PaymentDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -991,6 +1011,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeilleuresVentesRoute: MeilleuresVentesRoute,
   NouvellesArriveesRoute: NouvellesArriveesRoute,
   OrderConfirmationRoute: OrderConfirmationRoute,
+  PaymentDemoRoute: PaymentDemoRoute,
   ProfileRoute: ProfileRoute,
   PromotionsRoute: PromotionsRoute,
   RegisterRoute: RegisterRoute,
