@@ -188,9 +188,26 @@ test.describe("authenticated admin flows", () => {
       const categoriesBody = (await categoriesResponse.json()) as {
         categories: Array<{ id: string; name: string; slug: string; isActive: boolean; parentId: string | null }>;
       };
-      const category = categoriesBody.categories.find(
+      const categoryCandidates = categoriesBody.categories.filter(
         (item) => item.isActive && item.parentId === null && item.slug !== "idees-cadeaux",
       );
+      let category: (typeof categoryCandidates)[number] | undefined;
+      for (const candidate of categoryCandidates) {
+        const attributesResponse = await adminRequest(
+          request,
+          page,
+          `/admin/categories/${candidate.id}/attributes`,
+        );
+        if (attributesResponse.status() !== 200) continue;
+        const attributesBody = (await attributesResponse.json()) as
+          | Array<{ required?: boolean }>
+          | { attributes?: Array<{ required?: boolean }> };
+        const attributes = Array.isArray(attributesBody) ? attributesBody : (attributesBody.attributes ?? []);
+        if (!attributes.some((attribute) => attribute.required === true)) {
+          category = candidate;
+          break;
+        }
+      }
       expect(category, "Une catégorie active non-cadeau est requise").toBeTruthy();
 
       const brandsResponse = await adminRequest(request, page, "/admin/featured-brands");
@@ -207,7 +224,8 @@ test.describe("authenticated admin flows", () => {
       await page.locator("#stock").fill("1");
 
       const comboboxes = page.locator('[role="combobox"]');
-      await selectOption(page, comboboxes.nth(2), category!.name);
+      await selectOption(page, comboboxes.nth(2), "Femme");
+      await selectOption(page, comboboxes.nth(3), category!.name);
       await selectOption(page, comboboxes.last(), brand!.name);
       await expect(page.getByRole("button", { name: "Enregistrer" }).first()).toBeEnabled({ timeout: 20_000 });
 
@@ -245,9 +263,10 @@ test.describe("authenticated admin flows", () => {
     await expect(page.getByRole("heading", { name: "Commandes" })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(genericError);
 
-    const orderLink = page.locator('a[href^="/admin/orders/"]').last();
+    const orderLink = page.locator('a[href^="/admin/orders/"]:visible').last();
+    const emptyState = page.getByText("Aucune commande.", { exact: true }).last();
+    await expect(orderLink.or(emptyState)).toBeVisible({ timeout: 20_000 });
     if ((await orderLink.count()) === 0) {
-      await expect(page.getByText("Aucune commande.", { exact: true })).toBeVisible();
       return;
     }
 
