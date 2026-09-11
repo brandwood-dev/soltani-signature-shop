@@ -23,6 +23,8 @@ import {
   toggleHeroSlide,
   updateHeroSlide,
 } from "@/lib/hero-api";
+import { uploadAdminContentImage } from "@/lib/content-media-api";
+import { migrateAdminContentImages } from "@/lib/admin-content-media-api";
 
 export const Route = createFileRoute("/admin/hero")({
   component: AdminHero,
@@ -36,53 +38,6 @@ const LIMITS = {
   ctaText: 25,
 };
 
-const MAX_HERO_IMAGE_CHARS = 490_000;
-
-function optimizeHeroImage(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-
-    image.onload = () => {
-      try {
-        let width = Math.min(image.naturalWidth, 2400);
-        let height = Math.min(image.naturalHeight, 1600);
-        const initialScale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-        width = Math.max(1, Math.round(image.naturalWidth * initialScale));
-        height = Math.max(1, Math.round(image.naturalHeight * initialScale));
-
-        for (let attempt = 0; attempt < 6; attempt += 1) {
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const context = canvas.getContext("2d");
-          if (!context) throw new Error("Impossible de préparer l'image.");
-          context.drawImage(image, 0, 0, width, height);
-
-          const quality = Math.max(0.62, 0.88 - attempt * 0.04);
-          const dataUrl = canvas.toDataURL("image/jpeg", quality);
-          if (dataUrl.length <= MAX_HERO_IMAGE_CHARS) {
-            resolve(dataUrl);
-            return;
-          }
-
-          width = Math.max(1, Math.round(width * 0.85));
-          height = Math.max(1, Math.round(height * 0.85));
-        }
-
-        reject(new Error("Cette image reste trop volumineuse après optimisation."));
-      } finally {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Impossible de lire cette image."));
-    };
-    image.src = objectUrl;
-  });
-}
-
 function AdminHero() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [editing, setEditing] = useState<HeroSlide | null>(null);
@@ -90,6 +45,7 @@ function AdminHero() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [migrating, setMigrating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeSlides = useMemo(() => slides.filter((slide) => slide.active), [slides]);
@@ -110,6 +66,20 @@ function AdminHero() {
     }
   };
 
+  const migrateLegacyImages = async () => {
+    try {
+      setError("");
+      setMigrating(true);
+      const result = await migrateAdminContentImages();
+      setError(result.migrated ? `${result.migrated} image(s) optimisée(s).` : "Aucune image legacy à migrer.");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Migration des images impossible.");
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   const openEdit = (slide: HeroSlide) => {
     setEditing({
       ...slide,
@@ -127,10 +97,15 @@ function AdminHero() {
 
     try {
       setError("");
-      const optimizedImage = await optimizeHeroImage(file);
-      setEditing((current) => (current ? { ...current, image: optimizedImage } : current));
+      setSaving(true);
+      const uploaded = await uploadAdminContentImage(file, "hero");
+      setEditing((current) =>
+        current ? { ...current, image: uploaded.url, imageSources: uploaded.sources } : current,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'optimiser cette image.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -170,6 +145,7 @@ function AdminHero() {
 
     const payload: HeroSlideInput = {
       image: editing.image.trim(),
+      imageSources: editing.imageSources,
       tagline: editing.tagline.trim(),
       subtitle: editing.subtitle.trim(),
       title: editing.title.trim(),
@@ -240,6 +216,11 @@ function AdminHero() {
       <AdminHeader
         title="Hero Section"
         subtitle={`${activeSlides.length} slide(s) actif(s) sur ${slides.length} — page d'accueil`}
+        actions={
+          <Button size="sm" variant="outline" onClick={migrateLegacyImages} disabled={migrating}>
+            {migrating ? "Optimisation…" : "Optimiser les anciennes images"}
+          </Button>
+        }
       />
 
       <div className="flex-1 space-y-4 p-3 sm:p-6">
@@ -359,7 +340,9 @@ function AdminHero() {
                 <div className="flex gap-2">
                   <Input
                     value={editing.image}
-                    onChange={(event) => updateEditing({ image: event.target.value })}
+                    onChange={(event) =>
+                      updateEditing({ image: event.target.value, imageSources: { webp: [], avif: [] } })
+                    }
                     placeholder="URL de l'image ou upload direct"
                   />
                   <input

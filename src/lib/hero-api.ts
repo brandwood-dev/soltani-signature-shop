@@ -1,14 +1,19 @@
 import { apiFetch, publicApiFetch } from "@/lib/api";
+import type { ResponsiveImageSources } from "@/lib/content-media-api";
 
-export type HeroSlide = {
+export type HeroSlideContent = {
   id: string;
   image: string;
+  imageSources?: ResponsiveImageSources;
   tagline: string;
   subtitle: string;
   title: string;
   description: string;
   ctaPrimary: { text: string; link: string };
   ctaSecondary: { text: string; link: string };
+};
+
+export type HeroSlide = HeroSlideContent & {
   active: boolean;
   sortOrder: number;
   createdAt: string;
@@ -18,7 +23,7 @@ export type HeroSlide = {
 export type HeroSlideInput = Omit<HeroSlide, "id" | "sortOrder" | "createdAt" | "updatedAt">;
 
 export async function getActiveHeroSlides() {
-  const response = await publicApiFetch<{ slides: HeroSlide[] }>("/content/hero");
+  const response = await publicApiFetch<{ slides: HeroSlideContent[] }>("/content/hero");
   return response.slides;
 }
 

@@ -28,7 +28,7 @@ export function publicApiCachePolicy(
   if (method !== "GET" || hasAuthorization) return null;
 
   if (LONG_LIVED_CONTENT.some((pattern) => pattern.test(pathname))) {
-    return { freshSeconds: 300, staleSeconds: 86_400, tag: "public-content" };
+    return { freshSeconds: 60, staleSeconds: 300, tag: "public-content" };
   }
 
   if (SHORT_LIVED_CATALOG.some((pattern) => pattern.test(pathname))) {

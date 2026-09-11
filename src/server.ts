@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { publicEnv } from "./lib/env";
 import {
   publicApiCacheKey,
   publicApiCachePolicy,
@@ -20,11 +21,39 @@ type ExecutionContextWithWaitUntil = {
 
 const API_PATH_PREFIX = "/api/v1";
 const CACHE_LOOKUP_TIMEOUT_MS = 200;
-// Cache API reads currently stall the production isolate; keep availability independent of them.
-const WORKER_CACHE_ENABLED = false;
+const WORKER_CACHE_ENABLED = true;
+
+function getSupabaseOrigin() {
+  try {
+    return new URL(publicEnv.supabaseUrl).origin;
+  } catch {
+    return "https://vljwsbvdqpenhckchyts.supabase.co";
+  }
+}
+
+const SUPABASE_ORIGIN = getSupabaseOrigin();
+
+const SECURITY_HEADERS = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'self'",
+    "object-src 'none'",
+    "script-src 'self' 'unsafe-inline' https://connect.facebook.net",
+    `connect-src 'self' https://soltani-signature-api.onrender.com ${SUPABASE_ORIGIN} https://connect.facebook.net https://www.facebook.com https://graph.facebook.com`,
+    "img-src 'self' data: https:",
+    "style-src 'self' 'unsafe-inline' https:",
+    "font-src 'self' data: https:",
+    "media-src 'self' data: https:",
+    "form-action 'self' https:",
+  ].join('; '),
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+} as const;
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
-let apiCacheUnavailable = false;
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -62,6 +91,18 @@ function getApiOrigin(env: unknown) {
 
   const processValue = process.env.API_ORIGIN;
   return typeof processValue === "string" && processValue.length > 0 ? processValue : undefined;
+}
+
+function withSecurityHeaders(response: Response) {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function getDefaultCache() {
@@ -141,7 +182,6 @@ async function matchApiCache(cache: Cache, key: Request, path: string) {
   const result = await settleCacheLookup(cache.match(key), CACHE_LOOKUP_TIMEOUT_MS);
   if (result.status === "resolved") return result.value;
 
-  apiCacheUnavailable = true;
   console.warn({
     event: "public_api_cache_bypassed",
     path,
@@ -192,7 +232,7 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
     request.headers.has("authorization"),
   );
   const cache =
-    policy && WORKER_CACHE_ENABLED && !apiCacheUnavailable ? getDefaultCache() : undefined;
+    policy && WORKER_CACHE_ENABLED ? getDefaultCache() : undefined;
 
   if (!policy) {
     return fetch(toOriginRequest(request, apiOrigin, false));
@@ -204,11 +244,6 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
 
   const fresh = await matchApiCache(cache, publicApiCacheKey(request.url, "fresh"), url.pathname);
   if (fresh) return clientApiResponse(fresh, "HIT");
-  if (apiCacheUnavailable) {
-    const response = await fetch(toOriginRequest(request, apiOrigin, true));
-    return clientApiResponse(response, "BYPASS");
-  }
-
   const stale = await matchApiCache(cache, publicApiCacheKey(request.url, "stale"), url.pathname);
   if (stale) {
     const refresh = refreshApiCache(cache, request, apiOrigin, policy).catch((error) => {
@@ -221,11 +256,6 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
     await scheduleBackground(ctx, refresh);
     return clientApiResponse(stale, "STALE");
   }
-  if (apiCacheUnavailable) {
-    const response = await fetch(toOriginRequest(request, apiOrigin, true));
-    return clientApiResponse(response, "BYPASS");
-  }
-
   const response = await fetch(toOriginRequest(request, apiOrigin, true));
   if (isCacheableApiResponse(response)) {
     await scheduleBackground(ctx, persistApiResponse(cache, request, response.clone(), policy));
@@ -243,29 +273,29 @@ export default {
           return new Response("API temporairement indisponible", { status: 503 });
         }
         try {
-          return await proxyApiRequest(request, apiOrigin, ctx);
+          return withSecurityHeaders(await proxyApiRequest(request, apiOrigin, ctx));
         } catch (error) {
           console.error({
             event: "api_proxy_failed",
             path: pathname,
             message: error instanceof Error ? error.message : "Unknown error",
           });
-          return Response.json(
+          return withSecurityHeaders(Response.json(
             { message: "API temporairement indisponible" },
             { status: 502, headers: { "Cache-Control": "private, no-store" } },
-          );
+          ));
         }
       }
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
+      return withSecurityHeaders(new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      }));
     }
   },
 };

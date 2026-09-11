@@ -1,10 +1,15 @@
 import { apiFetch, publicApiFetch } from "@/lib/api";
+import type { ResponsiveImageSources } from "@/lib/content-media-api";
 
-export type FeaturedBrand = {
+export type FeaturedBrandContent = {
   id: string;
   name: string;
   logo: string;
+  logoSources?: ResponsiveImageSources;
   link: string | null;
+};
+
+export type FeaturedBrand = FeaturedBrandContent & {
   active: boolean;
   sortOrder: number;
   createdAt: string;
@@ -14,13 +19,14 @@ export type FeaturedBrand = {
 export type FeaturedBrandInput = {
   name: string;
   logo: string;
+  logoSources?: ResponsiveImageSources;
   link?: string;
   sortOrder: number;
   active: boolean;
 };
 
 export async function getActiveFeaturedBrands() {
-  const response = await publicApiFetch<{ brands: FeaturedBrand[] }>("/content/featured-brands");
+  const response = await publicApiFetch<{ brands: FeaturedBrandContent[] }>("/content/featured-brands");
   return response.brands;
 }
 

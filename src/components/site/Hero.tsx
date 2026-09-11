@@ -1,13 +1,13 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import type { HeroSlide } from "@/lib/hero-api";
+import type { HeroSlideContent } from "@/lib/hero-api";
 import { useInViewport, usePrefersReducedMotion } from "@/hooks/useInViewport";
 import { SmartLink } from "@/components/site/SmartLink";
 
-export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
+export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlideContent[] }) {
   const [index, setIndex] = useState(0);
-  const [slides, setSlides] = useState<HeroSlide[]>(initialSlides);
+  const [slides, setSlides] = useState<HeroSlideContent[]>(initialSlides);
   const sectionRef = useRef<HTMLElement | null>(null);
   const inView = useInViewport(sectionRef, "200px");
   const reducedMotion = usePrefersReducedMotion();
@@ -63,16 +63,32 @@ export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) {
           transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
           className="absolute inset-0"
         >
-          <img
-            src={slide.image}
-            alt={slide.title}
-            width={1920}
-            height={1080}
-            loading={index === 0 ? "eager" : "lazy"}
-            decoding="async"
-            {...(index === 0 ? { fetchPriority: "high" as const } : {})}
-            className="h-full w-full object-cover"
-          />
+          <picture>
+            {(slide.imageSources?.avif?.length ?? 0) > 0 && (
+              <source
+                type="image/avif"
+                srcSet={slide.imageSources!.avif.map((source) => `${source.url} ${source.width}w`).join(", ")}
+                sizes="100vw"
+              />
+            )}
+            {(slide.imageSources?.webp?.length ?? 0) > 0 && (
+              <source
+                type="image/webp"
+                srcSet={slide.imageSources!.webp.map((source) => `${source.url} ${source.width}w`).join(", ")}
+                sizes="100vw"
+              />
+            )}
+            <img
+              src={slide.image}
+              alt={slide.title}
+              width={1920}
+              height={1080}
+              loading={index === 0 ? "eager" : "lazy"}
+              decoding="async"
+              {...(index === 0 ? { fetchPriority: "high" as const } : {})}
+              className="h-full w-full object-cover"
+            />
+          </picture>
           <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
         </motion.div>
       </AnimatePresence>

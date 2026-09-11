@@ -1,6 +1,6 @@
 import type { Product } from "@/components/site/ProductCard";
 import type { CategoryTree } from "@/lib/categories-api";
-import type { FeaturedBrand } from "@/lib/featured-brands-api";
+import type { FeaturedBrandContent } from "@/lib/featured-brands-api";
 
 export const SITE_URL = "https://soltanisignature.com";
 export const SITE_NAME = "Soltani Signature";
@@ -203,7 +203,11 @@ export function sitemapXml(urls: Array<{ loc: string; lastmod?: string; changefr
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries}</urlset>`;
 }
 
-export function collectSitemapUrls(categories: CategoryTree[], products: Product[], brands: FeaturedBrand[]) {
+export function collectSitemapUrls(
+  categories: CategoryTree[],
+  products: Product[],
+  brands: Array<Pick<FeaturedBrandContent, "name">>,
+) {
   const today = new Date().toISOString().slice(0, 10);
   const urls = [
     { loc: "/", changefreq: "daily", priority: "1.0" },

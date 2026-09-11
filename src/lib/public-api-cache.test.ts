@@ -9,8 +9,8 @@ describe("Cloudflare public API cache policy", () => {
       tag: "public-catalog",
     });
     expect(publicApiCachePolicy("GET", "/api/v1/content/hero", false)).toEqual({
-      freshSeconds: 300,
-      staleSeconds: 86_400,
+      freshSeconds: 60,
+      staleSeconds: 300,
       tag: "public-content",
     });
   });
