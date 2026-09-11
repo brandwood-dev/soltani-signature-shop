@@ -23,6 +23,26 @@ const CACHE_LOOKUP_TIMEOUT_MS = 200;
 // Cache API reads currently stall the production isolate; keep availability independent of them.
 const WORKER_CACHE_ENABLED = false;
 
+const SECURITY_HEADERS = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'self'",
+    "object-src 'none'",
+    "script-src 'self' https://connect.facebook.net",
+    "connect-src 'self' https://soltani-signature-api.onrender.com https://vljwsbvdqpenhckchyts.supabase.co https://connect.facebook.net https://www.facebook.com https://graph.facebook.com",
+    "img-src 'self' data: https:",
+    "style-src 'self' 'unsafe-inline' https:",
+    "font-src 'self' data: https:",
+    "media-src 'self' data: https:",
+    "form-action 'self' https:",
+  ].join('; '),
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+} as const;
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 let apiCacheUnavailable = false;
 
@@ -62,6 +82,18 @@ function getApiOrigin(env: unknown) {
 
   const processValue = process.env.API_ORIGIN;
   return typeof processValue === "string" && processValue.length > 0 ? processValue : undefined;
+}
+
+function withSecurityHeaders(response: Response) {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function getDefaultCache() {
@@ -243,29 +275,29 @@ export default {
           return new Response("API temporairement indisponible", { status: 503 });
         }
         try {
-          return await proxyApiRequest(request, apiOrigin, ctx);
+          return withSecurityHeaders(await proxyApiRequest(request, apiOrigin, ctx));
         } catch (error) {
           console.error({
             event: "api_proxy_failed",
             path: pathname,
             message: error instanceof Error ? error.message : "Unknown error",
           });
-          return Response.json(
+          return withSecurityHeaders(Response.json(
             { message: "API temporairement indisponible" },
             { status: 502, headers: { "Cache-Control": "private, no-store" } },
-          );
+          ));
         }
       }
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
+      return withSecurityHeaders(new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      }));
     }
   },
 };

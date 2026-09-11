@@ -104,7 +104,29 @@ export function trackPageView(path: string) {
 
 function sanitizeParams(params?: MetaPixelParams) {
   if (!params) return undefined;
-  return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined && value !== ""));
+  const sanitized: MetaPixelParams = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "") continue;
+    if (!hasValidNumericValues(value)) continue;
+    if (key === "currency") {
+      if (typeof value !== "string" || value.toUpperCase() !== "TND") continue;
+      sanitized[key] = "TND";
+      continue;
+    }
+    sanitized[key] = value;
+  }
+  return sanitized;
+}
+
+function hasValidNumericValues(value: MetaPixelParamValue) {
+  if (typeof value === "number") return Number.isFinite(value);
+  if (!Array.isArray(value)) return true;
+  return value.every((item) => {
+    if (typeof item === "string") return true;
+    return Object.values(item).every((nestedValue) =>
+      typeof nestedValue !== "number" || Number.isFinite(nestedValue),
+    );
+  });
 }
 
 function createEventId() {
