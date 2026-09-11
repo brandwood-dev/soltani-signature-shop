@@ -21,7 +21,14 @@ import {
   getPublicShopSettings,
   type ShopSettings,
 } from "@/lib/settings-api";
-import { trackMetaPixelEvent } from "@/lib/meta-pixel";
+import {
+  clearStoredMetaUserData,
+  hashMetaIdentifiers,
+  readMetaEnhancedMatchingConsent,
+  setMetaEnhancedMatchingConsent,
+  storeMetaUserData,
+  trackMetaPixelEvent,
+} from "@/lib/meta-pixel";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/checkout")({
@@ -64,6 +71,9 @@ function CheckoutPage() {
   const [settings, setSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("CASH_ON_DELIVERY");
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
+  const [metaEnhancedMatchingConsent, setMetaEnhancedMatchingConsentState] = useState(() =>
+    readMetaEnhancedMatchingConsent(),
+  );
   const [selectedAddressId, setSelectedAddressId] = useState("new");
   const initiatedCheckoutRef = useRef(false);
   const addedPaymentInfoRef = useRef(false);
@@ -141,7 +151,14 @@ function CheckoutPage() {
   }, [isQuickCheckout]);
 
   useEffect(() => {
-    if (initiatedCheckoutRef.current || !lines.length) return;
+    if (
+      initiatedCheckoutRef.current ||
+      !lines.length ||
+      step < 2 ||
+      !form.email ||
+      !form.phone
+    )
+      return;
     initiatedCheckoutRef.current = true;
     trackMetaPixelEvent("InitiateCheckout", {
       content_ids: lines.flatMap((line) => (line.productId ? [line.productId] : [])),
@@ -152,8 +169,13 @@ function CheckoutPage() {
       num_items: lines.reduce((sum, line) => sum + line.qty, 0),
       value: subtotal,
       currency: "TND",
+    }, {
+      email: form.email,
+      phone: form.phone,
+      externalId: customerProfile?.user.authUserId,
+      consent: metaEnhancedMatchingConsent,
     });
-  }, [lines, subtotal]);
+  }, [customerProfile?.user.authUserId, form.email, form.phone, lines, metaEnhancedMatchingConsent, step, subtotal]);
 
   useEffect(() => {
     if (step !== 3 || addedPaymentInfoRef.current || !lines.length) return;
@@ -167,8 +189,13 @@ function CheckoutPage() {
       payment_method: paymentMethod,
       value: subtotal,
       currency: "TND",
+    }, {
+      email: form.email,
+      phone: form.phone,
+      externalId: customerProfile?.user.authUserId,
+      consent: metaEnhancedMatchingConsent,
     });
-  }, [lines, paymentMethod, step, subtotal]);
+  }, [customerProfile?.user.authUserId, form.email, form.phone, lines, metaEnhancedMatchingConsent, paymentMethod, step, subtotal]);
 
   const updateField = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -242,6 +269,19 @@ function CheckoutPage() {
     setError(null);
 
     try {
+      const persistMetaIdentifiers = async () => {
+        if (!metaEnhancedMatchingConsent) {
+          clearStoredMetaUserData();
+          return;
+        }
+        const userData = await hashMetaIdentifiers({
+          email: form.email,
+          phone: form.phone,
+          externalId: customerProfile?.user.authUserId,
+        });
+        if (userData) storeMetaUserData(userData);
+        else clearStoredMetaUserData();
+      };
       const orderDetails = {
         customerEmail: form.email,
         shippingAddress: {
@@ -288,6 +328,7 @@ function CheckoutPage() {
         if (!order.payment?.checkoutUrl) {
           throw new Error("La session de paiement ClicToPay SMT est indisponible.");
         }
+        await persistMetaIdentifiers();
         window.location.assign(order.payment.checkoutUrl);
         return;
       }
@@ -299,6 +340,7 @@ function CheckoutPage() {
       const order = customerProfile
         ? await createCustomerCodOrder(orderInput)
         : await createCodOrder(orderInput);
+      await persistMetaIdentifiers();
 
       localStorage.setItem(
         "soltani-last-order",
@@ -411,6 +453,22 @@ function CheckoutPage() {
                     placeholder="+216 00 000 000"
                   />
                 </Field>
+                <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-border bg-background p-4 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={metaEnhancedMatchingConsent}
+                    onChange={(event) => {
+                      const accepted = event.target.checked;
+                      setMetaEnhancedMatchingConsentState(accepted);
+                      setMetaEnhancedMatchingConsent(accepted);
+                    }}
+                    className="accent-gold mt-1"
+                  />
+                  <span className="text-muted-foreground">
+                    J’accepte que mon email et mon téléphone soient utilisés sous forme hachée pour
+                    améliorer la mesure des campagnes publicitaires.
+                  </span>
+                </label>
               </div>
             )}
 
