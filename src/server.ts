@@ -29,7 +29,7 @@ const SECURITY_HEADERS = {
     "base-uri 'self'",
     "frame-ancestors 'self'",
     "object-src 'none'",
-    "script-src 'self' https://connect.facebook.net",
+    "script-src 'self' 'unsafe-inline' https://connect.facebook.net",
     "connect-src 'self' https://soltani-signature-api.onrender.com https://vljwsbvdqpenhckchyts.supabase.co https://connect.facebook.net https://www.facebook.com https://graph.facebook.com",
     "img-src 'self' data: https:",
     "style-src 'self' 'unsafe-inline' https:",
