@@ -43,7 +43,7 @@ const defaultLoaders: HomeDataLoaders = {
   heroSlides: getActiveHeroSlides,
   bestsellers: () => getCatalogProducts({ bestSeller: true, limit: 8, summary: true }),
   newArrivals: () => getCatalogProducts({ featured: true, limit: 8, summary: true }),
-  packs: () => getCatalogProducts({ category: "idees-cadeaux" }),
+    packs: () => getCatalogProducts({ category: "idees-cadeaux", limit: 8, summary: true }),
   promoBanners: () => getActivePromoBanners("home", "promotion"),
   limitedOffers: () => getActivePromoBanners("home", "limited_offer"),
 };

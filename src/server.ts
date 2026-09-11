@@ -20,8 +20,7 @@ type ExecutionContextWithWaitUntil = {
 
 const API_PATH_PREFIX = "/api/v1";
 const CACHE_LOOKUP_TIMEOUT_MS = 200;
-// Cache API reads currently stall the production isolate; keep availability independent of them.
-const WORKER_CACHE_ENABLED = false;
+const WORKER_CACHE_ENABLED = true;
 
 const SECURITY_HEADERS = {
   "Content-Security-Policy": [
@@ -44,7 +43,6 @@ const SECURITY_HEADERS = {
 } as const;
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
-let apiCacheUnavailable = false;
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -173,7 +171,6 @@ async function matchApiCache(cache: Cache, key: Request, path: string) {
   const result = await settleCacheLookup(cache.match(key), CACHE_LOOKUP_TIMEOUT_MS);
   if (result.status === "resolved") return result.value;
 
-  apiCacheUnavailable = true;
   console.warn({
     event: "public_api_cache_bypassed",
     path,
@@ -224,7 +221,7 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
     request.headers.has("authorization"),
   );
   const cache =
-    policy && WORKER_CACHE_ENABLED && !apiCacheUnavailable ? getDefaultCache() : undefined;
+    policy && WORKER_CACHE_ENABLED ? getDefaultCache() : undefined;
 
   if (!policy) {
     return fetch(toOriginRequest(request, apiOrigin, false));
@@ -236,11 +233,6 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
 
   const fresh = await matchApiCache(cache, publicApiCacheKey(request.url, "fresh"), url.pathname);
   if (fresh) return clientApiResponse(fresh, "HIT");
-  if (apiCacheUnavailable) {
-    const response = await fetch(toOriginRequest(request, apiOrigin, true));
-    return clientApiResponse(response, "BYPASS");
-  }
-
   const stale = await matchApiCache(cache, publicApiCacheKey(request.url, "stale"), url.pathname);
   if (stale) {
     const refresh = refreshApiCache(cache, request, apiOrigin, policy).catch((error) => {
@@ -253,11 +245,6 @@ async function proxyApiRequest(request: Request, apiOrigin: string, ctx: unknown
     await scheduleBackground(ctx, refresh);
     return clientApiResponse(stale, "STALE");
   }
-  if (apiCacheUnavailable) {
-    const response = await fetch(toOriginRequest(request, apiOrigin, true));
-    return clientApiResponse(response, "BYPASS");
-  }
-
   const response = await fetch(toOriginRequest(request, apiOrigin, true));
   if (isCacheableApiResponse(response)) {
     await scheduleBackground(ctx, persistApiResponse(cache, request, response.clone(), policy));

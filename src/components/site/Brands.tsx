@@ -30,12 +30,32 @@ export function Brands() {
         <div className="marquee flex w-max items-center gap-16">
           {[...brands, ...brands].map((brand, index) => {
             const logo = (
-              <img
-                src={brand.logo}
-                alt={brand.name}
-                className="max-h-12 max-w-[7rem] object-contain grayscale saturate-0 contrast-125 opacity-80 transition duration-300 hover:opacity-100 md:max-h-14 md:max-w-[9rem]"
-                loading="lazy"
-              />
+              <picture>
+                {(brand.logoSources?.avif?.length ?? 0) > 0 && (
+                  <source
+                    type="image/avif"
+                    srcSet={brand.logoSources!.avif
+                      .map((source) => `${source.url} ${source.width}w`)
+                      .join(", ")}
+                    sizes="160px"
+                  />
+                )}
+                {(brand.logoSources?.webp?.length ?? 0) > 0 && (
+                  <source
+                    type="image/webp"
+                    srcSet={brand.logoSources!.webp
+                      .map((source) => `${source.url} ${source.width}w`)
+                      .join(", ")}
+                    sizes="160px"
+                  />
+                )}
+                <img
+                  src={brand.logo}
+                  alt={brand.name}
+                  className="max-h-12 max-w-[7rem] object-contain grayscale saturate-0 contrast-125 opacity-80 transition duration-300 hover:opacity-100 md:max-h-14 md:max-w-[9rem]"
+                  loading="lazy"
+                />
+              </picture>
             );
             const itemClass =
               "flex h-16 w-32 shrink-0 items-center justify-center px-2 md:h-20 md:w-40";

@@ -34,6 +34,7 @@ import {
   toggleFeaturedBrand,
   updateFeaturedBrand,
 } from "@/lib/featured-brands-api";
+import { uploadAdminContentImage } from "@/lib/content-media-api";
 
 export const Route = createFileRoute("/admin/brands")({
   component: AdminBrands,
@@ -125,6 +126,7 @@ function AdminBrands() {
   const toInput = (brand: EditableBrand): FeaturedBrandInput => ({
     name: brand.name.trim(),
     logo: brand.logo.trim(),
+    logoSources: brand.logoSources,
     link: brand.link?.trim() || undefined,
     sortOrder: Number.isFinite(brand.sortOrder) ? brand.sortOrder : items.length,
     active: brand.active,
@@ -204,20 +206,25 @@ function AdminBrands() {
     }
   };
 
-  const onUpload = (file: File | null) => {
+  const onUpload = async (file: File | null) => {
     if (!file || !editing) return;
-    if (!["image/jpeg", "image/png", "image/webp", "image/svg+xml"].includes(file.type)) {
-      setError("Image invalide. Formats acceptés : jpg, jpeg, png, webp, svg.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Image invalide. Formats acceptés : jpg, jpeg, png, webp.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    try {
+      setError("");
+      setSaving(true);
+      const uploaded = await uploadAdminContentImage(file, "brand");
       setEditing((current) =>
-        current && typeof reader.result === "string" ? { ...current, logo: reader.result } : current,
+        current ? { ...current, logo: uploaded.url, logoSources: uploaded.sources } : current,
       );
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible d'optimiser cette image.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateEditing = (patch: Partial<EditableBrand>) => {
