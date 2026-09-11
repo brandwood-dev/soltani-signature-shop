@@ -8,6 +8,7 @@ import {
   createCodOrder,
   createCustomerClickToPayOrder,
   createCustomerCodOrder,
+  createOrderIdempotencyKey,
   type CreateClickToPayOrderInput,
   type CreateCodOrderInput,
 } from "@/lib/catalog-api";
@@ -298,6 +299,7 @@ function CheckoutPage() {
           quantity: line.qty,
         })),
       };
+      const idempotencyKey = createOrderIdempotencyKey();
       if (paymentMethod === "CLICK_TO_PAY") {
         if (settings.onlinePaymentMode === "demo") {
           sessionStorage.setItem(
@@ -323,8 +325,8 @@ function CheckoutPage() {
           paymentMethod: "CLICK_TO_PAY",
         };
         const order = customerProfile
-          ? await createCustomerClickToPayOrder(orderInput)
-          : await createClickToPayOrder(orderInput);
+          ? await createCustomerClickToPayOrder(orderInput, { idempotencyKey })
+          : await createClickToPayOrder(orderInput, { idempotencyKey });
         if (!order.payment?.checkoutUrl) {
           throw new Error("La session de paiement ClicToPay SMT est indisponible.");
         }
@@ -338,8 +340,8 @@ function CheckoutPage() {
         paymentMethod: "CASH_ON_DELIVERY",
       };
       const order = customerProfile
-        ? await createCustomerCodOrder(orderInput)
-        : await createCodOrder(orderInput);
+        ? await createCustomerCodOrder(orderInput, { idempotencyKey })
+        : await createCodOrder(orderInput, { idempotencyKey });
       await persistMetaIdentifiers();
 
       localStorage.setItem(
