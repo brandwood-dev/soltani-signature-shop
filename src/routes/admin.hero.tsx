@@ -340,7 +340,9 @@ function AdminHero() {
                 <div className="flex gap-2">
                   <Input
                     value={editing.image}
-                    onChange={(event) => updateEditing({ image: event.target.value })}
+                    onChange={(event) =>
+                      updateEditing({ image: event.target.value, imageSources: { webp: [], avif: [] } })
+                    }
                     placeholder="URL de l'image ou upload direct"
                   />
                   <input

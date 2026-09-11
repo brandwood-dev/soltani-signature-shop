@@ -364,9 +364,11 @@ function AdminBrands() {
               <div className="space-y-1.5">
                 <Label>Logo</Label>
                 <div className="flex gap-2">
-                  <Input
-                    value={editing.logo}
-                    onChange={(event) => updateEditing({ logo: event.target.value })}
+                <Input
+                  value={editing.logo}
+                  onChange={(event) =>
+                    updateEditing({ logo: event.target.value, logoSources: { webp: [], avif: [] } })
+                  }
                     placeholder="URL ou téléverser"
                   />
                   <input

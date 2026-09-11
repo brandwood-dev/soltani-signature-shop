@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { publicEnv } from "./lib/env";
 import {
   publicApiCacheKey,
   publicApiCachePolicy,
@@ -22,6 +23,16 @@ const API_PATH_PREFIX = "/api/v1";
 const CACHE_LOOKUP_TIMEOUT_MS = 200;
 const WORKER_CACHE_ENABLED = true;
 
+function getSupabaseOrigin() {
+  try {
+    return new URL(publicEnv.supabaseUrl).origin;
+  } catch {
+    return "https://vljwsbvdqpenhckchyts.supabase.co";
+  }
+}
+
+const SUPABASE_ORIGIN = getSupabaseOrigin();
+
 const SECURITY_HEADERS = {
   "Content-Security-Policy": [
     "default-src 'self'",
@@ -29,7 +40,7 @@ const SECURITY_HEADERS = {
     "frame-ancestors 'self'",
     "object-src 'none'",
     "script-src 'self' 'unsafe-inline' https://connect.facebook.net",
-    "connect-src 'self' https://soltani-signature-api.onrender.com https://vljwsbvdqpenhckchyts.supabase.co https://connect.facebook.net https://www.facebook.com https://graph.facebook.com",
+    `connect-src 'self' https://soltani-signature-api.onrender.com ${SUPABASE_ORIGIN} https://connect.facebook.net https://www.facebook.com https://graph.facebook.com`,
     "img-src 'self' data: https:",
     "style-src 'self' 'unsafe-inline' https:",
     "font-src 'self' data: https:",
