@@ -1,6 +1,6 @@
 import type { Product } from "@/components/site/ProductCard";
 import { getCatalogProducts } from "@/lib/catalog-api";
-import { getActiveHeroSlides, type HeroSlide } from "@/lib/hero-api";
+import { getActiveHeroSlides, type HeroSlideContent } from "@/lib/hero-api";
 import {
   getActivePromoBanners,
   type PromoBanner as PromoBannerItem,
@@ -15,7 +15,7 @@ export type HomeSection =
   | "limitedOffer";
 
 export type HomeData = {
-  heroSlides: HeroSlide[];
+  heroSlides: HeroSlideContent[];
   bestsellers: Product[];
   newArrivals: Product[];
   packs: Product[];
@@ -25,7 +25,7 @@ export type HomeData = {
 };
 
 export type HomeDataLoaders = {
-  heroSlides: () => Promise<HeroSlide[]>;
+  heroSlides: () => Promise<HeroSlideContent[]>;
   bestsellers: () => Promise<Product[]>;
   newArrivals: () => Promise<Product[]>;
   packs: () => Promise<Product[]>;
@@ -43,7 +43,7 @@ const defaultLoaders: HomeDataLoaders = {
   heroSlides: getActiveHeroSlides,
   bestsellers: () => getCatalogProducts({ bestSeller: true, limit: 8, summary: true }),
   newArrivals: () => getCatalogProducts({ featured: true, limit: 8, summary: true }),
-    packs: () => getCatalogProducts({ category: "idees-cadeaux", limit: 8, summary: true }),
+  packs: () => getCatalogProducts({ category: "idees-cadeaux", limit: 8, summary: true }),
   promoBanners: () => getActivePromoBanners("home", "promotion"),
   limitedOffers: () => getActivePromoBanners("home", "limited_offer"),
 };

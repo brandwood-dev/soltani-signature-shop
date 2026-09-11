@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState } from "react";
-import type { FeaturedBrand } from "@/lib/featured-brands-api";
+import type { FeaturedBrandContent } from "@/lib/featured-brands-api";
 import { getActiveFeaturedBrands } from "@/lib/featured-brands-api";
 import { SmartLink } from "./SmartLink";
 
 export function Brands() {
-  const [brands, setBrands] = useState<FeaturedBrand[]>([]);
+  const [brands, setBrands] = useState<FeaturedBrandContent[]>([]);
 
   useEffect(() => {
     getActiveFeaturedBrands()
