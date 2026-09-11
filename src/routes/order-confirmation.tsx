@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Check, Package, Truck, MapPin, ArrowRight, Sparkles } from "lucide-react";
 import type { CartLine } from "@/hooks/useCart";
-import { trackMetaPixelEvent } from "@/lib/meta-pixel";
+import {
+  clearStoredMetaUserData,
+  readStoredMetaUserData,
+  trackMetaPixelEvent,
+} from "@/lib/meta-pixel";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 import { getSession } from "@/lib/supabase";
 
@@ -52,6 +56,7 @@ function OrderConfirmationPage() {
     const purchaseKey = `soltani-purchase-tracked:${order.number}`;
     if (sessionStorage.getItem(purchaseKey)) return;
     sessionStorage.setItem(purchaseKey, "1");
+    const hashedUserData = readStoredMetaUserData();
     trackMetaPixelEvent("Purchase", {
       content_ids: order.lines.flatMap((line) => (line.productId ? [line.productId] : [])),
       content_type: "product",
@@ -61,7 +66,11 @@ function OrderConfirmationPage() {
       num_items: order.lines.reduce((sum, line) => sum + line.qty, 0),
       value: order.total,
       currency: "TND",
+    }, {
+      consent: Boolean(hashedUserData),
+      hashedUserData,
     });
+    clearStoredMetaUserData();
   }, [order]);
 
   if (!order) return null;
