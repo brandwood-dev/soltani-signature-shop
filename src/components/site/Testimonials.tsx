@@ -73,7 +73,7 @@ export function Testimonials() {
   const next = () => setI((current) => (current + 1) % testimonials.length);
 
   return (
-    <section ref={sectionRef} className="py-12 md:py-20 bg-secondary/40">
+    <section ref={sectionRef} className="py-12 md:pb-8 md:pt-20 bg-secondary/40">
       <div className="container-luxe">
         <div className="text-center mb-8 md:mb-10">
           <span className="text-[11px] uppercase tracking-[0.4em] text-gold">Avis Clients</span>

@@ -39,7 +39,7 @@ export function Newsletter() {
   };
 
   return (
-    <section className="py-24 md:py-32 bg-background">
+    <section className="py-24 md:pb-32 md:pt-16 bg-background">
       <div className="container-luxe">
         <div className="relative overflow-hidden border border-gold/30 rounded-sm p-10 md:p-16 text-center bg-gradient-to-br from-secondary to-card">
           <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-gold/10 blur-3xl" />

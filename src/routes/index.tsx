@@ -79,15 +79,17 @@ function Home() {
         <Hero initialSlides={heroSlides} />
         <TrustBar />
         <Categories />
-        <ProductGrid
-          eyebrow="Les Indispensables"
-          title="Meilleures Ventes"
-          items={bestsellers}
-          loadState={hasFailed("bestsellers") ? (isRecovering ? "loading" : "error") : "ready"}
-          onRetry={retryPage}
-          kicker="Les pièces les plus convoitées par notre clientèle."
-          viewAllTo="/meilleures-ventes"
-        />
+        <div className="md:-mt-8">
+          <ProductGrid
+            eyebrow="Les Indispensables"
+            title="Meilleures Ventes"
+            items={bestsellers}
+            loadState={hasFailed("bestsellers") ? (isRecovering ? "loading" : "error") : "ready"}
+            onRetry={retryPage}
+            kicker="Les pièces les plus convoitées par notre clientèle."
+            viewAllTo="/meilleures-ventes"
+          />
+        </div>
         <LazySection minHeight={520}>
           <CollectionBanners />
         </LazySection>
