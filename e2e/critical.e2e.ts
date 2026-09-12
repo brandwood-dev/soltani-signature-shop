@@ -124,6 +124,16 @@ test.describe("critical public flows", () => {
           { message: `${path} should not overflow horizontally at 320px` },
         )
         .toBe(true);
+
+      if (path === "/checkout") {
+        const heading = page.getByRole("heading", { name: "Finaliser la commande" });
+        const initialBox = await heading.boundingBox();
+        await page.waitForTimeout(1_500);
+        const settledBox = await heading.boundingBox();
+        expect(initialBox, "checkout heading should be visible before async content settles").not.toBeNull();
+        expect(settledBox, "checkout heading should remain visible after async content settles").not.toBeNull();
+        expect(Math.abs((settledBox?.y ?? 0) - (initialBox?.y ?? 0))).toBeLessThanOrEqual(1);
+      }
     }
   });
 
