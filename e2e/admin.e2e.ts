@@ -27,34 +27,32 @@ async function loginAdmin(page: Page) {
   await expect(page.locator("body")).not.toContainText(genericError);
 }
 
-async function getAccessToken(page: Page) {
-  return page.evaluate(() => {
-    const raw = localStorage.getItem("soltani-auth-session");
-    if (!raw) return null;
-    try {
-      return (JSON.parse(raw) as { accessToken?: string }).accessToken ?? null;
-    } catch {
-      return null;
-    }
-  });
-}
-
 async function adminRequest(
   request: APIRequestContext,
   page: Page,
   path: string,
   options: AdminApiOptions = {},
 ) {
-  const accessToken = await getAccessToken(page);
-  if (!accessToken) throw new Error("Session admin absente du navigateur.");
+  const cookies = await page.context().cookies();
+  const sessionCookies = cookies.filter(({ name }) =>
+    ["soltani_access_token", "soltani_refresh_token", "soltani_csrf_token"].includes(name),
+  );
+  const accessCookie = sessionCookies.find(({ name }) => name === "soltani_access_token");
+  if (!accessCookie) throw new Error("Session admin absente du navigateur.");
+
+  const method = (options.method ?? "GET").toUpperCase();
+  const csrfCookie = sessionCookies.find(({ name }) => name === "soltani_csrf_token");
 
   return request.fetch(`${apiBaseUrl}${path}`, {
-    method: options.method ?? "GET",
+    method,
     data: options.data,
     headers: {
       Accept: "application/json",
       ...(options.data === undefined ? {} : { "Content-Type": "application/json" }),
-      Authorization: `Bearer ${accessToken}`,
+      Cookie: sessionCookies.map(({ name, value }) => `${name}=${value}`).join("; "),
+      ...(csrfCookie && !["GET", "HEAD", "OPTIONS"].includes(method)
+        ? { "X-CSRF-Token": csrfCookie.value }
+        : {}),
     },
   });
 }
