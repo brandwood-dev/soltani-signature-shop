@@ -76,6 +76,7 @@ function CheckoutPage() {
     readMetaEnhancedMatchingConsent(),
   );
   const [selectedAddressId, setSelectedAddressId] = useState("new");
+  const orderIdempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const initiatedCheckoutRef = useRef(false);
   const addedPaymentInfoRef = useRef(false);
   const [form, setForm] = useState({
@@ -299,7 +300,13 @@ function CheckoutPage() {
           quantity: line.qty,
         })),
       };
-      const idempotencyKey = createOrderIdempotencyKey();
+      const idempotencyFingerprint = JSON.stringify({ paymentMethod, orderDetails });
+      const currentIdempotency = orderIdempotencyRef.current;
+      const idempotencyKey =
+        currentIdempotency?.fingerprint === idempotencyFingerprint
+          ? currentIdempotency.key
+          : createOrderIdempotencyKey();
+      orderIdempotencyRef.current = { fingerprint: idempotencyFingerprint, key: idempotencyKey };
       if (paymentMethod === "CLICK_TO_PAY") {
         if (settings.onlinePaymentMode === "demo") {
           sessionStorage.setItem(
@@ -331,6 +338,7 @@ function CheckoutPage() {
           throw new Error("La session de paiement ClicToPay SMT est indisponible.");
         }
         await persistMetaIdentifiers();
+        orderIdempotencyRef.current = null;
         window.location.assign(order.payment.checkoutUrl);
         return;
       }
@@ -343,6 +351,7 @@ function CheckoutPage() {
         ? await createCustomerCodOrder(orderInput, { idempotencyKey })
         : await createCodOrder(orderInput, { idempotencyKey });
       await persistMetaIdentifiers();
+      orderIdempotencyRef.current = null;
 
       localStorage.setItem(
         "soltani-last-order",
