@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { Check, CreditCard, Lock, Truck, User } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import {
@@ -396,9 +395,9 @@ function CheckoutPage() {
         </h1>
         <p className="mb-8 text-sm text-muted-foreground sm:mb-10">{paymentIntro}</p>
 
-        <div className="mx-auto mb-8 flex w-full max-w-2xl items-start justify-between sm:mb-12">
+        <div className="mx-auto mb-8 flex w-full max-w-2xl items-start sm:mb-12">
           {STEPS.map((item, index) => (
-            <div key={item.n} className="flex min-w-0 flex-1 items-start">
+            <Fragment key={item.n}>
               <div className="flex min-w-0 flex-1 flex-col items-center">
                 <div
                   className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 transition sm:h-11 sm:w-11 ${step >= item.n ? "bg-gold border-gold text-ink" : "border-border text-muted-foreground"}`}
@@ -418,7 +417,7 @@ function CheckoutPage() {
               {index < STEPS.length - 1 && (
                 <div className={`mt-4 h-px min-w-2 flex-1 mx-1 sm:mt-5 sm:mx-2 ${step > item.n ? "bg-gold" : "bg-border"}`} />
               )}
-            </div>
+            </Fragment>
           ))}
         </div>
 
