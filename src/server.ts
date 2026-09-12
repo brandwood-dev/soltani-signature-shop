@@ -95,6 +95,10 @@ function getApiOrigin(env: unknown) {
 
 function withSecurityHeaders(response: Response) {
   const headers = new Headers(response.headers);
+  if ((headers.get("content-type") ?? "").includes("text/html")) {
+    headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    headers.set("CDN-Cache-Control", "no-store");
+  }
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(name, value);
   }
