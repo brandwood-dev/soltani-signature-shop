@@ -142,7 +142,9 @@ test.describe("critical public flows", () => {
 
       if (path === "/checkout") {
         const heading = page.getByRole("heading", { name: "Finaliser la commande" });
-        await expect(page.getByText("Produit de démonstration au nom long", { exact: true })).toBeVisible();
+        await expect(
+          page.getByRole("complementary").getByText("Produit de démonstration au nom long", { exact: true }),
+        ).toBeVisible();
         const columnsFitViewport = await page.locator("main > div > div.grid").evaluate((grid) =>
           Array.from(grid.children).every((child) => {
             const rect = child.getBoundingClientRect();
