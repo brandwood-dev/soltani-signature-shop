@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { CountdownCells } from "./Countdown";
 import type { PromoBanner } from "@/lib/promo-banners-api";
+import { ResponsiveImage } from "./ResponsiveImage";
 
 type Props = {
   banner: PromoBanner;
@@ -16,8 +17,9 @@ export function Promo({ banner }: Props) {
 
   return (
     <section id="promos" className="relative py-14 md:py-20 overflow-hidden bg-background">
-      <img
+      <ResponsiveImage
         src={banner.image}
+        sources={banner.imageSources}
         alt=""
         aria-hidden
         loading="lazy"

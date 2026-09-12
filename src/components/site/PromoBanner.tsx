@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import type { ResponsiveImageSources } from "@/lib/content-media-api";
+import { ResponsiveImage } from "./ResponsiveImage";
 
 type Props = {
   eyebrow?: string;
@@ -8,16 +10,17 @@ type Props = {
   cta: string;
   to: string;
   image: string;
+  imageSources?: ResponsiveImageSources;
   align?: "left" | "right";
 };
 
-export function PromoBanner({ eyebrow, title, subtitle, cta, to, image, align = "left" }: Props) {
+export function PromoBanner({ eyebrow, title, subtitle, cta, to, image, imageSources, align = "left" }: Props) {
   const LinkAny = Link as unknown as React.ComponentType<{ to: string; className?: string; children: React.ReactNode }>;
 
   return (
     <section className="relative w-full overflow-hidden">
       <div className="relative h-[360px] md:h-[440px]">
-        <img src={image} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+        <ResponsiveImage src={image} sources={imageSources} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
         <div
           className={`absolute inset-0 ${
             align === "left"

@@ -29,7 +29,7 @@ export function Brands() {
       <div className="relative">
         <div className="marquee flex w-max items-center gap-16">
           {[...brands, ...brands].map((brand, index) => {
-            const logo = (
+            const logo = brand.logo ? (
               <picture>
                 {(brand.logoSources?.avif?.length ?? 0) > 0 && (
                   <source
@@ -56,6 +56,10 @@ export function Brands() {
                   loading="lazy"
                 />
               </picture>
+            ) : (
+              <span className="text-center font-display text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                {brand.name}
+              </span>
             );
             const itemClass =
               "flex h-16 w-32 shrink-0 items-center justify-center px-2 md:h-20 md:w-40";

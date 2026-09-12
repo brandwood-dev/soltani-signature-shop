@@ -33,7 +33,7 @@ import {
   updatePromoBanner,
   type PromoBanner,
 } from "@/lib/promo-banners-api";
-import { uploadAdminProductImage } from "@/lib/admin-products-api";
+import { uploadAdminContentImage } from "@/lib/content-media-api";
 
 export const Route = createFileRoute("/admin/banners")({
   component: AdminBanners,
@@ -173,6 +173,7 @@ function AdminBanners() {
         page: editing.page,
         kind: editing.page === "home" ? editing.kind : "promotion",
         image: editing.image,
+        imageSources: editing.imageSources,
         title: editing.title,
         subtitle: editing.subtitle,
         ctaLabel: editing.ctaLabel,
@@ -378,7 +379,11 @@ function AdminBanners() {
               <div className="space-y-1.5">
                 <Label>Image</Label>
                 <div className="flex gap-2">
-                  <Input value={editing.image} onChange={(event) => setEditing({ ...editing, image: event.target.value })} placeholder="URL de l'image" />
+                  <Input
+                    value={editing.image}
+                    onChange={(event) => setEditing({ ...editing, image: event.target.value, imageSources: undefined })}
+                    placeholder="URL de l'image"
+                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -405,8 +410,8 @@ function AdminBanners() {
                     setUploadingImage(true);
                     setImageUploadError("");
                     try {
-                      const image = await uploadAdminProductImage(file);
-                      setEditing((current) => (current ? { ...current, image } : current));
+                      const image = await uploadAdminContentImage(file, "banner");
+                      setEditing((current) => (current ? { ...current, image: image.url, imageSources: image.sources } : current));
                     } catch (caught) {
                       setImageUploadError(caught instanceof Error ? caught.message : "Téléversement de l'image impossible.");
                     } finally {

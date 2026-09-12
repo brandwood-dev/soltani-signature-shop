@@ -66,6 +66,29 @@ test.describe("critical public flows", () => {
     await expect(page.locator("body")).not.toContainText(errorMessage);
   });
 
+  test("public content uses optimized media and the edge cache", async ({ request }) => {
+    const mediaResponse = await request.get("/api/v1/content/site-media");
+    if (mediaResponse.status() === 404) {
+      test.skip(true, "The P2 media endpoint is not deployed yet.");
+      return;
+    }
+    expect(mediaResponse.status()).toBe(200);
+    const media = await mediaResponse.json();
+    const urls = [
+      media.logo?.url,
+      media.collections?.femme?.url,
+      media.collections?.homme?.url,
+      media.collections?.enfant?.url,
+    ].filter((url): url is string => typeof url === "string");
+    expect(urls.length).toBeGreaterThan(0);
+    expect(urls.every((url) => !url.startsWith("data:") && !url.includes("res.cloudinary.com"))).toBe(true);
+
+    const cacheResponse = await request.get("/api/v1/content/site-media");
+    expect(["HIT", "STALE", "MISS", "BYPASS"]).toContain(
+      cacheResponse.headers()["x-soltani-edge-cache"],
+    );
+  });
+
   test("checkout flow stays within a 320px viewport", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 800 });
     await page.addInitScript(() => {
@@ -158,6 +181,19 @@ test.describe("critical public flows", () => {
         expect(initialBox, "checkout heading should be visible before async content settles").not.toBeNull();
         expect(settledBox, "checkout heading should remain visible after async content settles").not.toBeNull();
         expect(Math.abs((settledBox?.y ?? 0) - (initialBox?.y ?? 0))).toBeLessThanOrEqual(1);
+
+        await page.locator('input[type="email"]').fill("e2e-checkout@example.com");
+        await page.getByLabel("Prénom").fill("Client");
+        await page.getByRole("textbox", { name: "Nom", exact: true }).fill("Test");
+        await page.getByRole("textbox", { name: "Téléphone", exact: true }).fill("+216 20 000 000");
+        await page.getByRole("button", { name: "Continuer →" }).click();
+        await expect(page.getByRole("heading", { name: "Adresse de livraison" })).toBeVisible();
+        await page.getByRole("textbox", { name: "Adresse", exact: true }).fill("Rue E2E");
+        await page.getByRole("textbox", { name: "Code postal", exact: true }).fill("1000");
+        await page.getByRole("textbox", { name: "Ville", exact: true }).fill("Tunis");
+        await page.getByRole("button", { name: "Continuer →" }).click();
+        await expect(page.getByText("Paiement à la livraison", { exact: true })).toBeVisible();
+        await expect(page.locator('input[type="radio"]').first()).toBeChecked();
       }
     }
   });

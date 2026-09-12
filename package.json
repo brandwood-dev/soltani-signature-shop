@@ -11,6 +11,7 @@
     "check:cloudflare": "wrangler deploy --dry-run --config wrangler.jsonc && wrangler deploy --dry-run --config wrangler.cron.jsonc",
     "cf:typegen:cron": "wrangler types --config wrangler.cron.jsonc workers/mail-outbox-cron-env.d.ts",
     "deploy:cloudflare": "bun run build && bun scripts/deploy-cloudflare.ts",
+    "verify:production": "bun scripts/verify-production.ts",
     "deploy:cron": "wrangler deploy --config wrangler.cron.jsonc",
     "test": "bun test",
     "test:e2e": "playwright test",

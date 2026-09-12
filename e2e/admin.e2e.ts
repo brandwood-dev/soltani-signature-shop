@@ -274,6 +274,20 @@ test.describe("authenticated admin flows", () => {
     await expect(page.getByRole("button", { name: "Mettre à jour" })).toBeVisible();
   });
 
+  test("admin can access media management while media writes stay protected", async ({ page, request }) => {
+    const unauthorizedUpload = await request.post(`${apiBaseUrl}/content/admin/images`, {
+      data: { fileName: "unauthorized.png", mimeType: "image/png", base64: "invalid", purpose: "hero" },
+    });
+    expect(unauthorizedUpload.status()).toBe(401);
+
+    await loginAdmin(page);
+    await page.goto("/admin/hero", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("button", { name: "Optimiser les anciennes images" })).toBeVisible();
+    await page.goto("/admin/banners", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Bannières promotionnelles" })).toBeVisible();
+    await expect(page.locator("body")).not.toContainText(genericError);
+  });
+
   test("admin can update and restore a dedicated test order", async ({ page, request }) => {
     test.skip(
       !process.env.E2E_ADMIN_ORDER_ID || process.env.E2E_ADMIN_ORDER_MUTATION !== "true",

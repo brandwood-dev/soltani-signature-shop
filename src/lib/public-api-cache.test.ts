@@ -15,6 +15,14 @@ describe("Cloudflare public API cache policy", () => {
     });
   });
 
+  test("caches the migrated site media manifest", () => {
+    expect(publicApiCachePolicy("GET", "/api/v1/content/site-media", false)).toEqual({
+      freshSeconds: 60,
+      staleSeconds: 300,
+      tag: "public-content",
+    });
+  });
+
   test("never caches private, mutable, preview or review requests", () => {
     expect(publicApiCachePolicy("GET", "/api/v1/catalog/products", true)).toBeNull();
     expect(publicApiCachePolicy("POST", "/api/v1/catalog/products", false)).toBeNull();
