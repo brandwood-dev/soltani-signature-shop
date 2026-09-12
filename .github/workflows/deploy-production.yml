@@ -74,6 +74,16 @@ jobs:
           FRONTEND_BASE_URL: https://www.soltanisignature.com
           API_BASE_URL: https://soltani-signature-api.onrender.com
 
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Critical production E2E tests
+        run: bun run test:e2e
+        env:
+          E2E_BASE_URL: https://www.soltanisignature.com
+          E2E_API_BASE_URL: https://soltani-signature-api.onrender.com
+          E2E_REQUIRE_EDGE_CACHE: "true"
+
       - name: Automatic rollback
         if: failure() && steps.deploy.outcome == 'success'
         run: bunx wrangler rollback --config wrangler.jsonc --message "Automatic rollback after failed production smoke test"
