@@ -75,5 +75,5 @@ jobs:
           API_BASE_URL: https://soltani-signature-api.onrender.com
 
       - name: Automatic rollback
-        if: failure()
+        if: failure() && steps.deploy.outcome == 'success'
         run: bunx wrangler rollback --config wrangler.jsonc --message "Automatic rollback after failed production smoke test"

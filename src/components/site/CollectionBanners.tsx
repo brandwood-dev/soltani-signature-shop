@@ -70,6 +70,7 @@ export function CollectionBanners() {
                 <ResponsiveImage
                   src={b.image}
                   sources={b.imageSources}
+                  sizes="(min-width: 1024px) 50vw, 100vw"
                   alt={b.title}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110"
                 />
@@ -107,6 +108,7 @@ export function CollectionBanners() {
             <ResponsiveImage
               src={media?.collections.enfant?.url ?? enfantFallback}
               sources={media?.collections.enfant?.sources}
+              sizes="(min-width: 1024px) 100vw, 100vw"
               alt="Collection Enfant"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
             />

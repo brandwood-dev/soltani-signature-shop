@@ -33,6 +33,7 @@ export function Logo({ className = "", height = 42, footer = false }: LogoProps)
       <ResponsiveImage
         src={logo?.url ?? LOGO_FALLBACK}
         sources={logo?.sources}
+        sizes="160px"
         alt="Soltani Signature"
         className="object-contain h-[var(--logo-h-m)] sm:h-[var(--logo-h)] w-auto"
         style={

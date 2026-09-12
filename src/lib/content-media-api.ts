@@ -51,12 +51,20 @@ export async function uploadAdminContentImage(file: File, purpose: ContentImageP
   });
 }
 
+const SITE_MEDIA_CACHE_TTL_MS = 5 * 60 * 1000;
 let siteMediaPromise: Promise<SiteMedia> | null = null;
+let siteMediaCachedAt = 0;
 
 export function getSiteMedia() {
+  if (Date.now() - siteMediaCachedAt >= SITE_MEDIA_CACHE_TTL_MS) {
+    siteMediaPromise = null;
+  }
+
   siteMediaPromise ??= publicApiFetch<SiteMedia>("/content/site-media").catch((error) => {
     siteMediaPromise = null;
+    siteMediaCachedAt = 0;
     throw error;
   });
+  siteMediaCachedAt = Date.now();
   return siteMediaPromise;
 }

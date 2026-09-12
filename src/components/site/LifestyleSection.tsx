@@ -81,6 +81,7 @@ export function DualBanner({
             <ResponsiveImage
               src={b.image}
               sources={b.imageSources}
+              sizes="(min-width: 768px) 50vw, 100vw"
               alt={b.title}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110"
             />
