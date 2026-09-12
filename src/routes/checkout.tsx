@@ -389,7 +389,7 @@ function CheckoutPage() {
 
   return (
     <SiteLayout>
-      <div className="container-luxe py-8 sm:py-10">
+      <div className="container-luxe min-w-0 py-8 sm:py-10">
         <h1 className="mb-2 font-display text-2xl font-bold sm:text-3xl md:text-4xl">
           Finaliser la commande
         </h1>
@@ -421,8 +421,8 @@ function CheckoutPage() {
           ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10">
-          <div className="rounded-sm border border-border bg-secondary/30 p-4 sm:p-6 md:p-8">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10">
+          <div className="min-w-0 rounded-sm border border-border bg-secondary/30 p-4 sm:p-6 md:p-8">
             {error && (
               <div className="mb-5 rounded-sm border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
@@ -638,7 +638,7 @@ function CheckoutPage() {
             </div>
           </div>
 
-          <aside className="h-fit rounded-sm border border-border bg-card p-4 sm:p-6">
+          <aside className="min-w-0 h-fit rounded-sm border border-border bg-card p-4 sm:p-6">
             <h3 className="font-display text-lg font-bold mb-5">Votre commande</h3>
             <div className="space-y-4 pb-4 border-b border-border">
               {lines.length === 0 ? (
@@ -652,13 +652,13 @@ function CheckoutPage() {
                         {line.qty}
                       </span>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[10px] uppercase tracking-widest text-gold">
                         {line.brand}
                       </p>
                       <p className="text-sm truncate">{line.name}</p>
                     </div>
-                    <p className="shrink-0 text-right text-sm font-semibold tabular-nums">
+                    <p className="max-w-[35%] shrink-0 break-words text-right text-sm font-semibold tabular-nums">
                       {line.price * line.qty} DT
                     </p>
                   </div>
@@ -675,9 +675,9 @@ function CheckoutPage() {
                 <dd className="tabular-nums">{shipping === 0 ? "Offerte" : `${shipping} DT`}</dd>
               </div>
             </dl>
-            <div className="flex justify-between items-end pt-4">
+            <div className="flex min-w-0 items-end justify-between gap-4 pt-4">
               <span className="font-display font-bold">Total</span>
-              <span className="font-display font-bold text-2xl text-gold tabular-nums">
+              <span className="min-w-0 shrink text-right font-display text-2xl font-bold text-gold tabular-nums">
                 {total} DT
               </span>
             </div>
