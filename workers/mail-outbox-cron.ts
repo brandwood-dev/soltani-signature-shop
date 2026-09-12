@@ -6,6 +6,7 @@ interface Env {
 async function processMailOutbox(env: Env) {
   const endpoint = new URL("/api/v1/cron/mail-outbox", env.API_ORIGIN);
   const response = await fetch(endpoint, {
+    method: "POST",
     headers: {
       authorization: `Bearer ${env.MAIL_OUTBOX_CRON_SECRET}`,
       "user-agent": "soltani-signature-mail-cron/1.0",

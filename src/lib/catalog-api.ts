@@ -109,26 +109,23 @@ export type CreateClickToPayOrderInput = Omit<CreateCodOrderInput, "paymentMetho
   paymentMethod: "CLICK_TO_PAY";
 };
 
+export type CreatedOrderRequestOptions = {
+  idempotencyKey?: string;
+};
+
 export type CreatedOrder = {
   id: string;
   reference: string;
-  customerEmail: string;
   subtotal: string | number;
   shippingTotal: string | number;
   discountTotal: string | number;
   total: string | number;
   paymentMethod: string;
   status: string;
-  items: Array<{
-    productName: string;
-    quantity: number;
-    unitPrice: string | number;
-    totalPrice: string | number;
-  }>;
   payment?: {
     status: string;
-    checkoutUrl: string;
-    providerTransactionId: string;
+    checkoutUrl: string | null;
+    providerTransactionId: string | null;
   } | null;
 };
 
@@ -404,30 +401,50 @@ export async function getProductPreview(token: string) {
   };
 }
 
-export async function createCodOrder(input: CreateCodOrderInput) {
+export function createOrderIdempotencyKey() {
+  return globalThis.crypto.randomUUID();
+}
+
+export async function createCodOrder(
+  input: CreateCodOrderInput,
+  options: CreatedOrderRequestOptions = {},
+) {
   return apiFetch<CreatedOrder>("/orders", {
     method: "POST",
+    headers: { "Idempotency-Key": options.idempotencyKey ?? createOrderIdempotencyKey() },
     body: JSON.stringify(input),
   });
 }
 
-export async function createCustomerCodOrder(input: CreateCodOrderInput) {
+export async function createCustomerCodOrder(
+  input: CreateCodOrderInput,
+  options: CreatedOrderRequestOptions = {},
+) {
   return apiFetch<CreatedOrder>("/orders/customer", {
     method: "POST",
+    headers: { "Idempotency-Key": options.idempotencyKey ?? createOrderIdempotencyKey() },
     body: JSON.stringify(input),
   });
 }
 
-export async function createClickToPayOrder(input: CreateClickToPayOrderInput) {
+export async function createClickToPayOrder(
+  input: CreateClickToPayOrderInput,
+  options: CreatedOrderRequestOptions = {},
+) {
   return apiFetch<CreatedOrder>("/orders", {
     method: "POST",
+    headers: { "Idempotency-Key": options.idempotencyKey ?? createOrderIdempotencyKey() },
     body: JSON.stringify(input),
   });
 }
 
-export async function createCustomerClickToPayOrder(input: CreateClickToPayOrderInput) {
+export async function createCustomerClickToPayOrder(
+  input: CreateClickToPayOrderInput,
+  options: CreatedOrderRequestOptions = {},
+) {
   return apiFetch<CreatedOrder>("/orders/customer", {
     method: "POST",
+    headers: { "Idempotency-Key": options.idempotencyKey ?? createOrderIdempotencyKey() },
     body: JSON.stringify(input),
   });
 }

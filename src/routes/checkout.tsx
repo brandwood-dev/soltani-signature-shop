@@ -8,6 +8,7 @@ import {
   createCodOrder,
   createCustomerClickToPayOrder,
   createCustomerCodOrder,
+  createOrderIdempotencyKey,
   type CreateClickToPayOrderInput,
   type CreateCodOrderInput,
 } from "@/lib/catalog-api";
@@ -75,6 +76,7 @@ function CheckoutPage() {
     readMetaEnhancedMatchingConsent(),
   );
   const [selectedAddressId, setSelectedAddressId] = useState("new");
+  const orderIdempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const initiatedCheckoutRef = useRef(false);
   const addedPaymentInfoRef = useRef(false);
   const [form, setForm] = useState({
@@ -298,6 +300,13 @@ function CheckoutPage() {
           quantity: line.qty,
         })),
       };
+      const idempotencyFingerprint = JSON.stringify({ paymentMethod, orderDetails });
+      const currentIdempotency = orderIdempotencyRef.current;
+      const idempotencyKey =
+        currentIdempotency?.fingerprint === idempotencyFingerprint
+          ? currentIdempotency.key
+          : createOrderIdempotencyKey();
+      orderIdempotencyRef.current = { fingerprint: idempotencyFingerprint, key: idempotencyKey };
       if (paymentMethod === "CLICK_TO_PAY") {
         if (settings.onlinePaymentMode === "demo") {
           sessionStorage.setItem(
@@ -323,12 +332,13 @@ function CheckoutPage() {
           paymentMethod: "CLICK_TO_PAY",
         };
         const order = customerProfile
-          ? await createCustomerClickToPayOrder(orderInput)
-          : await createClickToPayOrder(orderInput);
+          ? await createCustomerClickToPayOrder(orderInput, { idempotencyKey })
+          : await createClickToPayOrder(orderInput, { idempotencyKey });
         if (!order.payment?.checkoutUrl) {
           throw new Error("La session de paiement ClicToPay SMT est indisponible.");
         }
         await persistMetaIdentifiers();
+        orderIdempotencyRef.current = null;
         window.location.assign(order.payment.checkoutUrl);
         return;
       }
@@ -338,9 +348,10 @@ function CheckoutPage() {
         paymentMethod: "CASH_ON_DELIVERY",
       };
       const order = customerProfile
-        ? await createCustomerCodOrder(orderInput)
-        : await createCodOrder(orderInput);
+        ? await createCustomerCodOrder(orderInput, { idempotencyKey })
+        : await createCodOrder(orderInput, { idempotencyKey });
       await persistMetaIdentifiers();
+      orderIdempotencyRef.current = null;
 
       localStorage.setItem(
         "soltani-last-order",
