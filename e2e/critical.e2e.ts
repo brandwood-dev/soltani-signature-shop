@@ -79,6 +79,21 @@ test.describe("critical public flows", () => {
           lines: [{ name: "Produit de démonstration au nom long", qty: 1, price: 240 }],
         }),
       );
+      sessionStorage.setItem(
+        "soltani-cart",
+        JSON.stringify([
+          {
+            id: "mobile-cart-line",
+            variantId: "mobile-cart-variant",
+            name: "Produit de démonstration au nom long",
+            brand: "Marque de démonstration",
+            price: 240,
+            qty: 1,
+            image: "",
+            variant: "Format standard",
+          },
+        ]),
+      );
       localStorage.setItem(
         "soltani-last-order",
         JSON.stringify({
@@ -127,6 +142,14 @@ test.describe("critical public flows", () => {
 
       if (path === "/checkout") {
         const heading = page.getByRole("heading", { name: "Finaliser la commande" });
+        await expect(page.getByText("Produit de démonstration au nom long", { exact: true })).toBeVisible();
+        const columnsFitViewport = await page.locator("main > div > div.grid").evaluate((grid) =>
+          Array.from(grid.children).every((child) => {
+            const rect = child.getBoundingClientRect();
+            return rect.left >= -1 && rect.right <= window.innerWidth + 1;
+          }),
+        );
+        expect(columnsFitViewport, "populated checkout columns should fit the mobile viewport").toBe(true);
         const initialBox = await heading.boundingBox();
         await page.waitForTimeout(1_500);
         const settledBox = await heading.boundingBox();
