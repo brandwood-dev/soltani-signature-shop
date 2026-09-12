@@ -390,16 +390,18 @@ function CheckoutPage() {
 
   return (
     <SiteLayout>
-      <div className="container-luxe py-10">
-        <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">Finaliser la commande</h1>
-        <p className="text-sm text-muted-foreground mb-10">{paymentIntro}</p>
+      <div className="container-luxe py-8 sm:py-10">
+        <h1 className="mb-2 font-display text-2xl font-bold sm:text-3xl md:text-4xl">
+          Finaliser la commande
+        </h1>
+        <p className="mb-8 text-sm text-muted-foreground sm:mb-10">{paymentIntro}</p>
 
-        <div className="flex items-center justify-between max-w-2xl mx-auto mb-12">
+        <div className="mx-auto mb-8 flex w-full max-w-2xl items-start justify-between sm:mb-12">
           {STEPS.map((item, index) => (
-            <div key={item.n} className="flex items-center flex-1">
-              <div className="flex flex-col items-center">
+            <div key={item.n} className="flex min-w-0 flex-1 items-start">
+              <div className="flex min-w-0 flex-1 flex-col items-center">
                 <div
-                  className={`h-11 w-11 grid place-items-center rounded-full border-2 transition ${step >= item.n ? "bg-gold border-gold text-ink" : "border-border text-muted-foreground"}`}
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 transition sm:h-11 sm:w-11 ${step >= item.n ? "bg-gold border-gold text-ink" : "border-border text-muted-foreground"}`}
                 >
                   {step > item.n ? (
                     <Check className="h-5 w-5" />
@@ -408,20 +410,20 @@ function CheckoutPage() {
                   )}
                 </div>
                 <span
-                  className={`mt-2 text-[10px] uppercase tracking-widest ${step >= item.n ? "text-gold" : "text-muted-foreground"}`}
+                  className={`mt-2 max-w-full text-center text-[9px] uppercase tracking-[0.12em] leading-tight sm:text-[10px] sm:tracking-widest ${step >= item.n ? "text-gold" : "text-muted-foreground"}`}
                 >
                   {item.label}
                 </span>
               </div>
               {index < STEPS.length - 1 && (
-                <div className={`h-px flex-1 mx-2 ${step > item.n ? "bg-gold" : "bg-border"}`} />
+                <div className={`mt-4 h-px min-w-2 flex-1 mx-1 sm:mt-5 sm:mx-2 ${step > item.n ? "bg-gold" : "bg-border"}`} />
               )}
             </div>
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_380px] gap-10">
-          <div className="bg-secondary/30 border border-border rounded-sm p-6 md:p-8">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10">
+          <div className="rounded-sm border border-border bg-secondary/30 p-4 sm:p-6 md:p-8">
             {error && (
               <div className="mb-5 rounded-sm border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
@@ -440,7 +442,7 @@ function CheckoutPage() {
                     placeholder="vous@exemple.com"
                   />
                 </Field>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Prénom">
                     <input
                       value={form.firstName}
@@ -518,7 +520,7 @@ function CheckoutPage() {
                     className="input-luxe"
                   />
                 </Field>
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid gap-4 md:grid-cols-3">
                   <Field label="Code postal">
                     <input
                       value={form.postalCode}
@@ -566,8 +568,8 @@ function CheckoutPage() {
                       onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
                       className="accent-gold mt-1"
                     />
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">Paiement à la livraison</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-snug">Paiement à la livraison</p>
                       <p className="text-xs text-muted-foreground">
                         Espèces à la réception de la commande.
                       </p>
@@ -583,8 +585,8 @@ function CheckoutPage() {
                       onChange={() => setPaymentMethod("CLICK_TO_PAY")}
                       className="accent-gold mt-1"
                     />
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">Paiement en ligne ClicToPay SMT</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-snug">Paiement en ligne ClicToPay SMT</p>
                       <p className="text-xs text-muted-foreground">
                         Paiement sécurisé par carte via ClicToPay SMT.
                       </p>
@@ -600,18 +602,18 @@ function CheckoutPage() {
               </div>
             )}
 
-            <div className="mt-8 pt-6 border-t border-border flex justify-between">
+            <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
               {step > 1 ? (
                 <button
                   onClick={() => setStep(step - 1)}
-                  className="text-sm uppercase tracking-widest text-muted-foreground hover:text-gold"
+                  className="text-center text-sm uppercase tracking-[0.14em] text-muted-foreground hover:text-gold sm:text-left sm:tracking-widest"
                 >
                   ← Retour
                 </button>
               ) : (
                 <Link
                   to="/cart"
-                  className="text-sm uppercase tracking-widest text-muted-foreground hover:text-gold"
+                  className="text-center text-sm uppercase tracking-[0.14em] text-muted-foreground hover:text-gold sm:text-left sm:tracking-widest"
                 >
                   ← Panier
                 </Link>
@@ -619,7 +621,7 @@ function CheckoutPage() {
               {step < 3 ? (
                 <button
                   onClick={nextStep}
-                  className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-sm bg-gold px-4 text-[10px] font-bold uppercase tracking-[0.14em] text-ink transition hover:bg-ink hover:text-gold sm:w-auto sm:px-6 sm:text-[12px] sm:tracking-[0.2em]"
                 >
                   Continuer →
                 </button>
@@ -628,7 +630,7 @@ function CheckoutPage() {
                   disabled={submitting || !lines.length}
                   aria-disabled={submitting || !lines.length}
                   onClick={placeOrder}
-                  className="px-6 h-11 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm inline-flex items-center gap-2 disabled:opacity-60"
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm bg-gold px-4 text-[10px] font-bold uppercase tracking-[0.14em] text-ink transition hover:bg-ink hover:text-gold disabled:opacity-60 sm:w-auto sm:px-6 sm:text-[12px] sm:tracking-[0.2em]"
                 >
                   <Lock className="h-4 w-4" />{" "}
                   {submitting ? "Création..." : `Confirmer ${total} DT`}
@@ -637,15 +639,15 @@ function CheckoutPage() {
             </div>
           </div>
 
-          <aside className="bg-card border border-border rounded-sm p-6 h-fit">
+          <aside className="h-fit rounded-sm border border-border bg-card p-4 sm:p-6">
             <h3 className="font-display text-lg font-bold mb-5">Votre commande</h3>
             <div className="space-y-4 pb-4 border-b border-border">
               {lines.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{EMPTY_CART_MESSAGE}</p>
               ) : (
                 lines.map((line) => (
-                  <div key={line.id} className="flex gap-3">
-                    <div className="relative h-16 w-16 overflow-hidden rounded-sm bg-background">
+                  <div key={line.id} className="flex min-w-0 gap-3">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-sm bg-background sm:h-16 sm:w-16">
                       <img src={line.image} alt="" className="h-full w-full object-cover" />
                       <span className="absolute -top-1 -right-1 h-5 w-5 grid place-items-center rounded-full bg-gold text-ink text-[10px] font-bold">
                         {line.qty}
@@ -657,7 +659,9 @@ function CheckoutPage() {
                       </p>
                       <p className="text-sm truncate">{line.name}</p>
                     </div>
-                    <p className="text-sm font-semibold tabular-nums">{line.price * line.qty} DT</p>
+                    <p className="shrink-0 text-right text-sm font-semibold tabular-nums">
+                      {line.price * line.qty} DT
+                    </p>
                   </div>
                 ))
               )}

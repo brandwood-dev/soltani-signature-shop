@@ -50,7 +50,7 @@ function CartPage() {
         subtitle={`${lines.length} article${lines.length > 1 ? "s" : ""} dans votre panier`}
       />
 
-      <div className="container-luxe py-16 grid lg:grid-cols-[1fr_400px] gap-10">
+      <div className="container-luxe grid gap-6 py-10 sm:py-16 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10">
         <div>
           {lines.length === 0 ? (
             <div className="py-24 text-center">
@@ -62,16 +62,19 @@ function CartPage() {
           ) : (
             <div className="divide-y divide-border border-y border-border">
               {lines.map((l) => (
-                <div key={l.id} className="py-6 grid grid-cols-[100px_1fr_auto] gap-5">
+                <div
+                  key={l.id}
+                  className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 py-5 sm:grid-cols-[100px_minmax(0,1fr)_auto] sm:gap-5 sm:py-6"
+                >
                   <div className="aspect-square overflow-hidden rounded-sm bg-card">
                     <img src={l.image} alt={l.name} className="h-full w-full object-cover" />
                   </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gold mb-1">
+                  <div className="min-w-0">
+                    <p className="mb-1 text-[10px] uppercase tracking-widest text-gold">
                       {l.brand}
                     </p>
-                    <h3 className="font-medium mb-1">{l.name}</h3>
-                    <p className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <h3 className="mb-1 break-words font-medium leading-snug">{l.name}</h3>
+                    <p className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       {l.variantColorHex ? (
                         <span
                           className="h-3.5 w-3.5 rounded-full border border-black/15"
@@ -98,7 +101,7 @@ function CartPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="col-start-2 flex items-center justify-between gap-3 border-t border-border pt-3 sm:col-auto sm:block sm:border-0 sm:pt-0 sm:text-right">
                     <p className="font-semibold tabular-nums">{l.price * l.qty} DT</p>
                     <button
                       onClick={() => remove(l.id)}
@@ -113,7 +116,7 @@ function CartPage() {
           )}
         </div>
 
-        <aside className="bg-secondary/40 border border-border rounded-sm p-6 h-fit lg:sticky lg:top-28">
+        <aside className="h-fit rounded-sm border border-border bg-secondary/40 p-4 sm:p-6 lg:sticky lg:top-28">
           <h3 className="font-display text-xl font-bold mb-5">Récapitulatif</h3>
           <dl className="space-y-2 text-sm pb-4 border-b border-border">
             <div className="flex justify-between">

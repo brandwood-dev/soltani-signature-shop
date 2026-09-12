@@ -66,6 +66,67 @@ test.describe("critical public flows", () => {
     await expect(page.locator("body")).not.toContainText(errorMessage);
   });
 
+  test("checkout flow stays within a 320px viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.addInitScript(() => {
+      sessionStorage.setItem(
+        "soltani-demo-payment",
+        JSON.stringify({
+          reference: "DEMO-MOBILE",
+          amount: 250,
+          subtotal: 240,
+          shipping: 10,
+          lines: [{ name: "Produit de démonstration au nom long", qty: 1, price: 240 }],
+        }),
+      );
+      localStorage.setItem(
+        "soltani-last-order",
+        JSON.stringify({
+          number: "SOL-20260912-00001",
+          lines: [
+            {
+              id: "mobile-line",
+              image: "",
+              name: "Produit de démonstration au nom long",
+              brand: "Marque de démonstration",
+              variant: "Format standard",
+              qty: 1,
+              price: 240,
+            },
+          ],
+          subtotal: 240,
+          shipping: 10,
+          discount: 0,
+          total: 250,
+          payment: "Paiement à la livraison",
+          shippingMethod: "Livraison standard Tunisie",
+          address: {
+            name: "Client de démonstration",
+            line: "Une adresse de livraison suffisamment longue pour tester le retour à la ligne",
+            city: "Tunis",
+            zip: "1000",
+            phone: "+216 00 000 000",
+          },
+        }),
+      );
+    });
+
+    for (const path of ["/cart", "/checkout", "/payment-demo", "/order-confirmation"]) {
+      const response = await page.goto(path, { waitUntil: "domcontentloaded" });
+      expect(response?.status(), `${path} should return HTTP 200`).toBe(200);
+      await expect(page.locator("body")).not.toContainText(errorMessage);
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+            ),
+          { message: `${path} should not overflow horizontally at 320px` },
+        )
+        .toBe(true);
+    }
+  });
+
   test("production exposes a real Git SHA and healthy API", async ({ request }) => {
     const versionResponse = await request.get("/version.json");
     expect(versionResponse.status()).toBe(200);
