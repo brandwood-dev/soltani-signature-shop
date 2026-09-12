@@ -122,6 +122,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
             title={fullBanner.title}
             subtitle={fullBanner.subtitle}
             cta={fullBanner.ctaLabel}
+            imageSources={fullBanner.imageSources}
             to={fullBanner.ctaUrl}
             image={fullBanner.image}
             align={config.bannerLayout?.fullAlign}
@@ -149,6 +150,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
               cta: dualLeftBanner.ctaLabel,
               href: dualLeftBanner.ctaUrl,
               image: dualLeftBanner.image,
+              imageSources: dualLeftBanner.imageSources,
             }}
             right={{
               eyebrow: dualRightBanner.ctaLabel,
@@ -157,6 +159,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
               cta: dualRightBanner.ctaLabel,
               href: dualRightBanner.ctaUrl,
               image: dualRightBanner.image,
+              imageSources: dualRightBanner.imageSources,
             }}
           />
         )}
@@ -179,6 +182,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
             title={bottomBanner.title}
             subtitle={bottomBanner.subtitle}
             cta={bottomBanner.ctaLabel}
+            imageSources={bottomBanner.imageSources}
             to={bottomBanner.ctaUrl}
             image={bottomBanner.image}
             align={config.bannerLayout?.bottomAlign}

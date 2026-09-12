@@ -119,6 +119,7 @@ function Home() {
               cta={banner.ctaLabel}
               to={banner.ctaUrl}
               image={banner.image}
+              imageSources={banner.imageSources}
               align={index % 2 === 0 ? "right" : "left"}
             />
           </LazySection>

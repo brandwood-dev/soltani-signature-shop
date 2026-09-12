@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-
-const femmeImg = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780603714/Plan_de_travail_2_dhojvi.png";
-const hommeImg = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780603716/Plan_de_travail_1_pkdgmx.png";
-const enfantImg = "https://res.cloudinary.com/dxkxiy900/image/upload/v1780603724/Plan_de_travail_3_wvqw4p.png";
+import { useEffect, useState } from "react";
+import femmeFallback from "@/assets/hero-1.jpg";
+import hommeFallback from "@/assets/hero-2.jpg";
+import enfantFallback from "@/assets/hero-3.jpg";
+import { getSiteMedia, type ResponsiveImageSources } from "@/lib/content-media-api";
+import { ResponsiveImage } from "./ResponsiveImage";
 
 type Card = {
   eyebrow: string;
@@ -12,31 +14,48 @@ type Card = {
   subtitle: string;
   to: string;
   image: string;
+  imageSources?: ResponsiveImageSources;
 };
 
-const CARDS: Card[] = [
-  {
-    eyebrow: "Pour Elle",
-    title: "Collection Femme",
-    subtitle: "Beauté, élégance et raffinement au quotidien.",
-    to: "/femme",
-    image: femmeImg,
-  },
-  {
-    eyebrow: "Pour Lui",
-    title: "Collection Homme",
-    subtitle: "L'art du style, du soin et de la prestance.",
-    to: "/homme",
-    image: hommeImg,
-  },
-];
-
 export function CollectionBanners() {
+  const [media, setMedia] = useState<Awaited<ReturnType<typeof getSiteMedia>> | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    void getSiteMedia()
+      .then((siteMedia) => {
+        if (mounted) setMedia(siteMedia);
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const cards: Card[] = [
+    {
+      eyebrow: "Pour Elle",
+      title: "Collection Femme",
+      subtitle: "Beauté, élégance et raffinement au quotidien.",
+      to: "/femme",
+      image: media?.collections.femme?.url ?? femmeFallback,
+      imageSources: media?.collections.femme?.sources,
+    },
+    {
+      eyebrow: "Pour Lui",
+      title: "Collection Homme",
+      subtitle: "L'art du style, du soin et de la prestance.",
+      to: "/homme",
+      image: media?.collections.homme?.url ?? hommeFallback,
+      imageSources: media?.collections.homme?.sources,
+    },
+  ];
+
   return (
     <section className="bg-background py-10 md:py-14">
       <div className="container-luxe space-y-5 md:space-y-6">
         <div className="grid md:grid-cols-2 gap-5 md:gap-6">
-          {CARDS.map((b, i) => (
+          {cards.map((b, i) => (
             <motion.div
               key={b.title}
               initial={{ opacity: 0, y: 30 }}
@@ -48,8 +67,10 @@ export function CollectionBanners() {
                 to={b.to}
                 className="group relative block h-[340px] md:h-[440px] overflow-hidden rounded-sm"
               >
-                <img
+                <ResponsiveImage
                   src={b.image}
+                  sources={b.imageSources}
+                  sizes="(min-width: 1024px) 50vw, 100vw"
                   alt={b.title}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110"
                 />
@@ -84,8 +105,10 @@ export function CollectionBanners() {
             to="/enfant"
             className="group relative block h-[280px] md:h-[380px] overflow-hidden rounded-sm"
           >
-            <img
-              src={enfantImg}
+            <ResponsiveImage
+              src={media?.collections.enfant?.url ?? enfantFallback}
+              sources={media?.collections.enfant?.sources}
+              sizes="(min-width: 1024px) 100vw, 100vw"
               alt="Collection Enfant"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
             />

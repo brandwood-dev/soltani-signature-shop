@@ -1,6 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { ProductCard, type Product } from "./ProductCard";
+import type { ResponsiveImageSources } from "@/lib/content-media-api";
+import { ResponsiveImage } from "./ResponsiveImage";
 
 type Props = {
   eyebrow?: string;
@@ -60,8 +62,8 @@ export function DualBanner({
   left,
   right,
 }: {
-  left: { eyebrow?: string; title: string; subtitle: string; cta: string; href: string; image: string };
-  right: { eyebrow?: string; title: string; subtitle: string; cta: string; href: string; image: string };
+  left: { eyebrow?: string; title: string; subtitle: string; cta: string; href: string; image: string; imageSources?: ResponsiveImageSources };
+  right: { eyebrow?: string; title: string; subtitle: string; cta: string; href: string; image: string; imageSources?: ResponsiveImageSources };
 }) {
   return (
     <section className="bg-background">
@@ -76,8 +78,10 @@ export function DualBanner({
             transition={{ duration: 0.7, delay: i * 0.1 }}
             className="group relative block h-[320px] md:h-[420px] overflow-hidden rounded-sm"
           >
-            <img
+            <ResponsiveImage
               src={b.image}
+              sources={b.imageSources}
+              sizes="(min-width: 768px) 50vw, 100vw"
               alt={b.title}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110"
             />

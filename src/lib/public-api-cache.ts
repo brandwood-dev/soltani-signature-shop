@@ -12,7 +12,7 @@ export type CacheLookupResult<T> =
 const LONG_LIVED_CONTENT = [
   /^\/api\/v1\/catalog\/(categories|brands)\/?$/,
   /^\/api\/v1\/catalog\/categories\/[^/]+\/attributes\/?$/,
-  /^\/api\/v1\/content\/(hero|top-banner|featured-brands|promo-banners|testimonials|settings)\/?$/,
+  /^\/api\/v1\/content\/(hero|top-banner|featured-brands|promo-banners|testimonials|settings|site-media)\/?$/,
 ];
 
 const SHORT_LIVED_CATALOG = [

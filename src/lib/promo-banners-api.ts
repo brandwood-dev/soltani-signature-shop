@@ -1,10 +1,12 @@
 import { apiFetch, publicApiFetch } from "@/lib/api";
+import type { ResponsiveImageSources } from "@/lib/content-media-api";
 
 export type PromoBanner = {
   id: string;
   page: string;
   kind: "promotion" | "limited_offer";
   image: string;
+  imageSources?: ResponsiveImageSources;
   title: string;
   subtitle: string;
   ctaLabel: string;
@@ -22,6 +24,7 @@ export type PromoBannerInput = {
   page: string;
   kind?: "promotion" | "limited_offer";
   image: string;
+  imageSources?: ResponsiveImageSources;
   title: string;
   subtitle: string;
   ctaLabel: string;

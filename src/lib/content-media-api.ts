@@ -1,6 +1,6 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicApiFetch } from "@/lib/api";
 
-export type ContentImagePurpose = "hero" | "brand";
+export type ContentImagePurpose = "hero" | "brand" | "banner";
 
 export type ResponsiveImageSource = {
   url: string;
@@ -19,6 +19,15 @@ export type ContentImageUpload = {
   height: number;
   bytes: number;
   sources: ResponsiveImageSources;
+};
+
+export type SiteMedia = {
+  logo: ContentImageUpload | null;
+  collections: {
+    femme: ContentImageUpload | null;
+    homme: ContentImageUpload | null;
+    enfant: ContentImageUpload | null;
+  };
 };
 
 const MAX_CONTENT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -40,4 +49,22 @@ export async function uploadAdminContentImage(file: File, purpose: ContentImageP
     method: "POST",
     body: JSON.stringify({ fileName: file.name, mimeType: file.type, base64, purpose }),
   });
+}
+
+const SITE_MEDIA_CACHE_TTL_MS = 5 * 60 * 1000;
+let siteMediaPromise: Promise<SiteMedia> | null = null;
+let siteMediaCachedAt = 0;
+
+export function getSiteMedia() {
+  if (Date.now() - siteMediaCachedAt >= SITE_MEDIA_CACHE_TTL_MS) {
+    siteMediaPromise = null;
+  }
+
+  siteMediaPromise ??= publicApiFetch<SiteMedia>("/content/site-media").catch((error) => {
+    siteMediaPromise = null;
+    siteMediaCachedAt = 0;
+    throw error;
+  });
+  siteMediaCachedAt = Date.now();
+  return siteMediaPromise;
 }
