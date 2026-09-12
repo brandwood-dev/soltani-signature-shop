@@ -50,7 +50,7 @@ const cleanupLegacyPersistentCart = () => {
 
 const persistRemote = async (lines: CartLine[]) => {
   const session = await getSession();
-  if (!session?.accessToken) return;
+  if (!session) return;
   await syncCustomerCart(lines.map((line) => ({ variantId: line.variantId, quantity: line.qty })));
 };
 
@@ -71,7 +71,7 @@ const bootstrapCart = () => {
   bootstrapPromise = (async () => {
     cleanupLegacyPersistentCart();
     const session = await getSession();
-    if (!session?.accessToken) return;
+    if (!session) return;
     const remoteCart = await getCustomerCart();
     const merged = mergeCartLines(read(), remoteCart);
     write(merged);

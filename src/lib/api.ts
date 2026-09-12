@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/lib/supabase";
+import { getCsrfToken, refreshSession } from "@/lib/supabase";
 import { publicEnv } from "@/lib/env";
 import { mapHttpErrorMessage, networkErrorMessage } from "@/lib/error-messages";
 
@@ -153,9 +153,6 @@ type CachedApiValue = {
 
 const responseCache = new Map<string, CachedApiValue>();
 const inflightRequests = new Map<string, Promise<unknown>>();
-let accessTokenCache: { token: string | null; expiresAt: number } | null = null;
-let accessTokenPromise: Promise<string | null> | null = null;
-
 const ADMIN_CACHE_RULES: Array<{ prefix: string; ttlMs: number }> = [
   { prefix: "/catalog/products", ttlMs: 30_000 },
   { prefix: "/admin/me", ttlMs: 60_000 },
@@ -202,9 +199,6 @@ export async function publicApiFetch<T>(path: string, init: RequestInit = {}) {
 }
 
 async function apiFetchInternal<T>(path: string, init: RequestInit = {}, includeAuth: boolean) {
-  const accessToken =
-    includeAuth && typeof window !== "undefined" ? await getCachedAccessToken() : null;
-
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
 
@@ -212,13 +206,12 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
     headers.set("Content-Type", "application/json");
   }
 
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
-  }
+  const csrfToken = typeof window !== "undefined" ? getCsrfToken() : null;
+  if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
 
   const method = (init.method ?? "GET").toUpperCase();
-  const cacheKey = buildCacheKey(path, method, headers.get("Authorization"));
-  const ttlMs = getAdminCacheTtl(path, method);
+  const cacheKey = buildCacheKey(path, method);
+  const ttlMs = includeAuth ? 0 : getAdminCacheTtl(path, method);
   const requestCache = publicRequestCacheMode(
     path,
     method,
@@ -238,17 +231,39 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
     }
   }
 
-  const response = await measureApiFetch(path, method, () =>
+  let response = await measureApiFetch(path, method, () =>
     fetchWithRetry(
       buildApiUrl(path),
       {
         ...(requestCache ? { cache: requestCache } : {}),
         ...init,
+        credentials: "include",
         headers,
       },
       { path, method },
     ),
   );
+
+  if (response.status === 401 && includeAuth && typeof window !== "undefined") {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      const refreshedHeaders = new Headers(headers);
+      const refreshedCsrfToken = getCsrfToken();
+      if (refreshedCsrfToken) refreshedHeaders.set("X-CSRF-Token", refreshedCsrfToken);
+      response = await measureApiFetch(path, method, () =>
+        fetchWithRetry(
+          buildApiUrl(path),
+          {
+            ...(requestCache ? { cache: requestCache } : {}),
+            ...init,
+            credentials: "include",
+            headers: refreshedHeaders,
+          },
+          { path, method },
+        ),
+      );
+    }
+  }
 
   if (!response.ok) {
     let message = "Une erreur est survenue.";
@@ -288,13 +303,10 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
 }
 
 export async function apiDownload(path: string, init: RequestInit = {}) {
-  const accessToken = typeof window === "undefined" ? null : await getCachedAccessToken();
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/pdf");
-
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
-  }
+  const csrfToken = typeof window !== "undefined" ? getCsrfToken() : null;
+  if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
 
   const method = (init.method ?? "GET").toUpperCase();
   const response = await measureApiFetch(path, method, () =>
@@ -303,6 +315,7 @@ export async function apiDownload(path: string, init: RequestInit = {}) {
       {
         cache: "no-store",
         ...init,
+        credentials: "include",
         headers,
       },
       { path, method },
@@ -337,30 +350,6 @@ export function downloadBlob(blob: Blob, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-}
-
-async function getCachedAccessToken() {
-  if (accessTokenCache && accessTokenCache.expiresAt > Date.now()) {
-    return accessTokenCache.token;
-  }
-
-  if (accessTokenPromise) {
-    return accessTokenPromise;
-  }
-
-  accessTokenPromise = getAccessToken()
-    .then((token) => {
-      accessTokenCache = {
-        token,
-        expiresAt: Date.now() + 30_000,
-      };
-      return token;
-    })
-    .finally(() => {
-      accessTokenPromise = null;
-    });
-
-  return accessTokenPromise;
 }
 
 function buildApiUrl(path: string) {
@@ -434,8 +423,8 @@ async function measureApiFetch(path: string, method: string, callback: () => Pro
     }
   }
 }
-function buildCacheKey(path: string, method: string, authorization: string | null) {
-  return `${method}:${path}:${authorization ?? "guest"}`;
+function buildCacheKey(path: string, method: string) {
+  return `${method}:${path}`;
 }
 
 function getAdminCacheTtl(path: string, method: string) {
@@ -520,8 +509,8 @@ function invalidateAdminCache(path: string) {
 
 if (typeof window !== "undefined") {
   window.addEventListener("auth:change", () => {
-    accessTokenCache = null;
-    accessTokenPromise = null;
+    responseCache.clear();
+    inflightRequests.clear();
   });
 }
 
