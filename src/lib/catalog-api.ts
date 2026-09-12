@@ -114,18 +114,15 @@ export type CreatedOrderRequestOptions = {
 };
 
 export type CreatedOrder = {
-  id: string;
   reference: string;
   subtotal: string | number;
   shippingTotal: string | number;
   discountTotal: string | number;
   total: string | number;
-  paymentMethod: string;
   status: string;
   payment?: {
     status: string;
     checkoutUrl: string | null;
-    providerTransactionId: string | null;
   } | null;
 };
 

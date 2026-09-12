@@ -59,8 +59,8 @@ export function ProductReviewsPanel({ slug, onSummaryChange }: Props) {
   const loadMyReview = useCallback(async () => {
     try {
       const session = await getSession();
-      setIsAuthenticated(Boolean(session?.accessToken));
-      if (!session?.accessToken) return;
+      setIsAuthenticated(Boolean(session));
+      if (!session) return;
 
       const response = await getMyProductReview(slug);
       setMyReviewId(response.review?.id ?? null);

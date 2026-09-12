@@ -1,34 +1,99 @@
 import { publicEnv } from "@/lib/env";
 import { mapHttpErrorMessage, networkErrorMessage } from "@/lib/error-messages";
 
-const STORAGE_KEY = "soltani-auth-session";
-const LEGACY_ADMIN_STORAGE_KEY = "soltani-admin-session";
+const SESSION_CACHE_TTL_MS = 30_000;
+const LEGACY_AUTH_STORAGE_KEYS = ["soltani-auth-session", "soltani-admin-session"];
 const SESSION_ONLY_KEYS = ["soltani-cart", "soltani-wishlist", "soltani-profile-cache"];
 let cachedSession: SupabaseSession | null = null;
+let sessionCacheExpiresAt = 0;
 let sessionRefreshPromise: Promise<SupabaseSession | null> | null = null;
 
 export type SupabaseSession = {
-  accessToken: string;
-  refreshToken: string;
   expiresAt: number;
 };
 
-type SupabaseTokenResponse = {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
+type AuthSessionResponse = {
+  expiresAt?: number;
 };
 
-function saveSession(session: SupabaseSession) {
-  cachedSession = session;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
+function apiUrl(path: string) {
+  if (typeof window !== "undefined" && isProductionStorefrontHost(window.location.hostname)) {
+    return `/api/v1${path}`;
+  }
+
+  return `${publicEnv.apiUrl}${path}`;
+}
+
+function isProductionStorefrontHost(hostname: string) {
+  return hostname === "soltanisignature.com" || hostname === "www.soltanisignature.com";
+}
+
+export function getCsrfToken() {
+  if (typeof document === "undefined") return null;
+  const cookie = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("soltani_csrf_token="));
+  if (!cookie) return null;
+  try {
+    return decodeURIComponent(cookie.slice("soltani_csrf_token=".length));
+  } catch {
+    return null;
+  }
+}
+
+async function authFetch(path: string, init: RequestInit = {}) {
+  try {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "application/json");
+    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+    const csrfToken = getCsrfToken();
+    if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
+
+    return await fetch(apiUrl(path), {
+      ...init,
+      credentials: "include",
+      headers,
+    });
+  } catch {
+    throw new Error(networkErrorMessage());
+  }
+}
+
+async function throwAuthError(response: Response): Promise<never> {
+  let message = "";
+  try {
+    const body = (await response.json()) as { message?: string | string[]; error?: string };
+    message = Array.isArray(body.message)
+      ? body.message.join(", ")
+      : body.message ?? body.error ?? "";
+  } catch {
+    message = response.statusText;
+  }
+  throw new Error(mapHttpErrorMessage(message, response.status));
+}
+
+function cacheSession(expiresAt?: number) {
+  cachedSession = {
+    expiresAt: expiresAt && expiresAt * 1000 > Date.now()
+      ? expiresAt * 1000
+      : Date.now() + SESSION_CACHE_TTL_MS,
+  };
+  sessionCacheExpiresAt = Date.now() + SESSION_CACHE_TTL_MS;
+  return cachedSession;
+}
+
+function clearLegacyAuthStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    for (const key of LEGACY_AUTH_STORAGE_KEYS) localStorage.removeItem(key);
+  } catch {
+    return;
+  }
 }
 
 function emitAuthChange() {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("auth:change"));
-  }
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("auth:change"));
 }
 
 function clearSessionOnlyCommerceState() {
@@ -41,129 +106,78 @@ function clearSessionOnlyCommerceState() {
   window.dispatchEvent(new Event("wishlist:change"));
 }
 
-function readStoredSession() {
-  if (cachedSession) return cachedSession;
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_ADMIN_STORAGE_KEY);
-    cachedSession = raw ? (JSON.parse(raw) as SupabaseSession) : null;
-    return cachedSession;
-  } catch {
-    return null;
-  }
-}
-
-function toSession(response: SupabaseTokenResponse): SupabaseSession {
-  return {
-    accessToken: response.access_token,
-    refreshToken: response.refresh_token,
-    expiresAt: Date.now() + response.expires_in * 1000,
-  };
-}
-
-async function authRequest(path: string, init: RequestInit) {
-  let response: Response;
-  try {
-    response = await fetch(`${publicEnv.supabaseUrl}/auth/v1${path}`, {
-      ...init,
-      headers: {
-        apikey: publicEnv.supabaseAnonKey,
-        "Content-Type": "application/json",
-        ...(init.headers ?? {}),
-      },
-    });
-  } catch {
-    throw new Error(networkErrorMessage());
-  }
-
-  if (!response.ok) {
-    let message = "";
-    try {
-      const body = (await response.json()) as { error_description?: string; msg?: string; message?: string; error?: string };
-      message = body.error_description ?? body.msg ?? body.message ?? body.error ?? "";
-    } catch {
-      message = response.statusText;
-    }
-    throw new Error(mapHttpErrorMessage(message, response.status));
-  }
-
-  return response;
-}
-
 export async function signInWithPassword(email: string, password: string) {
-  const response = await authRequest("/token?grant_type=password", {
+  clearLegacyAuthStorage();
+  const response = await authFetch("/auth/session", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  const session = toSession((await response.json()) as SupabaseTokenResponse);
-  saveSession(session);
+  if (!response.ok) await throwAuthError(response);
+  const body = (await response.json()) as AuthSessionResponse;
+  const session = cacheSession(body.expiresAt);
   emitAuthChange();
   return session;
 }
 
-export async function getSession() {
-  const session = readStoredSession();
-  if (!session) {
-    return null;
-  }
-
-  if (session.expiresAt - Date.now() > 60_000) {
-    return session;
-  }
-
-  if (sessionRefreshPromise) {
-    return sessionRefreshPromise;
-  }
+export async function refreshSession() {
+  if (sessionRefreshPromise) return sessionRefreshPromise;
 
   sessionRefreshPromise = (async () => {
-    const response = await authRequest("/token?grant_type=refresh_token", {
-      method: "POST",
-      body: JSON.stringify({ refresh_token: session.refreshToken }),
-    });
-    const refreshedSession = toSession((await response.json()) as SupabaseTokenResponse);
-    saveSession(refreshedSession);
-    return refreshedSession;
+    try {
+      const response = await authFetch("/auth/session/refresh", { method: "POST" });
+      if (!response.ok) return null;
+      const body = (await response.json()) as AuthSessionResponse;
+      const session = cacheSession(body.expiresAt);
+      emitAuthChange();
+      return session;
+    } catch {
+      return null;
+    } finally {
+      sessionRefreshPromise = null;
+    }
   })();
 
-  try {
-    return await sessionRefreshPromise;
-  } catch {
-    cachedSession = null;
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
-    clearSessionOnlyCommerceState();
-    emitAuthChange();
-    return null;
-  } finally {
-    sessionRefreshPromise = null;
-  }
+  return sessionRefreshPromise;
 }
 
-export async function getAccessToken() {
-  const session = await getSession();
-  return session?.accessToken ?? null;
+export async function getSession() {
+  clearLegacyAuthStorage();
+  if (typeof window === "undefined") return null;
+  if (cachedSession && sessionCacheExpiresAt > Date.now()) return cachedSession;
+
+  let response = await authFetch("/auth/me");
+  if (response.status === 401) {
+    const refreshed = await refreshSession();
+    if (!refreshed) {
+      cachedSession = null;
+      sessionCacheExpiresAt = 0;
+      return null;
+    }
+    response = await authFetch("/auth/me");
+  }
+
+  if (!response.ok) {
+    cachedSession = null;
+    sessionCacheExpiresAt = 0;
+    return null;
+  }
+
+  return cacheSession();
 }
 
 export async function signOut() {
-  const session = readStoredSession();
   cachedSession = null;
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(LEGACY_ADMIN_STORAGE_KEY);
+  sessionCacheExpiresAt = 0;
+  clearLegacyAuthStorage();
   clearSessionOnlyCommerceState();
-  emitAuthChange();
-
-  if (!session?.accessToken) {
-    return;
-  }
 
   try {
-    await authRequest("/logout", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-    });
+    await authFetch("/auth/session", { method: "DELETE" });
   } catch {
     return;
+  } finally {
+    emitAuthChange();
   }
 }
+
+clearLegacyAuthStorage();

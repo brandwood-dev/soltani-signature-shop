@@ -4,7 +4,7 @@ import { getSession, signInWithPassword, signOut } from "@/lib/supabase";
 import type { ApiUser } from "@/lib/api";
 
 const ADMIN_CACHE_TTL_MS = 5 * 60_000;
-let cachedAdmin: { user: ApiUser; expiresAt: number; accessToken: string } | null = null;
+let cachedAdmin: { user: ApiUser; expiresAt: number } | null = null;
 
 export async function signInAdmin(email: string, password: string) {
   try {
@@ -21,11 +21,10 @@ export async function signInAdmin(email: string, password: string) {
 
   createAdminLoginNotification().catch(() => undefined);
   const session = await getSession();
-  if (session?.accessToken) {
+  if (session) {
     cachedAdmin = {
       user: admin,
       expiresAt: Date.now() + ADMIN_CACHE_TTL_MS,
-      accessToken: session.accessToken,
     };
   }
 
@@ -35,14 +34,13 @@ export async function signInAdmin(email: string, password: string) {
 export async function requireAdminSession() {
   const session = await getSession();
 
-  if (!session?.accessToken) {
+  if (!session) {
     cachedAdmin = null;
     return null;
   }
 
   if (
     cachedAdmin
-    && cachedAdmin.accessToken === session.accessToken
     && cachedAdmin.expiresAt > Date.now()
   ) {
     return cachedAdmin.user;
@@ -53,7 +51,6 @@ export async function requireAdminSession() {
     cachedAdmin = {
       user: admin,
       expiresAt: Date.now() + ADMIN_CACHE_TTL_MS,
-      accessToken: session.accessToken,
     };
     return admin;
   } catch {

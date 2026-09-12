@@ -42,7 +42,7 @@ export function CartDrawer() {
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <header className="flex items-center justify-between px-5 h-16 border-b border-border shrink-0">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4 sm:px-5">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-gold" />
             <h2 className="font-display text-lg font-bold">Mon panier</h2>
@@ -53,7 +53,7 @@ export function CartDrawer() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           {lines.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center gap-4">
               <ShoppingBag className="h-12 w-12 text-muted-foreground" />
@@ -116,7 +116,7 @@ export function CartDrawer() {
         </div>
 
         {lines.length > 0 && (
-          <footer className="border-t border-border p-5 space-y-3 shrink-0 bg-secondary/30">
+        <footer className="shrink-0 space-y-3 border-t border-border bg-secondary/30 p-4 sm:p-5">
             <div className="flex items-end justify-between">
               <span className="text-sm uppercase tracking-widest text-muted-foreground">
                 Sous-total

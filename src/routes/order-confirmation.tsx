@@ -87,8 +87,8 @@ function OrderConfirmationPage() {
 
   return (
     <SiteLayout>
-      <div className="container-luxe py-16 max-w-4xl">
-        <div className="text-center mb-12">
+      <div className="container-luxe max-w-4xl py-10 sm:py-16">
+        <div className="mb-9 text-center sm:mb-12">
           <div className="relative mx-auto mb-6 grid h-20 w-20 place-items-center rounded-full bg-gold/15 text-gold animate-in zoom-in-50 duration-500">
             <Check className="h-10 w-10" strokeWidth={2.5} />
             <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-gold" />
@@ -96,20 +96,20 @@ function OrderConfirmationPage() {
           <p className="text-[11px] uppercase tracking-[0.3em] text-gold mb-3">
             Commande confirmée
           </p>
-          <h1 className="font-display text-3xl md:text-5xl font-bold mb-3">
+          <h1 className="mb-3 break-words font-display text-3xl font-bold sm:text-5xl">
             Merci pour votre commande !
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
             Votre commande a été enregistrée avec succès. Vous recevrez un email de confirmation
             dans quelques instants.
           </p>
-          <p className="mt-6 inline-flex items-center gap-2 px-4 py-2 border border-border bg-secondary/40 rounded-sm text-sm">
+          <p className="mx-auto mt-6 inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-sm border border-border bg-secondary/40 px-3 py-2 text-center text-sm sm:px-4">
             <span className="text-muted-foreground">N° de commande</span>
-            <span className="font-mono font-bold text-gold tracking-wider">{order.number}</span>
+            <span className="break-all font-mono font-bold tracking-wider text-gold">{order.number}</span>
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-3 mb-8">
+        <div className="mb-6 grid gap-3 sm:mb-8 md:grid-cols-3">
           {[
             { icon: Check, label: "Confirmée", active: true },
             { icon: Package, label: "En cours de préparation", active: true, current: true },
@@ -117,7 +117,7 @@ function OrderConfirmationPage() {
           ].map((s, i) => (
             <div
               key={i}
-              className={`p-4 border rounded-sm flex items-center gap-3 ${s.current ? "border-gold bg-gold/5" : s.active ? "border-border" : "border-border opacity-50"}`}
+              className={`flex items-center gap-3 rounded-sm border p-3 sm:p-4 ${s.current ? "border-gold bg-gold/5" : s.active ? "border-border" : "border-border opacity-50"}`}
             >
               <div
                 className={`h-10 w-10 grid place-items-center rounded-full ${s.active ? "bg-gold text-ink" : "bg-secondary text-muted-foreground"}`}
@@ -134,13 +134,13 @@ function OrderConfirmationPage() {
           ))}
         </div>
 
-        <div className="grid md:grid-cols-[1fr_320px] gap-6">
-          <div className="bg-card border border-border rounded-sm p-6">
+        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_320px] md:gap-6">
+          <div className="rounded-sm border border-border bg-card p-4 sm:p-6">
             <h2 className="font-display text-lg font-bold mb-5">Récapitulatif</h2>
             <div className="divide-y divide-border">
               {order.lines.map((l) => (
-                <div key={l.id} className="py-4 flex gap-4 first:pt-0 last:pb-0">
-                  <div className="relative h-16 w-16 overflow-hidden rounded-sm bg-background shrink-0">
+                <div key={l.id} className="flex min-w-0 gap-3 py-4 first:pt-0 last:pb-0 sm:gap-4">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-sm bg-background sm:h-16 sm:w-16">
                     <img src={l.image} alt={l.name} className="h-full w-full object-cover" />
                     <span className="absolute -top-1 -right-1 h-5 w-5 grid place-items-center rounded-full bg-gold text-ink text-[10px] font-bold">
                       {l.qty}
@@ -148,8 +148,8 @@ function OrderConfirmationPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] uppercase tracking-widest text-gold">{l.brand}</p>
-                    <p className="text-sm truncate">{l.name}</p>
-                    <p className="text-xs text-muted-foreground">{l.variant}</p>
+                    <p className="break-words text-sm">{l.name}</p>
+                    <p className="break-words text-xs text-muted-foreground">{l.variant}</p>
                   </div>
                   <p className="text-sm font-semibold tabular-nums whitespace-nowrap">
                     {l.price * l.qty} DT
@@ -184,7 +184,7 @@ function OrderConfirmationPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="bg-card border border-border rounded-sm p-5">
+            <div className="rounded-sm border border-border bg-card p-4 sm:p-5">
               <p className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-gold mb-3">
                 <MapPin className="h-3.5 w-3.5" /> Adresse de livraison
               </p>
@@ -195,31 +195,31 @@ function OrderConfirmationPage() {
               </p>
               <p className="text-sm text-muted-foreground mt-2">{order.address.phone}</p>
             </div>
-            <div className="bg-card border border-border rounded-sm p-5">
+            <div className="rounded-sm border border-border bg-card p-4 sm:p-5">
               <p className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-gold mb-3">
                 <Truck className="h-3.5 w-3.5" /> Livraison
               </p>
               <p className="text-sm">{order.shippingMethod}</p>
               <p className="text-xs text-muted-foreground mt-1">Estimée sous 2-4 jours ouvrés</p>
             </div>
-            <div className="bg-card border border-border rounded-sm p-5">
+            <div className="rounded-sm border border-border bg-card p-4 sm:p-5">
               <p className="text-[10px] uppercase tracking-widest text-gold mb-2">Paiement</p>
               <p className="text-sm">{order.payment}</p>
             </div>
           </aside>
         </div>
 
-        <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:mt-10 sm:flex-row">
           <Link
             to="/"
-            className="inline-flex items-center justify-center gap-2 h-12 px-8 bg-gold text-ink text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-gold transition rounded-sm"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-sm bg-gold px-4 text-[10px] font-bold uppercase tracking-[0.14em] text-ink transition hover:bg-ink hover:text-gold sm:w-auto sm:px-8 sm:text-[12px] sm:tracking-[0.2em]"
           >
             Continuer mes achats <ArrowRight className="h-4 w-4" />
           </Link>
           <button
             type="button"
             onClick={trackOrder}
-            className="inline-flex items-center justify-center gap-2 h-12 px-8 border border-gold text-gold text-[12px] uppercase tracking-[0.2em] font-bold hover:bg-gold hover:text-ink transition rounded-sm"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-sm border border-gold px-4 text-[10px] font-bold uppercase tracking-[0.14em] text-gold transition hover:bg-gold hover:text-ink sm:w-auto sm:px-8 sm:text-[12px] sm:tracking-[0.2em]"
           >
             Suivre ma commande
           </button>

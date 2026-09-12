@@ -33,14 +33,14 @@ const cleanupLegacyPersistentWishlist = () => {
 
 const syncRemote = async (slugs: string[]) => {
   const session = await getSession();
-  if (!session?.accessToken) return;
+  if (!session) return;
   const products = await syncCustomerWishlist(slugs);
   write(products.map((product) => product.slug));
 };
 
 const deleteRemote = async (slug: string) => {
   const session = await getSession();
-  if (!session?.accessToken) return;
+  if (!session) return;
   await deleteCustomerWishlistItem(slug);
 };
 
