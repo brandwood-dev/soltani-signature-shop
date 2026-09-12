@@ -8,12 +8,14 @@ export function TopBar() {
   const [messages, setMessages] = useState<MarqueeMessage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
     getActiveMarqueeMessages()
-      .then(setMessages)
-      .catch(() => setMessages([]));
+      .then((items) => setMessages(items))
+      .catch(() => setMessages([]))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -25,8 +27,12 @@ export function TopBar() {
     return () => window.clearInterval(interval);
   }, [messages.length]);
 
-  if (!messages.length) {
+  if (!messages.length && !loading) {
     return null;
+  }
+
+  if (loading) {
+    return <div aria-hidden="true" className="h-10 border-b border-border/20 bg-black" />;
   }
 
   return (
