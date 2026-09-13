@@ -52,6 +52,7 @@ declare global {
     };
     _fbq?: Window["fbq"];
     __soltaniMetaPixelLoaded?: boolean;
+    __soltaniInitialPageViewTracked?: boolean;
     __soltaniLastPageView?: string;
   }
 }
@@ -85,7 +86,8 @@ export function initMetaPixel() {
     window._fbq = fbq;
   }
 
-  if (!document.getElementById(PIXEL_SCRIPT_ID)) {
+  const hasPixelScript = Array.from(document.scripts).some((script) => script.src === PIXEL_SCRIPT_SRC);
+  if (!document.getElementById(PIXEL_SCRIPT_ID) && !hasPixelScript) {
     const script = document.createElement("script");
     script.id = PIXEL_SCRIPT_ID;
     script.async = true;
@@ -226,6 +228,10 @@ export function trackPageView(path: string) {
   const pageKey = path || window.location.href;
   if (window.__soltaniLastPageView === pageKey) return;
   window.__soltaniLastPageView = pageKey;
+  if (window.__soltaniInitialPageViewTracked) {
+    window.__soltaniInitialPageViewTracked = false;
+    return;
+  }
   trackMetaPixelEvent("PageView");
 }
 
