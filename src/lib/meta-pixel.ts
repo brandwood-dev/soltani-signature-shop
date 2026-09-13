@@ -188,7 +188,23 @@ export function trackMetaPixelEvent(
   if (!isBrowser()) return;
   initMetaPixel();
   const eventId = options.eventId ?? createEventId();
-  window.fbq?.("track", event, sanitizeParams(params), { eventID: eventId });
+  const sanitizedParams = sanitizeMetaPixelParams(params);
+
+  if (event === "PageView") {
+    window.fbq?.("track", event);
+  } else if (sanitizedParams) {
+    window.fbq?.(
+      "track",
+      event,
+      sanitizedParams,
+      options.eventId ? { eventID: options.eventId } : undefined,
+    );
+  } else if (options.eventId) {
+    window.fbq?.("track", event, {}, { eventID: options.eventId });
+  } else {
+    window.fbq?.("track", event);
+  }
+
   void sendMetaServerEvent({
     eventName: event,
     eventId,
@@ -197,7 +213,7 @@ export function trackMetaPixelEvent(
     fbc: readCookie("_fbc"),
     userAgent: navigator.userAgent,
     identifiers,
-    customData: sanitizeParams(params),
+    customData: sanitizedParams,
   });
 }
 
@@ -213,20 +229,20 @@ export function trackPageView(path: string) {
   trackMetaPixelEvent("PageView");
 }
 
-function sanitizeParams(params?: MetaPixelParams) {
+export function sanitizeMetaPixelParams(params?: MetaPixelParams) {
   if (!params) return undefined;
   const sanitized: MetaPixelParams = {};
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === "") continue;
     if (!hasValidNumericValues(value)) continue;
     if (key === "currency") {
-      if (typeof value !== "string" || value.toUpperCase() !== "TND") continue;
+      if (typeof value !== "string" || value.trim().toUpperCase() !== "TND") continue;
       sanitized[key] = "TND";
       continue;
     }
     sanitized[key] = value;
   }
-  return sanitized;
+  return Object.keys(sanitized).length > 0 ? sanitized : undefined;
 }
 
 function hasValidNumericValues(value: MetaPixelParamValue) {
