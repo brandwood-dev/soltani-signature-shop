@@ -2,12 +2,41 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 const adminEmail = process.env.E2E_ADMIN_EMAIL;
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
+const adminApiTargetUrl = process.env.E2E_ADMIN_API_BASE_URL;
+const productionHostnames = new Set([
+  "soltanisignature.com",
+  "www.soltanisignature.com",
+  "soltani-signature-api.onrender.com",
+  "soltani-signature-api.vercel.app",
+]);
+
+function isProductionTarget(value: string | undefined) {
+  if (!value) return false;
+  try {
+    return productionHostnames.has(new URL(value).hostname);
+  } catch {
+    return true;
+  }
+}
+
 const apiBaseUrl = (() => {
-  const value = (process.env.E2E_API_BASE_URL ?? "https://soltani-signature-api.onrender.com").replace(/\/+$/, "");
+  const value = (adminApiTargetUrl ?? "https://soltani-signature-api.onrender.com").replace(/\/+$/, "");
   return value.endsWith("/api/v1") ? value : `${value}/api/v1`;
 })();
 const genericError = /Une erreur est survenue|Something went wrong/i;
 const adminCredentialsConfigured = Boolean(adminEmail && adminPassword);
+const adminTargetUrl = process.env.E2E_ADMIN_BASE_URL;
+const adminWritesAllowed = process.env.E2E_ADMIN_ALLOW_WRITES === "true";
+const adminTargetIsProduction = isProductionTarget(adminTargetUrl);
+const adminApiTargetIsProduction = isProductionTarget(adminApiTargetUrl);
+const adminTestEnvironmentConfigured = Boolean(
+  adminCredentialsConfigured &&
+    adminTargetUrl &&
+    adminApiTargetUrl &&
+    adminWritesAllowed &&
+    !adminTargetIsProduction &&
+    !adminApiTargetIsProduction,
+);
 
 type AdminApiOptions = {
   method?: string;
@@ -89,8 +118,8 @@ async function selectOption(page: Page, trigger: ReturnType<Page["locator"]>, la
 
 test.describe("authenticated admin flows", () => {
   test.skip(
-    !adminCredentialsConfigured,
-    "Suite activée uniquement avec E2E_ADMIN_EMAIL et E2E_ADMIN_PASSWORD.",
+    !adminTestEnvironmentConfigured,
+    "Suite CRUD activée uniquement avec des identifiants, une URL de staging et E2E_ADMIN_ALLOW_WRITES=true.",
   );
   test.describe.configure({ mode: "serial" });
 

@@ -56,7 +56,10 @@ let siteMediaPromise: Promise<SiteMedia> | null = null;
 let siteMediaCachedAt = 0;
 
 export function getSiteMedia() {
-  if (Date.now() - siteMediaCachedAt >= SITE_MEDIA_CACHE_TTL_MS) {
+  if (siteMediaPromise) {
+    if (siteMediaCachedAt === 0 || Date.now() - siteMediaCachedAt < SITE_MEDIA_CACHE_TTL_MS) {
+      return siteMediaPromise;
+    }
     siteMediaPromise = null;
   }
 
@@ -65,6 +68,10 @@ export function getSiteMedia() {
     siteMediaCachedAt = 0;
     throw error;
   });
-  siteMediaCachedAt = Date.now();
+
+  siteMediaPromise = siteMediaPromise.then((media) => {
+    siteMediaCachedAt = Date.now();
+    return media;
+  });
   return siteMediaPromise;
 }

@@ -111,6 +111,13 @@ export async function updateAdminOrderStatus(id: string, status: AdminOrderStatu
   return response.order;
 }
 
+export function replayAdminOrderMetaPurchase(id: string) {
+  return apiFetch<{ reference: string; eventId: string; queued: boolean }>(
+    `/orders/admin/${id}/meta-purchase/replay`,
+    { method: "POST" },
+  );
+}
+
 export function downloadAdminOrdersExport(query: AdminOrdersExportQuery) {
   const params = new URLSearchParams();
   params.set("period", query.period);

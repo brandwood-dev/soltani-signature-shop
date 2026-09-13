@@ -5,6 +5,7 @@ import { Check, Package, Truck, MapPin, ArrowRight, Sparkles } from "lucide-reac
 import type { CartLine } from "@/hooks/useCart";
 import {
   clearStoredMetaUserData,
+  getMetaPurchaseEventId,
   readStoredMetaUserData,
   trackMetaPixelEvent,
 } from "@/lib/meta-pixel";
@@ -69,7 +70,7 @@ function OrderConfirmationPage() {
     }, {
       consent: Boolean(hashedUserData),
       hashedUserData,
-    });
+    }, { eventId: getMetaPurchaseEventId(order.number) });
     clearStoredMetaUserData();
   }, [order]);
 
