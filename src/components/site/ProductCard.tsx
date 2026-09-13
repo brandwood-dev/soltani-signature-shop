@@ -122,15 +122,16 @@ export function ProductCard({ p }: { p: Product }) {
       image: p.image,
       variant: p.variantLabel ?? "Standard",
     });
-    const catalogProductId = p.id ?? p.slug;
-    trackMetaPixelEvent("AddToCart", {
-      content_ids: [catalogProductId],
-      content_name: p.name,
-      content_type: "product",
-      contents: [{ id: catalogProductId, quantity: 1, item_price: p.price }],
-      value: p.price,
-      currency: "TND",
-    });
+    if (p.id) {
+      trackMetaPixelEvent("AddToCart", {
+        content_ids: [p.id],
+        content_name: p.name,
+        content_type: "product",
+        contents: [{ id: p.id, quantity: 1, item_price: p.price }],
+        value: p.price,
+        currency: "TND",
+      });
+    }
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
@@ -182,6 +183,15 @@ export function ProductCard({ p }: { p: Product }) {
             aria-label={fav ? "Retirer des favoris" : "Ajouter aux favoris"}
             onClick={(e) => {
               e.preventDefault();
+              if (!fav && p.id) {
+                trackMetaPixelEvent("AddToWishlist", {
+                  content_ids: [p.id],
+                  content_name: p.name,
+                  content_type: "product",
+                  value: p.price,
+                  currency: "TND",
+                });
+              }
               toggle(p.slug);
             }}
             className={`absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-background/80 backdrop-blur transition ${fav ? "text-destructive" : "text-foreground hover:text-destructive"}`}

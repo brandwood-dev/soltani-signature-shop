@@ -66,7 +66,7 @@ function isBrowser() {
 }
 
 export function initMetaPixel() {
-  if (!isBrowser() || window.__soltaniMetaPixelLoaded) return;
+  if (!isBrowser()) return;
 
   if (!window.fbq) {
     const fbq = function (...args: unknown[]) {
@@ -93,8 +93,10 @@ export function initMetaPixel() {
     document.head.appendChild(script);
   }
 
-  window.fbq?.("init", publicEnv.metaPixelId);
-  window.__soltaniMetaPixelLoaded = true;
+  if (!window.__soltaniMetaPixelLoaded) {
+    window.fbq?.("init", publicEnv.metaPixelId);
+    window.__soltaniMetaPixelLoaded = true;
+  }
 }
 
 export function readMetaEnhancedMatchingConsent() {
