@@ -13,7 +13,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? "line" : "list",
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "https://www.soltanisignature.com",
+    baseURL: process.env.E2E_BASE_URL || "https://www.soltanisignature.com",
     locale: "fr-FR",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { normalizeMetaEmail, normalizeMetaPhone } from "./meta-pixel";
+import { getMetaPurchaseEventId, normalizeMetaEmail, normalizeMetaPhone } from "./meta-pixel";
 
 describe("Meta enhanced matching normalization", () => {
   test("normalizes email before hashing", () => {
@@ -11,5 +11,9 @@ describe("Meta enhanced matching normalization", () => {
     expect(normalizeMetaPhone("20 123 456")).toBe("21620123456");
     expect(normalizeMetaPhone("+216 20 123 456")).toBe("21620123456");
     expect(normalizeMetaPhone("123")).toBeUndefined();
+  });
+
+  test("keeps Purchase event IDs stable for the same order", () => {
+    expect(getMetaPurchaseEventId("SOL-20260913-00001")).toBe("purchase:SOL-20260913-00001");
   });
 });

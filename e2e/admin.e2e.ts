@@ -8,6 +8,20 @@ const apiBaseUrl = (() => {
 })();
 const genericError = /Une erreur est survenue|Something went wrong/i;
 const adminCredentialsConfigured = Boolean(adminEmail && adminPassword);
+const adminTargetUrl = process.env.E2E_ADMIN_BASE_URL;
+const adminWritesAllowed = process.env.E2E_ADMIN_ALLOW_WRITES === "true";
+const adminTargetIsProduction = (() => {
+  if (!adminTargetUrl) return false;
+  try {
+    const hostname = new URL(adminTargetUrl).hostname;
+    return hostname === "soltanisignature.com" || hostname === "www.soltanisignature.com";
+  } catch {
+    return true;
+  }
+})();
+const adminTestEnvironmentConfigured = Boolean(
+  adminCredentialsConfigured && adminTargetUrl && adminWritesAllowed && !adminTargetIsProduction,
+);
 
 type AdminApiOptions = {
   method?: string;
@@ -89,8 +103,8 @@ async function selectOption(page: Page, trigger: ReturnType<Page["locator"]>, la
 
 test.describe("authenticated admin flows", () => {
   test.skip(
-    !adminCredentialsConfigured,
-    "Suite activée uniquement avec E2E_ADMIN_EMAIL et E2E_ADMIN_PASSWORD.",
+    !adminTestEnvironmentConfigured,
+    "Suite CRUD activée uniquement avec des identifiants, une URL de staging et E2E_ADMIN_ALLOW_WRITES=true.",
   );
   test.describe.configure({ mode: "serial" });
 

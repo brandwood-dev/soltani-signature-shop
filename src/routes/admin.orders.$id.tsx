@@ -37,6 +37,7 @@ import {
 import {
   downloadAdminPurchaseOrder,
   getAdminOrder,
+  replayAdminOrderMetaPurchase,
   updateAdminOrderStatus,
   type AdminOrderDetails,
   type AdminOrderStatus,
@@ -55,6 +56,8 @@ function OrderDetails() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [replayingMetaPurchase, setReplayingMetaPurchase] = useState(false);
+  const [metaReplayMessage, setMetaReplayMessage] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -141,6 +144,26 @@ function OrderDetails() {
       setError(err instanceof Error ? err.message : "Téléchargement impossible.");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const replayMetaPurchase = async () => {
+    if (currentOrder.paymentMethod !== "cod" || currentOrder.status === "cancelled") return;
+    if (!window.confirm(`Renvoyer l’achat ${currentOrder.reference} à Meta ?`)) return;
+
+    try {
+      setReplayingMetaPurchase(true);
+      setMetaReplayMessage("");
+      const result = await replayAdminOrderMetaPurchase(currentOrder.id);
+      setMetaReplayMessage(
+        result.queued
+          ? "Événement Purchase placé dans la file Meta."
+          : "Meta CAPI n’est pas configurée ; aucun événement n’a été envoyé.",
+      );
+    } catch (err) {
+      setMetaReplayMessage(err instanceof Error ? err.message : "Reprise Meta impossible.");
+    } finally {
+      setReplayingMetaPurchase(false);
     }
   };
 
@@ -386,6 +409,24 @@ function OrderDetails() {
                     {currentOrder.paymentStatus === "paid" ? "Payé" : "En attente"}
                   </span>
                 </div>
+                {currentOrder.paymentMethod === "cod" && !isCancelled && (
+                  <div className="border-t pt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={replayMetaPurchase}
+                      disabled={replayingMetaPurchase}
+                    >
+                      {replayingMetaPurchase ? "Mise en file…" : "Renvoyer l’achat à Meta"}
+                    </Button>
+                    {metaReplayMessage && (
+                      <p className="mt-2 text-xs text-muted-foreground" role="status">
+                        {metaReplayMessage}
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

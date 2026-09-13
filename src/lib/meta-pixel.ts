@@ -14,6 +14,8 @@ type MetaPixelParamValue = string | number | boolean | string[] | Array<Record<s
 type MetaPixelParams = Record<string, MetaPixelParamValue>;
 type MetaPixelTrackOptions = { eventID?: string };
 
+export type MetaPixelEventOptions = { eventId?: string };
+
 export type MetaUserData = {
   em?: string[];
   ph?: string[];
@@ -179,10 +181,11 @@ export function trackMetaPixelEvent(
   event: MetaPixelEvent,
   params?: MetaPixelParams,
   identifiers?: MetaUserIdentifiers,
+  options: MetaPixelEventOptions = {},
 ) {
   if (!isBrowser()) return;
   initMetaPixel();
-  const eventId = createEventId();
+  const eventId = options.eventId ?? createEventId();
   window.fbq?.("track", event, sanitizeParams(params), { eventID: eventId });
   void sendMetaServerEvent({
     eventName: event,
@@ -194,6 +197,10 @@ export function trackMetaPixelEvent(
     identifiers,
     customData: sanitizeParams(params),
   });
+}
+
+export function getMetaPurchaseEventId(orderReference: string) {
+  return `purchase:${orderReference.trim()}`;
 }
 
 export function trackPageView(path: string) {
