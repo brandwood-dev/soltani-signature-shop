@@ -73,13 +73,26 @@ jobs:
         shell: bash
         env:
           E2E_ADMIN_BASE_URL: ${{ secrets.E2E_ADMIN_BASE_URL }}
+          E2E_ADMIN_API_BASE_URL: ${{ secrets.E2E_ADMIN_API_BASE_URL }}
         run: |
           set -euo pipefail
-          target="${E2E_ADMIN_BASE_URL:-}"
-          if [[ "$target" =~ ^https://(www\.)?soltanisignature\.com(/|$) ]]; then
-            echo "Authenticated admin E2E must never write to production."
-            exit 1
-          fi
+          is_production_target() {
+            case "$1" in
+              https://soltanisignature.com|https://soltanisignature.com/*|https://www.soltanisignature.com|https://www.soltanisignature.com/*|https://soltani-signature-api.onrender.com|https://soltani-signature-api.onrender.com/*|https://soltani-signature-api.vercel.app|https://soltani-signature-api.vercel.app/*)
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          for target in "${E2E_ADMIN_BASE_URL:-}" "${E2E_ADMIN_API_BASE_URL:-}"; do
+            if [[ -z "$target" ]] || is_production_target "$target"; then
+              echo "Authenticated admin E2E requires explicit non-production targets."
+              exit 1
+            fi
+          done
 
       - name: Authenticated admin E2E tests
         run: bun run test:e2e:admin

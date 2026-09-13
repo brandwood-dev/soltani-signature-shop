@@ -2,25 +2,40 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 const adminEmail = process.env.E2E_ADMIN_EMAIL;
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
+const adminApiTargetUrl = process.env.E2E_ADMIN_API_BASE_URL;
+const productionHostnames = new Set([
+  "soltanisignature.com",
+  "www.soltanisignature.com",
+  "soltani-signature-api.onrender.com",
+  "soltani-signature-api.vercel.app",
+]);
+
+function isProductionTarget(value: string | undefined) {
+  if (!value) return false;
+  try {
+    return productionHostnames.has(new URL(value).hostname);
+  } catch {
+    return true;
+  }
+}
+
 const apiBaseUrl = (() => {
-  const value = (process.env.E2E_API_BASE_URL ?? "https://soltani-signature-api.onrender.com").replace(/\/+$/, "");
+  const value = (adminApiTargetUrl ?? "https://soltani-signature-api.onrender.com").replace(/\/+$/, "");
   return value.endsWith("/api/v1") ? value : `${value}/api/v1`;
 })();
 const genericError = /Une erreur est survenue|Something went wrong/i;
 const adminCredentialsConfigured = Boolean(adminEmail && adminPassword);
 const adminTargetUrl = process.env.E2E_ADMIN_BASE_URL;
 const adminWritesAllowed = process.env.E2E_ADMIN_ALLOW_WRITES === "true";
-const adminTargetIsProduction = (() => {
-  if (!adminTargetUrl) return false;
-  try {
-    const hostname = new URL(adminTargetUrl).hostname;
-    return hostname === "soltanisignature.com" || hostname === "www.soltanisignature.com";
-  } catch {
-    return true;
-  }
-})();
+const adminTargetIsProduction = isProductionTarget(adminTargetUrl);
+const adminApiTargetIsProduction = isProductionTarget(adminApiTargetUrl);
 const adminTestEnvironmentConfigured = Boolean(
-  adminCredentialsConfigured && adminTargetUrl && adminWritesAllowed && !adminTargetIsProduction,
+  adminCredentialsConfigured &&
+    adminTargetUrl &&
+    adminApiTargetUrl &&
+    adminWritesAllowed &&
+    !adminTargetIsProduction &&
+    !adminApiTargetIsProduction,
 );
 
 type AdminApiOptions = {
