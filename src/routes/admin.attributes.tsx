@@ -505,8 +505,8 @@ function AdminAttributes() {
         }
       />
 
-      <div className="grid flex-1 gap-3 p-3 sm:p-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-        <div className="space-y-3">
+      <div className="grid min-w-0 w-full max-w-full flex-1 gap-3 overflow-x-clip p-3 sm:p-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <div className="min-w-0 space-y-3">
           {error && (
             <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
@@ -518,7 +518,7 @@ function AdminAttributes() {
             </div>
           )}
 
-          <Card className="p-3">
+          <Card className="min-w-0 max-w-full p-3">
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
               <Input
                 value={search}
@@ -553,10 +553,10 @@ function AdminAttributes() {
           {definitions.map((definition, index) => {
             const isExpanded = openDefinitionIds.has(definition.id);
             return (
-              <Card key={definition.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
+              <Card key={definition.id} className="min-w-0 max-w-full overflow-hidden">
+                <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
                       <CardTitle className="flex flex-wrap items-center gap-2 text-base">
                         <button
                           type="button"
@@ -578,7 +578,7 @@ function AdminAttributes() {
                             <ChevronRight className="h-4 w-4" />
                           )}
                         </button>
-                        {definition.label}
+                        <span className="min-w-0 break-words">{definition.label}</span>
                         <Badge variant="secondary">{definition.type}</Badge>
                         {!definition.isActive && <Badge variant="outline">Inactif</Badge>}
                       </CardTitle>
@@ -591,11 +591,12 @@ function AdminAttributes() {
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">Clé : {definition.key}</p>
                     </div>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
                       {supportsOptions(definition.type) && (
                         <Button
                           variant="outline"
                           size="sm"
+                          className="col-span-2 w-full sm:col-span-1 sm:w-auto"
                           onClick={() => openOption(definition)}
                           disabled={saving}
                         >
@@ -606,28 +607,35 @@ function AdminAttributes() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-10 w-full sm:h-8 sm:w-8"
                         onClick={() => moveDefinition(index, -1)}
                         disabled={index === 0 || saving}
+                        aria-label="Monter l'attribut"
                       >
                         <ArrowUp className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-10 w-full sm:h-8 sm:w-8"
                         onClick={() => moveDefinition(index, 1)}
                         disabled={index === definitions.length - 1 || saving}
+                        aria-label="Descendre l'attribut"
                       >
                         <ArrowDown className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openDefinition(definition)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full sm:w-auto"
+                        onClick={() => openDefinition(definition)}
+                      >
                         Modifier
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-10 w-full sm:h-8 sm:w-8"
                         onClick={() =>
                           toggleAdminAttributeDefinition(definition.id)
                             .then(async () => {
@@ -643,6 +651,7 @@ function AdminAttributes() {
                             )
                         }
                         disabled={saving}
+                        aria-label={definition.isActive ? "Désactiver l'attribut" : "Activer l'attribut"}
                       >
                         {definition.isActive ? (
                           <Eye className="h-4 w-4" />
@@ -653,7 +662,7 @@ function AdminAttributes() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive"
+                        className="h-10 w-full text-destructive sm:h-8 sm:w-8"
                         onClick={() =>
                           deleteAdminAttributeDefinition(definition.id)
                             .then(async () => {
@@ -667,6 +676,7 @@ function AdminAttributes() {
                             )
                         }
                         disabled={saving}
+                        aria-label="Supprimer l'attribut"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -674,7 +684,7 @@ function AdminAttributes() {
                   </div>
                 </CardHeader>
                 {isExpanded && (
-                  <CardContent className="space-y-2">
+                  <CardContent className="min-w-0 space-y-2 p-4 pt-0 sm:p-6 sm:pt-0">
                     <div>
                       <p className="text-sm font-medium">Options</p>
                     </div>
@@ -683,7 +693,7 @@ function AdminAttributes() {
                         {definition.options.map((option, optionIndex) => (
                           <div
                             key={option.id}
-                            className="flex items-center gap-2 rounded-md border border-border px-3 py-2"
+                            className="flex min-w-0 flex-col gap-3 rounded-md border border-border px-3 py-3 sm:flex-row sm:items-center sm:py-2"
                           >
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm">{option.label}</p>
@@ -691,54 +701,65 @@ function AdminAttributes() {
                                 {option.value}
                               </p>
                             </div>
-                            {!option.isActive && <Badge variant="outline">Inactif</Badge>}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => moveOption(definition, optionIndex, -1)}
-                              disabled={optionIndex === 0 || saving}
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => moveOption(definition, optionIndex, 1)}
-                              disabled={optionIndex === definition.options.length - 1 || saving}
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openOption(definition, option)}
-                            >
-                              Modifier
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => void toggleOption(definition.id, option)}
-                              disabled={saving}
-                            >
-                              {option.isActive ? (
-                                <Eye className="h-4 w-4" />
-                              ) : (
-                                <EyeOff className="h-4 w-4" />
+                            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0">
+                              {!option.isActive && (
+                                <Badge variant="outline" className="col-span-2 justify-center sm:col-span-1">
+                                  Inactif
+                                </Badge>
                               )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => void removeOption(definition.id, option.id)}
-                              disabled={saving}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-full sm:h-8 sm:w-8"
+                                onClick={() => moveOption(definition, optionIndex, -1)}
+                                disabled={optionIndex === 0 || saving}
+                                aria-label="Monter l'option"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-full sm:h-8 sm:w-8"
+                                onClick={() => moveOption(definition, optionIndex, 1)}
+                                disabled={optionIndex === definition.options.length - 1 || saving}
+                                aria-label="Descendre l'option"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full sm:w-auto"
+                                onClick={() => openOption(definition, option)}
+                              >
+                                Modifier
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-full sm:h-8 sm:w-8"
+                                onClick={() => void toggleOption(definition.id, option)}
+                                disabled={saving}
+                                aria-label={option.isActive ? "Désactiver l'option" : "Activer l'option"}
+                              >
+                                {option.isActive ? (
+                                  <Eye className="h-4 w-4" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-full text-destructive sm:h-8 sm:w-8"
+                                onClick={() => void removeOption(definition.id, option.id)}
+                                disabled={saving}
+                                aria-label="Supprimer l'option"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -755,15 +776,16 @@ function AdminAttributes() {
             );
           })}
 
-          <div className="flex flex-col gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
               Page {pagination.page} / {pagination.totalPages} · {pagination.total} attribut
               {pagination.total > 1 ? "s" : ""}
             </span>
-            <div className="flex gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => setPage((current) => Math.max(current - 1, 1))}
                 disabled={pagination.page <= 1 || loading}
               >
@@ -772,6 +794,7 @@ function AdminAttributes() {
               <Button
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => setPage((current) => Math.min(current + 1, pagination.totalPages))}
                 disabled={pagination.page >= pagination.totalPages || loading}
               >
@@ -781,11 +804,11 @@ function AdminAttributes() {
           </div>
         </div>
 
-        <Card className="h-fit">
-          <CardHeader>
+        <Card className="h-fit min-w-0 max-w-full overflow-hidden">
+          <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-base">Associations catégories</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="min-w-0 space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
             <div className="space-y-1.5">
               <Label>Catégorie ou sous-catégorie</Label>
               <Select
@@ -845,48 +868,53 @@ function AdminAttributes() {
             <div className="space-y-2">
               {categoryAttributes.map((association, index) => (
                 <div key={association.id} className="rounded-md border border-border p-3">
-                  <div className="flex items-start gap-2">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{association.attributeDefinition.label}</p>
                       <p className="text-xs text-muted-foreground">
                         {association.attributeDefinition.key}
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => moveAssociation(index, -1)}
-                      disabled={index === 0 || saving}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => moveAssociation(index, 1)}
-                      disabled={index === categoryAttributes.length - 1 || saving}
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() =>
-                        deleteAdminCategoryAttribute(selectedCategoryId, association.id)
-                          .then(() => refreshCategoryAttributes())
-                          .catch((err) =>
-                            setError(
-                              err instanceof Error ? err.message : "Suppression impossible.",
-                            ),
-                          )
-                      }
-                      disabled={saving}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-full sm:h-8 sm:w-8"
+                        onClick={() => moveAssociation(index, -1)}
+                        disabled={index === 0 || saving}
+                        aria-label="Monter l'association"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-full sm:h-8 sm:w-8"
+                        onClick={() => moveAssociation(index, 1)}
+                        disabled={index === categoryAttributes.length - 1 || saving}
+                        aria-label="Descendre l'association"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-full text-destructive sm:h-8 sm:w-8"
+                        onClick={() =>
+                          deleteAdminCategoryAttribute(selectedCategoryId, association.id)
+                            .then(() => refreshCategoryAttributes())
+                            .catch((err) =>
+                              setError(
+                                err instanceof Error ? err.message : "Suppression impossible.",
+                              ),
+                            )
+                        }
+                        disabled={saving}
+                        aria-label="Dissocier l'attribut"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <div className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
