@@ -5,12 +5,12 @@ describe("Cloudflare public API cache policy", () => {
   test("caches only anonymous public catalog and content reads", () => {
     expect(publicApiCachePolicy("GET", "/api/v1/catalog/products", false)).toEqual({
       freshSeconds: 30,
-      staleSeconds: 3_600,
+      staleSeconds: 43_200,
       tag: "public-catalog",
     });
     expect(publicApiCachePolicy("GET", "/api/v1/content/hero", false)).toEqual({
       freshSeconds: 60,
-      staleSeconds: 300,
+      staleSeconds: 43_200,
       tag: "public-content",
     });
   });
@@ -18,7 +18,7 @@ describe("Cloudflare public API cache policy", () => {
   test("caches the migrated site media manifest", () => {
     expect(publicApiCachePolicy("GET", "/api/v1/content/site-media", false)).toEqual({
       freshSeconds: 60,
-      staleSeconds: 300,
+      staleSeconds: 43_200,
       tag: "public-content",
     });
   });
