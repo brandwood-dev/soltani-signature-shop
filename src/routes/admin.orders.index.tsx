@@ -311,7 +311,9 @@ function AdminOrders() {
                     <TableCell>
                       <div className="min-w-0">
                         <p className="truncate text-sm">{o.customer}</p>
-                        <p className="truncate text-xs text-muted-foreground">{o.email}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {o.email ?? "Email non fourni"}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">

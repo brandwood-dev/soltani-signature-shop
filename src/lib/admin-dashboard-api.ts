@@ -36,7 +36,7 @@ export type AdminDashboardResponse = {
     id: string;
     reference: string;
     customer: string;
-    email: string;
+    email: string | null;
     total: number;
     items: number;
     status: AdminOrderStatus;
