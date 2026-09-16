@@ -68,7 +68,7 @@ jobs:
         run: bunx wrangler deploy --config wrangler.jsonc --var "CF_VERSION_SHA:${GITHUB_SHA}"
 
       - name: Deploy mail outbox cron Worker
-        run: bunx wrangler deploy --config wrangler.cron.jsonc
+        run: bunx wrangler deploy --config wrangler.cron.jsonc --keep-vars
 
       - name: Smoke test SHA, homepage and API readiness
         run: bun run verify:production
