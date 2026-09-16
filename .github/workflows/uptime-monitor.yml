@@ -1,0 +1,176 @@
+name: Soltani uptime monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: soltani-uptime-monitor
+  cancel-in-progress: false
+
+env:
+  FRONTEND_URL: https://www.soltanisignature.com/
+  API_READINESS_URL: https://soltani-signature-api.onrender.com/api/v1/health/ready
+  ALERT_RECIPIENT: meds.rayan@gmail.com
+  ALERT_SENDER: notifications@soltanisignature.com
+  STATE_VARIABLE: SOLTANI_UPTIME_STATE
+
+jobs:
+  monitor:
+    name: Check Soltani production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check frontend and API
+        id: check
+        shell: bash
+        run: |
+          set +e
+
+          frontend_body="$(mktemp)"
+          frontend_status="$(curl -L -sS --max-time 20 -o "$frontend_body" -w "%{http_code}" "$FRONTEND_URL")"
+          frontend_ok=false
+          if [[ "$frontend_status" =~ ^2[0-9][0-9]$ ]] && grep -qi "Soltani" "$frontend_body"; then
+            frontend_ok=true
+          fi
+
+          api_body="$(mktemp)"
+          api_status="$(curl -sS --max-time 20 -o "$api_body" -w "%{http_code}" "$API_READINESS_URL")"
+          api_ok=false
+          if [[ "$api_status" == "200" ]] && jq -e '.status == "ok" and .database == "ok"' "$api_body" >/dev/null 2>&1; then
+            api_ok=true
+          fi
+
+          if [[ "$frontend_ok" == "true" && "$api_ok" == "true" ]]; then
+            status=up
+          else
+            status=down
+          fi
+
+          {
+            echo "status=$status"
+            echo "frontend_status=$frontend_status"
+            echo "api_status=$api_status"
+            echo "details<<EOF"
+            echo "Frontend: HTTP $frontend_status, contenu attendu: $frontend_ok"
+            echo "API readiness: HTTP $api_status, status/database OK: $api_ok"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Read previous state
+        id: previous
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set +e
+          value="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/variables/${STATE_VARIABLE}" \
+            --jq '.value' 2>/dev/null)"
+          if [[ "$value" != "up" && "$value" != "down" ]]; then
+            value=unknown
+          fi
+          echo "status=$value" >> "$GITHUB_OUTPUT"
+
+      - name: Send outage alert
+        id: outage-alert
+        if: steps.check.outputs.status == 'down' && steps.previous.outputs.status != 'down'
+        env:
+          BREVO_API_KEY: ${{ secrets.UPTIME_BREVO_API_KEY }}
+          DETAILS: ${{ steps.check.outputs.details }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${BREVO_API_KEY:-}" ]]; then
+            echo "Missing GitHub Actions secret: UPTIME_BREVO_API_KEY" >&2
+            exit 1
+          fi
+
+          payload="$(jq -n \
+            --arg sender "$ALERT_SENDER" \
+            --arg recipient "$ALERT_RECIPIENT" \
+            --arg details "$DETAILS" \
+            '{
+              sender: { email: $sender, name: "Soltani Signature Monitor" },
+              to: [{ email: $recipient }],
+              subject: "[ALERTE] Soltani Signature est indisponible",
+              textContent: ("Le monitoring externe a détecté une indisponibilité.\n\n" + $details + "\n\nUn nouvel e-mail sera envoyé au rétablissement."),
+              htmlContent: ("<h2>Soltani Signature — indisponibilité détectée</h2><p>Le monitoring externe a détecté une indisponibilité.</p><p><strong>" + ($details | gsub("\n"; "<br>")) + "</strong></p><p>Un e-mail sera envoyé au rétablissement.</p>")
+            }')"
+
+          curl --fail-with-body --silent --show-error \
+            --max-time 20 \
+            -X POST "https://api.brevo.com/v3/smtp/email" \
+            -H "accept: application/json" \
+            -H "api-key: ${BREVO_API_KEY}" \
+            -H "content-type: application/json" \
+            --data "$payload"
+
+      - name: Send recovery alert
+        id: recovery-alert
+        if: steps.check.outputs.status == 'up' && steps.previous.outputs.status == 'down'
+        env:
+          BREVO_API_KEY: ${{ secrets.UPTIME_BREVO_API_KEY }}
+          DETAILS: ${{ steps.check.outputs.details }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${BREVO_API_KEY:-}" ]]; then
+            echo "Missing GitHub Actions secret: UPTIME_BREVO_API_KEY" >&2
+            exit 1
+          fi
+
+          payload="$(jq -n \
+            --arg sender "$ALERT_SENDER" \
+            --arg recipient "$ALERT_RECIPIENT" \
+            --arg details "$DETAILS" \
+            '{
+              sender: { email: $sender, name: "Soltani Signature Monitor" },
+              to: [{ email: $recipient }],
+              subject: "[RÉTABLISSEMENT] Soltani Signature est de nouveau disponible",
+              textContent: ("Le site et l’API répondent de nouveau correctement.\n\n" + $details),
+              htmlContent: ("<h2>Soltani Signature — service rétabli</h2><p>Le site et l’API répondent de nouveau correctement.</p><p><strong>" + ($details | gsub("\n"; "<br>")) + "</strong></p>")
+            }')"
+
+          curl --fail-with-body --silent --show-error \
+            --max-time 20 \
+            -X POST "https://api.brevo.com/v3/smtp/email" \
+            -H "accept: application/json" \
+            -H "api-key: ${BREVO_API_KEY}" \
+            -H "content-type: application/json" \
+            --data "$payload"
+
+      - name: Persist current state
+        if: >-
+          always() &&
+          (
+            steps.check.outputs.status == steps.previous.outputs.status ||
+            (steps.check.outputs.status == 'up' && steps.previous.outputs.status == 'unknown') ||
+            (steps.check.outputs.status == 'down' && steps.previous.outputs.status == 'unknown' && steps.outage-alert.outcome == 'success') ||
+            (steps.check.outputs.status == 'up' && steps.previous.outputs.status == 'down' && steps.recovery-alert.outcome == 'success')
+          )
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_STATUS: ${{ steps.check.outputs.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PUT \
+            "repos/${GITHUB_REPOSITORY}/actions/variables/${STATE_VARIABLE}" \
+            -f name="$STATE_VARIABLE" \
+            -f value="${CURRENT_STATUS:-unknown}" \
+            >/dev/null
+
+      - name: Fail when production is unavailable
+        if: steps.check.outputs.status == 'down'
+        run: |
+          echo "Soltani production is unavailable." >&2
+          echo "${{ steps.check.outputs.details }}" >&2
+          exit 1
