@@ -357,9 +357,13 @@ function OrderDetails() {
                 <Separator />
                 <div className="flex items-start gap-2">
                   <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <a href={`mailto:${currentOrder.email}`} className="break-all text-primary hover:underline">
-                    {currentOrder.email}
-                  </a>
+                  {currentOrder.email ? (
+                    <a href={`mailto:${currentOrder.email}`} className="break-all text-primary hover:underline">
+                      {currentOrder.email}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">Email non fourni</span>
+                  )}
                 </div>
                 <div className="flex items-start gap-2">
                   <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />

@@ -156,7 +156,6 @@ function CheckoutPage() {
       initiatedCheckoutRef.current ||
       !lines.length ||
       step < 2 ||
-      !form.email ||
       !form.phone
     )
       return;
@@ -237,8 +236,16 @@ function CheckoutPage() {
       setError(EMPTY_CART_MESSAGE);
       return;
     }
-    if (step === 1 && (!form.email || !form.firstName || !form.lastName || !form.phone)) {
-      setError("Merci de compléter vos coordonnées.");
+    if (
+      step === 1 &&
+      (!form.firstName || !form.lastName || !form.phone ||
+        (paymentMethod === "CLICK_TO_PAY" && !form.email))
+    ) {
+      setError(
+        paymentMethod === "CLICK_TO_PAY"
+          ? "Merci de compléter vos coordonnées et de renseigner votre email pour le paiement en ligne."
+          : "Merci de compléter votre nom et votre téléphone.",
+      );
       return;
     }
     if (step === 2 && (!form.addressLine1 || !form.city || !form.governorate)) {
@@ -259,6 +266,10 @@ function CheckoutPage() {
     }
     if (paymentMethod === "CLICK_TO_PAY" && !settings.onlinePaymentAvailable) {
       setError("Le paiement ClicToPay SMT n'est pas encore disponible.");
+      return;
+    }
+    if (paymentMethod === "CLICK_TO_PAY" && !form.email.trim()) {
+      setError("Une adresse email est obligatoire pour le paiement en ligne.");
       return;
     }
     if (paymentMethod === "CASH_ON_DELIVERY" && !settings.cashOnDeliveryEnabled) {
@@ -284,7 +295,7 @@ function CheckoutPage() {
         else clearStoredMetaUserData();
       };
       const orderDetails = {
-        customerEmail: form.email,
+        customerEmail: form.email.trim() || undefined,
         shippingAddress: {
           fullName: `${form.firstName} ${form.lastName}`.trim(),
           phone: form.phone,
@@ -328,6 +339,7 @@ function CheckoutPage() {
         }
         const orderInput: CreateClickToPayOrderInput = {
           ...orderDetails,
+          customerEmail: form.email.trim(),
           paymentMethod: "CLICK_TO_PAY",
         };
         const order = customerProfile
@@ -432,7 +444,7 @@ function CheckoutPage() {
             {step === 1 && (
               <div className="space-y-5">
                 <h2 className="font-display text-xl font-bold mb-2">Vos coordonnées</h2>
-                <Field label="Email">
+                <Field label={paymentMethod === "CLICK_TO_PAY" ? "Email" : "Email (facultatif)"}>
                   <input
                     type="email"
                     value={form.email}
@@ -440,6 +452,11 @@ function CheckoutPage() {
                     className="input-luxe"
                     placeholder="vous@exemple.com"
                   />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {paymentMethod === "CLICK_TO_PAY"
+                      ? "Obligatoire pour recevoir le lien de paiement."
+                      : "Facultatif — uniquement pour recevoir la confirmation par email."}
+                  </p>
                 </Field>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Prénom">

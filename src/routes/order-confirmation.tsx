@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { Check, Package, Truck, MapPin, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Check, MapPin, MessageCircle, Package, Sparkles, Truck } from "lucide-react";
 import type { CartLine } from "@/hooks/useCart";
 import {
   clearStoredMetaUserData,
@@ -37,6 +37,8 @@ type Order = {
   shippingMethod: string;
   address: { name: string; line: string; city: string; zip: string; phone: string };
 };
+
+const CONTACT_WHATSAPP_URL = "https://wa.me/21658997716";
 
 function OrderConfirmationPage() {
   const navigate = useNavigate();
@@ -86,6 +88,10 @@ function OrderConfirmationPage() {
     await navigate({ to: "/register", search: { reason: "track-order" } });
   };
 
+  const whatsappOrderUrl = `${CONTACT_WHATSAPP_URL}?text=${encodeURIComponent(
+    `Bonjour, je viens de passer la commande ${order.number} et je souhaite recevoir la confirmation.`,
+  )}`;
+
   return (
     <SiteLayout>
       <div className="container-luxe max-w-4xl py-10 sm:py-16">
@@ -101,13 +107,22 @@ function OrderConfirmationPage() {
             Merci pour votre commande !
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Votre commande a été enregistrée avec succès. Vous recevrez un email de confirmation
-            dans quelques instants.
+            Votre commande a été enregistrée avec succès. Si vous avez renseigné une adresse email,
+            un email de confirmation vous sera envoyé dans quelques instants.
           </p>
           <p className="mx-auto mt-6 inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-sm border border-border bg-secondary/40 px-3 py-2 text-center text-sm sm:px-4">
             <span className="text-muted-foreground">N° de commande</span>
             <span className="break-all font-mono font-bold tracking-wider text-gold">{order.number}</span>
           </p>
+          <a
+            href={whatsappOrderUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mx-auto mt-3 inline-flex items-center gap-2 text-sm text-gold underline-offset-4 hover:underline"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Recevoir la confirmation par WhatsApp
+          </a>
         </div>
 
         <div className="mb-6 grid gap-3 sm:mb-8 md:grid-cols-3">

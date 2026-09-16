@@ -91,7 +91,7 @@ type ApiCatalogProductsPage = {
 };
 
 export type CreateCodOrderInput = {
-  customerEmail: string;
+  customerEmail?: string;
   shippingAddress: {
     fullName: string;
     phone: string;
@@ -105,7 +105,8 @@ export type CreateCodOrderInput = {
   items: Array<{ variantId: string; quantity: number }>;
 };
 
-export type CreateClickToPayOrderInput = Omit<CreateCodOrderInput, "paymentMethod"> & {
+export type CreateClickToPayOrderInput = Omit<CreateCodOrderInput, "paymentMethod" | "customerEmail"> & {
+  customerEmail: string;
   paymentMethod: "CLICK_TO_PAY";
 };
 
