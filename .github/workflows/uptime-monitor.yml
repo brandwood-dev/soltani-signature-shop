@@ -161,12 +161,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh api \
+          endpoint="repos/${GITHUB_REPOSITORY}/actions/variables/${STATE_VARIABLE}"
+          if ! gh api \
             --method PUT \
-            "repos/${GITHUB_REPOSITORY}/actions/variables/${STATE_VARIABLE}" \
+            "$endpoint" \
             -f name="$STATE_VARIABLE" \
             -f value="${CURRENT_STATUS:-unknown}" \
-            >/dev/null
+            >/dev/null 2>&1; then
+            gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/actions/variables" \
+              -f name="$STATE_VARIABLE" \
+              -f value="${CURRENT_STATUS:-unknown}" \
+              >/dev/null
+          fi
 
       - name: Fail when production is unavailable
         if: steps.check.outputs.status == 'down'
