@@ -70,6 +70,7 @@ jobs:
           E2E_API_BASE_URL: https://soltani-signature-api.onrender.com
 
       - name: Validate isolated admin E2E target
+        id: validate-admin-target
         shell: bash
         env:
           E2E_ADMIN_BASE_URL: ${{ secrets.E2E_ADMIN_BASE_URL }}
@@ -87,14 +88,22 @@ jobs:
             esac
           }
 
+          if [[ -z "${E2E_ADMIN_BASE_URL:-}" || -z "${E2E_ADMIN_API_BASE_URL:-}" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No isolated admin E2E targets configured; skipping authenticated admin E2E tests."
+            exit 0
+          fi
+
           for target in "${E2E_ADMIN_BASE_URL:-}" "${E2E_ADMIN_API_BASE_URL:-}"; do
-            if [[ -z "$target" ]] || is_production_target "$target"; then
+            if is_production_target "$target"; then
               echo "Authenticated admin E2E requires explicit non-production targets."
               exit 1
             fi
           done
+          echo "available=true" >> "$GITHUB_OUTPUT"
 
       - name: Authenticated admin E2E tests
+        if: steps.validate-admin-target.outputs.available == 'true'
         run: bun run test:e2e:admin
         env:
           E2E_BASE_URL: ${{ secrets.E2E_ADMIN_BASE_URL }}
