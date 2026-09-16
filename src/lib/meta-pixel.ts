@@ -206,7 +206,6 @@ export function trackMetaPixelEvent(
   } else {
     window.fbq?.("track", event);
   }
-
   void sendMetaServerEvent({
     eventName: event,
     eventId,
