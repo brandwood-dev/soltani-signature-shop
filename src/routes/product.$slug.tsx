@@ -258,7 +258,7 @@ function ProductPage() {
   const firstGalleryUrl = gallery[0]?.url ?? product.image;
   const priceMin = product.priceMin ?? product.price;
   const priceMax = product.priceMax ?? product.price;
-  const metaProductId = product.id ?? product.slug;
+  const metaProductId = product.id;
   const showsPriceRange = !selectedVariant && priceMax > priceMin;
   const selectedPrice = selectedVariant?.price ?? priceMin;
   const selectedCompareAtPrice = selectedVariant
@@ -410,7 +410,7 @@ function ProductPage() {
   }, [product.isPromotion]);
 
   useEffect(() => {
-    if (isPreview) return;
+    if (isPreview || !metaProductId) return;
     trackMetaPixelEvent("ViewContent", {
       content_ids: [metaProductId],
       content_name: product.name,
@@ -422,7 +422,7 @@ function ProductPage() {
 
   const handleAddToCart = () => {
     const variantId = selectedVariant?.id ?? product.variantId;
-    if (isPreview || !variantId || !canPurchase) return;
+    if (isPreview || !metaProductId || !variantId || !canPurchase) return;
     const variantLabel = selectedVariant?.label ?? product.variantLabel ?? "Standard";
     const image = selectedVariant?.imageUrl ?? product.image;
     add({
@@ -451,7 +451,7 @@ function ProductPage() {
 
   const handleBuyNow = async () => {
     const variantId = selectedVariant?.id ?? product.variantId;
-    if (isPreview || !variantId || !canPurchase) return;
+    if (isPreview || !metaProductId || !variantId || !canPurchase) return;
     const variantLabel = selectedVariant?.label ?? product.variantLabel ?? "Standard";
     const image = selectedVariant?.imageUrl ?? product.image;
     saveQuickCheckoutLine({
@@ -807,7 +807,7 @@ function ProductPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (!isFavorite) {
+                    if (!isFavorite && metaProductId) {
                       trackMetaPixelEvent("AddToWishlist", {
                         content_ids: [metaProductId],
                         content_name: product.name,

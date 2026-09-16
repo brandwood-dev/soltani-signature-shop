@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { getMetaPurchaseEventId, normalizeMetaEmail, normalizeMetaPhone } from "./meta-pixel";
+import {
+  getMetaPurchaseEventId,
+  normalizeMetaEmail,
+  normalizeMetaPhone,
+  sanitizeMetaPixelParams,
+} from "./meta-pixel";
 
 describe("Meta enhanced matching normalization", () => {
   test("normalizes email before hashing", () => {
@@ -15,5 +20,14 @@ describe("Meta enhanced matching normalization", () => {
 
   test("keeps Purchase event IDs stable for the same order", () => {
     expect(getMetaPurchaseEventId("SOL-20260913-00001")).toBe("purchase:SOL-20260913-00001");
+  });
+
+  test("keeps only valid TND currency values", () => {
+    expect(sanitizeMetaPixelParams({ value: 79, currency: " tnd " })).toEqual({
+      value: 79,
+      currency: "TND",
+    });
+    expect(sanitizeMetaPixelParams({ value: 79, currency: "EUR" })).toEqual({ value: 79 });
+    expect(sanitizeMetaPixelParams({ currency: "" })).toBeUndefined();
   });
 });
