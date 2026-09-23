@@ -111,6 +111,22 @@ export async function updateAdminOrderStatus(id: string, status: AdminOrderStatu
   return response.order;
 }
 
+export async function correctAdminOrderStatus(
+  id: string,
+  status: Extract<AdminOrderStatus, "shipped" | "cancelled">,
+  reason: string,
+  restoreStock = false,
+) {
+  const response = await apiFetch<{ order: AdminOrderDetails }>(
+    `/orders/admin/${id}/status/correction`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status, reason, restoreStock }),
+    },
+  );
+  return response.order;
+}
+
 export function replayAdminOrderMetaPurchase(id: string) {
   return apiFetch<{ reference: string; eventId: string; queued: boolean }>(
     `/orders/admin/${id}/meta-purchase/replay`,

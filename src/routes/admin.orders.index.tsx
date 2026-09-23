@@ -66,6 +66,14 @@ const TAB_LABELS: Record<string, string> = {
   cancelled: "Annulées",
 };
 
+const QUICK_STATUS_OPTIONS: Record<AdminOrderStatus, AdminOrderStatus[]> = {
+  pending: ["processing", "cancelled"],
+  processing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
+};
+
 const EXPORT_PERIODS: Array<{ value: AdminOrderExportPeriod; label: string }> = [
   { value: "today", label: "Aujourd’hui" },
   { value: "yesterday", label: "Hier" },
@@ -344,11 +352,24 @@ function AdminOrders() {
                               <Eye className="h-4 w-4" /> Voir détails
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setOrderStatus(o.id, "shipped")}>Marquer expédiée</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setOrderStatus(o.id, "delivered")}>Marquer livrée</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => setOrderStatus(o.id, "cancelled")}>
-                            Annuler
-                          </DropdownMenuItem>
+                          {QUICK_STATUS_OPTIONS[o.status].includes("shipped") && (
+                            <DropdownMenuItem onClick={() => setOrderStatus(o.id, "shipped")}>
+                              Marquer expédiée
+                            </DropdownMenuItem>
+                          )}
+                          {QUICK_STATUS_OPTIONS[o.status].includes("delivered") && (
+                            <DropdownMenuItem onClick={() => setOrderStatus(o.id, "delivered")}>
+                              Marquer livrée
+                            </DropdownMenuItem>
+                          )}
+                          {QUICK_STATUS_OPTIONS[o.status].includes("cancelled") && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setOrderStatus(o.id, "cancelled")}
+                            >
+                              Annuler
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
