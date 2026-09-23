@@ -18,7 +18,18 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -36,6 +47,7 @@ import {
 } from "@/components/ui/table";
 import {
   downloadAdminPurchaseOrder,
+  correctAdminOrderStatus,
   getAdminOrder,
   replayAdminOrderMetaPurchase,
   updateAdminOrderStatus,
@@ -44,6 +56,22 @@ import {
 } from "@/lib/admin-orders-api";
 import { downloadBlob } from "@/lib/api";
 import { formatDate, formatTND } from "@/lib/admin/mock-data";
+
+const STANDARD_STATUS_OPTIONS: Record<AdminOrderStatus, AdminOrderStatus[]> = {
+  pending: ["pending", "processing", "cancelled"],
+  processing: ["processing", "shipped", "cancelled"],
+  shipped: ["shipped", "delivered"],
+  delivered: ["delivered"],
+  cancelled: ["cancelled"],
+};
+
+const STATUS_LABELS: Record<AdminOrderStatus, string> = {
+  pending: "En attente",
+  processing: "En préparation",
+  shipped: "Expédiée",
+  delivered: "Livrée",
+  cancelled: "Annulée",
+};
 
 export const Route = createFileRoute("/admin/orders/$id")({
   component: OrderDetails,
@@ -58,6 +86,11 @@ function OrderDetails() {
   const [downloading, setDownloading] = useState(false);
   const [replayingMetaPurchase, setReplayingMetaPurchase] = useState(false);
   const [metaReplayMessage, setMetaReplayMessage] = useState("");
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [correctionStatus, setCorrectionStatus] = useState<"shipped" | "cancelled">("shipped");
+  const [correctionReason, setCorrectionReason] = useState("");
+  const [restoreStock, setRestoreStock] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -129,8 +162,49 @@ function OrderDetails() {
       setStatus(next.status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Mise à jour impossible.");
+      try {
+        const latest = await getAdminOrder(id);
+        setCurrentOrder(latest);
+        setStatus(latest.status);
+      } catch {
+        setError((current) => current || "Impossible de rafraîchir la commande.");
+      }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openCorrectionDialog = () => {
+    setCorrectionStatus("shipped");
+    setCorrectionReason("");
+    setRestoreStock(false);
+    setError("");
+    setCorrectionOpen(true);
+  };
+
+  const submitCorrection = async () => {
+    const reason = correctionReason.trim();
+    if (reason.length < 8) {
+      setError("Le motif de correction doit contenir au moins 8 caractères.");
+      return;
+    }
+
+    try {
+      setCorrecting(true);
+      setError("");
+      const next = await correctAdminOrderStatus(
+        currentOrder.id,
+        correctionStatus,
+        reason,
+        restoreStock,
+      );
+      setCurrentOrder(next);
+      setStatus(next.status);
+      setCorrectionOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Correction impossible.");
+    } finally {
+      setCorrecting(false);
     }
   };
 
@@ -240,22 +314,27 @@ function OrderDetails() {
                     })}
                   </ol>
                 )}
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   <Select value={status} onValueChange={(value) => setStatus(value as AdminOrderStatus)}>
                     <SelectTrigger className="h-9 flex-1 sm:max-w-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">En attente</SelectItem>
-                      <SelectItem value="processing">En préparation</SelectItem>
-                      <SelectItem value="shipped">Expédiée</SelectItem>
-                      <SelectItem value="delivered">Livrée</SelectItem>
-                      <SelectItem value="cancelled">Annulée</SelectItem>
+                      {STANDARD_STATUS_OPTIONS[currentOrder.status].map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {STATUS_LABELS[option]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Button size="sm" className="h-9" disabled={saving || status === currentOrder.status} onClick={saveStatus}>
                     {saving ? "Mise à jour…" : "Mettre à jour"}
                   </Button>
+                  {currentOrder.status === "delivered" && (
+                    <Button type="button" size="sm" variant="outline" className="h-9" onClick={openCorrectionDialog}>
+                      Corriger le statut
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -436,6 +515,70 @@ function OrderDetails() {
           </div>
         </div>
       </div>
+
+      <Dialog open={correctionOpen} onOpenChange={setCorrectionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Corriger le statut</DialogTitle>
+            <DialogDescription>
+              Cette action est réservée aux corrections exceptionnelles et sera enregistrée dans l’audit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="correction-status">Nouveau statut</Label>
+              <Select
+                value={correctionStatus}
+                onValueChange={(value) => {
+                  const next = value as "shipped" | "cancelled";
+                  setCorrectionStatus(next);
+                  if (next !== "cancelled") setRestoreStock(false);
+                }}
+              >
+                <SelectTrigger id="correction-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="shipped">Expédiée</SelectItem>
+                  <SelectItem value="cancelled">Annulée</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="correction-reason">Motif obligatoire</Label>
+              <Textarea
+                id="correction-reason"
+                value={correctionReason}
+                onChange={(event) => setCorrectionReason(event.target.value)}
+                placeholder="Ex. Statut livré sélectionné par erreur"
+                maxLength={500}
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">Minimum 8 caractères.</p>
+            </div>
+            {correctionStatus === "cancelled" && (
+              <label className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
+                <Checkbox checked={restoreStock} onCheckedChange={(checked) => setRestoreStock(checked === true)} />
+                <span>
+                  <span className="font-medium">Restituer le stock</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    À activer uniquement si la commande n’a finalement pas été remise au client.
+                  </span>
+                </span>
+              </label>
+            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCorrectionOpen(false)} disabled={correcting}>
+              Annuler
+            </Button>
+            <Button type="button" onClick={submitCorrection} disabled={correcting}>
+              {correcting ? "Correction…" : "Confirmer la correction"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
