@@ -10,13 +10,16 @@ import { PromoBanner } from "@/components/site/PromoBanner";
 import type { Product } from "@/components/site/ProductCard";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import { getActivePromoBanners, type PromoBanner as DynamicPromoBanner } from "@/lib/promo-banners-api";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Section = {
   eyebrow?: string;
   title: string;
   kicker?: string;
-  subSlugs: string | string[];
+  category?: string;
+  subSlugs?: string | string[];
+  maxProducts?: number | null;
+  pinned?: boolean;
   ctaLabel?: string;
   ctaHref?: string;
 };
@@ -43,6 +46,13 @@ export type LifestyleConfig = {
 export function LifestylePage({ config }: { config: LifestyleConfig }) {
   const [banners, setBanners] = useState<DynamicPromoBanner[]>([]);
   const [sectionProducts, setSectionProducts] = useState<Record<string, Product[]>>({});
+  const sections = useMemo(
+    () =>
+      [...config.sections].sort(
+        (left, right) => Number(Boolean(right.pinned)) - Number(Boolean(left.pinned)),
+      ),
+    [config.sections],
+  );
 
   useEffect(() => {
     let active = true;
@@ -63,15 +73,26 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
     let active = true;
 
     Promise.all(
-      config.sections.map(async (section) => {
-        const slugs = Array.isArray(section.subSlugs) ? section.subSlugs : [section.subSlugs];
+      sections.map(async (section) => {
+        const slugs = section.category
+          ? [section.category]
+          : Array.isArray(section.subSlugs)
+            ? section.subSlugs
+            : section.subSlugs
+              ? [section.subSlugs]
+              : [];
         const products = await Promise.all(
-          slugs.map((slug) => getCatalogProducts({ section: config.page, category: slug }).catch(() => [])),
+          slugs.map((slug) =>
+            getCatalogProducts({
+              section: config.page,
+              category: slug,
+              limit: section.maxProducts ?? undefined,
+            }).catch(() => []),
+          ),
         );
-        const unique = Array.from(
-          new Map(products.flat().map((product) => [product.slug, product])).values(),
-        ).slice(0, 4);
-        return [section.title, unique] as const;
+        const unique = Array.from(new Map(products.flat().map((product) => [product.slug, product])).values());
+        const visibleProducts = section.maxProducts === null ? unique : unique.slice(0, section.maxProducts ?? 4);
+        return [section.title, visibleProducts] as const;
       }),
     ).then((entries) => {
       if (active) setSectionProducts(Object.fromEntries(entries));
@@ -80,7 +101,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
     return () => {
       active = false;
     };
-  }, [config.page, config.sections]);
+  }, [config.page, sections]);
 
   const fullBanner = banners[0];
   const dualLeftBanner = banners[1];
@@ -104,7 +125,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
 
         {config.intro}
 
-        {config.sections.slice(0, 2).map((s) => (
+        {sections.slice(0, 2).map((s) => (
           <LifestyleSection
             key={s.title}
             eyebrow={s.eyebrow}
@@ -129,7 +150,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
           />
         )}
 
-        {config.sections.slice(2, 4).map((s) => (
+        {sections.slice(2, 4).map((s) => (
           <LifestyleSection
             key={s.title}
             eyebrow={s.eyebrow}
@@ -164,7 +185,7 @@ export function LifestylePage({ config }: { config: LifestyleConfig }) {
           />
         )}
 
-        {config.sections.slice(4).map((s) => (
+        {sections.slice(4).map((s) => (
           <LifestyleSection
             key={s.title}
             eyebrow={s.eyebrow}
