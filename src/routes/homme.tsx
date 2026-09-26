@@ -17,6 +17,16 @@ const config: LifestyleConfig = {
   },
   sections: [
     {
+      eyebrow: "Mode & Style",
+      title: "Mode & Style Homme",
+      kicker: "Pantalons et essentiels masculins sélectionnés pour composer une silhouette sûre et élégante.",
+      category: "mode-style",
+      maxProducts: null,
+      pinned: true,
+      ctaLabel: "Voir Mode & Style",
+      ctaHref: "/category/mode-style?section=homme",
+    },
+    {
       eyebrow: "Sillages Boisés",
       title: "Parfums Homme",
       kicker: "Fragrances boisées, cuirées, orientales — pour un caractère affirmé.",
@@ -48,14 +58,6 @@ const config: LifestyleConfig = {
       ctaLabel: "Voir les lunettes",
       ctaHref: "/category/lunettes?audience=homme",
     },
-    {
-      eyebrow: "Maille précieuse",
-      title: "Bijoux Homme",
-      kicker: "Bracelets, chevalières et chaînes — l'accessoire qui signe le style.",
-      subSlugs: "bijoux",
-      ctaLabel: "Voir la joaillerie",
-      ctaHref: "/category/bijoux?audience=homme",
-    },
   ],
   bannerLayout: { fullAlign: "left", bottomAlign: "right" },
 };
@@ -64,7 +66,7 @@ export const Route = createFileRoute("/homme")({
   head: () => ({
     meta: seoMeta({
       title: "Collection Homme — Soltani Signature",
-      description: "Univers Homme : parfums, soins, montres, lunettes et accessoires lifestyle sélectionnés par Soltani Signature.",
+      description: "Univers Homme : mode, parfums, soins, montres et lunettes sélectionnés par Soltani Signature.",
       path: "/homme",
     }),
     links: [canonicalLink("/homme")],
