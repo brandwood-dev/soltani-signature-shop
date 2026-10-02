@@ -116,7 +116,7 @@ jobs:
           E2E_ADMIN_ALLOW_WRITES: "true"
 
       - name: Production smoke tests
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail

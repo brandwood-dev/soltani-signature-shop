@@ -304,7 +304,7 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
 
 export async function apiDownload(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
-  headers.set("Accept", "application/pdf");
+  headers.set("Accept", "application/pdf, application/vnd.ms-excel");
   const csrfToken = typeof window !== "undefined" ? getCsrfToken() : null;
   if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
 
@@ -335,10 +335,20 @@ export async function apiDownload(path: string, init: RequestInit = {}) {
 
   const disposition = response.headers.get("Content-Disposition") ?? "";
   const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+  const fallbackExtension = getDownloadExtension(path);
   return {
     blob: await response.blob(),
-    filename: filenameMatch?.[1] ?? "document.pdf",
+    filename: filenameMatch?.[1] ?? `document.${fallbackExtension}`,
   };
+}
+
+function getDownloadExtension(path: string) {
+  try {
+    const format = new URL(path, "http://localhost").searchParams.get("format");
+    return format?.toLowerCase() === "xls" ? "xls" : "pdf";
+  } catch {
+    return "pdf";
+  }
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
@@ -436,6 +446,9 @@ function getAdminCacheTtl(path: string, method: string) {
 
 export function apiRetryPolicy(path: string, method: string, isBrowser: boolean) {
   if (method !== "GET") return { attempts: 1, timeoutMs: 15_000 };
+  if (path.startsWith("/orders/admin/export")) {
+    return { attempts: 1, timeoutMs: 60_000 };
+  }
   if (isAdminPath(path)) return { attempts: 2, timeoutMs: 10_000 };
   if (!isBrowser) return { attempts: 1, timeoutMs: 8_000 };
   return { attempts: 2, timeoutMs: 20_000 };
