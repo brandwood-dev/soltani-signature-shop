@@ -1,4 +1,5 @@
 import { publicEnv } from "@/lib/env";
+import type { MetaClientParamBuilder } from "meta-capi-param-builder-clientjs";
 
 type MetaPixelEvent =
   | "PageView"
@@ -37,6 +38,7 @@ type MetaServerEvent = {
   eventName: MetaPixelEvent;
   eventId: string;
   eventSourceUrl?: string;
+  referrerUrl?: string;
   fbp?: string;
   fbc?: string;
   userAgent?: string;
@@ -55,7 +57,6 @@ declare global {
     };
     _fbq?: Window["fbq"];
     __soltaniMetaPixelLoaded?: boolean;
-    __soltaniInitialPageViewTracked?: boolean;
     __soltaniLastPageView?: string;
   }
 }
@@ -64,6 +65,14 @@ const PIXEL_SCRIPT_ID = "meta-pixel-script";
 const PIXEL_SCRIPT_SRC = "https://connect.facebook.net/en_US/fbevents.js";
 const META_ENHANCED_MATCHING_CONSENT_KEY = "soltani-meta-enhanced-matching-consent";
 const META_USER_DATA_KEY = "soltani-meta-user-data";
+let metaParamBuilderPromise: Promise<MetaClientParamBuilder | undefined> | undefined;
+let metaParameterCollectionPromise: Promise<MetaEventContext> | undefined;
+
+export type MetaEventContext = {
+  fbp?: string;
+  fbc?: string;
+  referrerUrl?: string;
+};
 
 function isBrowser() {
   return typeof window !== "undefined" && typeof document !== "undefined";
@@ -71,6 +80,8 @@ function isBrowser() {
 
 export function initMetaPixel() {
   if (!isBrowser()) return;
+
+  void collectMetaParameters();
 
   if (!window.fbq) {
     const fbq = function (...args: unknown[]) {
@@ -208,8 +219,6 @@ export function trackMetaPixelEvent(
       eventName: event,
       eventId,
       eventSourceUrl: window.location.href,
-      fbp: readCookie("_fbp"),
-      fbc: readMetaFbc(),
       userAgent: navigator.userAgent,
       identifiers,
       customData: sanitizedParams,
@@ -226,10 +235,6 @@ export function trackPageView(path: string) {
   const pageKey = path || window.location.href;
   if (window.__soltaniLastPageView === pageKey) return;
   window.__soltaniLastPageView = pageKey;
-  if (window.__soltaniInitialPageViewTracked) {
-    window.__soltaniInitialPageViewTracked = false;
-    return;
-  }
   trackMetaPixelEvent("PageView");
 }
 
@@ -296,6 +301,10 @@ function readCookie(name: string) {
   }
 }
 
+export function getMetaEventContext() {
+  return collectMetaParameters();
+}
+
 function readMetaFbc() {
   const stored = readCookie("_fbc");
   if (stored) return stored;
@@ -311,12 +320,16 @@ function readMetaFbc() {
 async function sendMetaServerEvent(event: MetaServerEvent & { identifiers?: MetaUserIdentifiers }) {
   try {
     const { identifiers, ...serverEvent } = event;
+    const collected = await collectMetaParameters();
     const userData = await buildMetaUserData(identifiers);
     await fetch(`${publicEnv.apiUrl}/catalog/meta/events`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         ...serverEvent,
+        fbp: collected.fbp,
+        fbc: collected.fbc,
+        referrerUrl: collected.referrerUrl,
         userData,
       }),
       keepalive: true,
@@ -324,6 +337,43 @@ async function sendMetaServerEvent(event: MetaServerEvent & { identifiers?: Meta
   } catch {
     // Browser Pixel remains the fallback when the server event cannot be queued.
   }
+}
+
+async function collectMetaParameters(): Promise<MetaEventContext> {
+  if (!isBrowser()) return {};
+  if (!metaParameterCollectionPromise) {
+    metaParameterCollectionPromise = (async () => {
+      const fallback: MetaEventContext = {
+        fbp: readCookie("_fbp"),
+        fbc: readMetaFbc(),
+        referrerUrl: document.referrer.trim() || undefined,
+      };
+      const builder = await loadMetaParamBuilder();
+      if (!builder) return fallback;
+
+      try {
+        const collected = await builder.processAndCollectAllParams(window.location.href);
+        return {
+          fbp: collected._fbp || builder.getFbp() || fallback.fbp,
+          fbc: collected._fbc || builder.getFbc() || fallback.fbc,
+          referrerUrl: fallback.referrerUrl,
+        };
+      } catch {
+        return fallback;
+      }
+    })();
+  }
+  return metaParameterCollectionPromise;
+}
+
+async function loadMetaParamBuilder() {
+  if (!isBrowser()) return undefined;
+  if (!metaParamBuilderPromise) {
+    metaParamBuilderPromise = import("meta-capi-param-builder-clientjs")
+      .then((module) => (module.default ?? module) as unknown as MetaClientParamBuilder)
+      .catch(() => undefined);
+  }
+  return metaParamBuilderPromise;
 }
 
 async function buildMetaUserData(identifiers?: MetaUserIdentifiers) {

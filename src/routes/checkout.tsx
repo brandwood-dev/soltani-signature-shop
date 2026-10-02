@@ -23,6 +23,7 @@ import {
 } from "@/lib/settings-api";
 import {
   clearStoredMetaUserData,
+  getMetaEventContext,
   hashMetaIdentifiers,
   readMetaEnhancedMatchingConsent,
   setMetaEnhancedMatchingConsent,
@@ -293,6 +294,7 @@ function CheckoutPage() {
         });
       };
       const metaUserData = await prepareMetaUserData();
+      const metaEventContext = await getMetaEventContext();
       const orderDetails = {
         customerEmail: form.email.trim() || undefined,
         shippingAddress: {
@@ -339,6 +341,9 @@ function CheckoutPage() {
         const orderInput: CreateClickToPayOrderInput = {
           ...orderDetails,
           metaUserData,
+          metaFbp: metaEventContext.fbp,
+          metaFbc: metaEventContext.fbc,
+          metaReferrerUrl: metaEventContext.referrerUrl,
           customerEmail: form.email.trim(),
           paymentMethod: "CLICK_TO_PAY",
         };
@@ -358,6 +363,9 @@ function CheckoutPage() {
       const orderInput: CreateCodOrderInput = {
         ...orderDetails,
         metaUserData,
+        metaFbp: metaEventContext.fbp,
+        metaFbc: metaEventContext.fbc,
+        metaReferrerUrl: metaEventContext.referrerUrl,
         paymentMethod: "CASH_ON_DELIVERY",
       };
       const order = customerProfile

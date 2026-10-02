@@ -99,6 +99,9 @@ export type MetaOrderUserData = {
 export type CreateCodOrderInput = {
   customerEmail?: string;
   metaUserData?: MetaOrderUserData;
+  metaFbp?: string;
+  metaFbc?: string;
+  metaReferrerUrl?: string;
   shippingAddress: {
     fullName: string;
     phone: string;
