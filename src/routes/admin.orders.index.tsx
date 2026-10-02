@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useState } from "react";
-import { Search, Eye, MoreHorizontal, Download } from "lucide-react";
+import { Search, Eye, MoreHorizontal, Download, ChevronDown } from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { DataPagination } from "@/components/admin/DataPagination";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -93,6 +95,14 @@ const EXPORT_FORMATS: Array<{ value: AdminOrderExportFormat; label: string }> = 
   { value: "xls", label: "Tableau XLS" },
 ];
 
+const EXPORT_STATUS_OPTIONS: AdminOrderStatus[] = [
+  "pending",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
 function AdminOrders() {
   const search = Route.useSearch();
   const [query, setQuery] = useState(search.query);
@@ -108,7 +118,7 @@ function AdminOrders() {
   const [error, setError] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportPeriod, setExportPeriod] = useState<AdminOrderExportPeriod>("today");
-  const [exportStatus, setExportStatus] = useState<"all" | AdminOrderStatus>("all");
+  const [exportStatuses, setExportStatuses] = useState<AdminOrderStatus[]>([]);
   const [exportFormat, setExportFormat] = useState<AdminOrderExportFormat>("pdf");
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState("");
@@ -199,7 +209,7 @@ function AdminOrders() {
       setExportError("");
       const file = await downloadAdminOrdersExport({
         period: exportPeriod,
-        status: exportStatus,
+        status: exportStatuses,
         format: exportFormat,
         ...(exportPeriod === "custom" ? { from: exportFrom, to: exportTo } : {}),
       });
@@ -210,6 +220,18 @@ function AdminOrders() {
     } finally {
       setExporting(false);
     }
+  };
+
+  const exportStatusLabel = exportStatuses.length === 0
+    ? "Tous les statuts"
+    : exportStatuses.length === 1
+      ? TAB_LABELS[exportStatuses[0]]
+      : `${exportStatuses.length} statuts sélectionnés`;
+
+  const toggleExportStatus = (status: AdminOrderStatus) => {
+    setExportStatuses((current) => current.includes(status)
+      ? current.filter((selected) => selected !== status)
+      : [...current, status]);
   };
 
   return (
@@ -476,18 +498,42 @@ function AdminOrders() {
             )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Statut</label>
-              <Select value={exportStatus} onValueChange={(value) => setExportStatus(value as "all" | AdminOrderStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TABS.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {TAB_LABELS[status]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 w-full justify-between font-normal"
+                  >
+                    <span className="truncate">{exportStatusLabel}</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[260px] p-2" align="start">
+                  <div className="space-y-1">
+                    <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted">
+                      <Checkbox
+                        checked={exportStatuses.length === 0}
+                        onCheckedChange={() => setExportStatuses([])}
+                      />
+                      <span>Tous les statuts</span>
+                    </label>
+                    <div className="my-1 border-t" />
+                    {EXPORT_STATUS_OPTIONS.map((status) => (
+                      <label
+                        key={status}
+                        className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={exportStatuses.includes(status)}
+                          onCheckedChange={() => toggleExportStatus(status)}
+                        />
+                        <span>{TAB_LABELS[status]}</span>
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Format</label>

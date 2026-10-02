@@ -77,7 +77,7 @@ export type AdminOrderExportFormat = "pdf" | "xls";
 
 export type AdminOrdersExportQuery = {
   period: AdminOrderExportPeriod;
-  status: "all" | AdminOrderStatus;
+  status: "all" | AdminOrderStatus[];
   format: AdminOrderExportFormat;
   from?: string;
   to?: string;
@@ -143,7 +143,11 @@ export function replayAdminOrderMetaPurchase(id: string) {
 export function downloadAdminOrdersExport(query: AdminOrdersExportQuery) {
   const params = new URLSearchParams();
   params.set("period", query.period);
-  params.set("status", query.status);
+  if (query.status === "all" || query.status.length === 0) {
+    params.set("status", "all");
+  } else {
+    query.status.forEach((status) => params.append("status", status));
+  }
   params.set("format", query.format);
   if (query.from) params.set("from", query.from);
   if (query.to) params.set("to", query.to);
