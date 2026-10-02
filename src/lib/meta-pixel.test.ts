@@ -55,9 +55,13 @@ describe("Meta enhanced matching normalization", () => {
       clearMetaGuestExternalId();
       expect(getMetaExternalId(undefined, true)).not.toBe(first);
     } finally {
-      if (previousWindow === undefined) delete (globalThis as typeof globalThis & { window?: unknown }).window;
+      if (previousWindow === undefined) {
+        Object.defineProperty(globalThis, "window", { configurable: true, value: undefined });
+      }
       else Object.defineProperty(globalThis, "window", { configurable: true, value: previousWindow });
-      if (previousDocument === undefined) delete (globalThis as typeof globalThis & { document?: unknown }).document;
+      if (previousDocument === undefined) {
+        Object.defineProperty(globalThis, "document", { configurable: true, value: undefined });
+      }
       else Object.defineProperty(globalThis, "document", { configurable: true, value: previousDocument });
     }
   });
