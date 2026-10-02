@@ -143,12 +143,12 @@ export function setMetaEnhancedMatchingConsent(accepted: boolean) {
   if (!isBrowser()) return;
   try {
     window.localStorage.setItem(META_ENHANCED_MATCHING_CONSENT_KEY, accepted ? "accepted" : "refused");
-    if (!accepted) {
-      clearStoredMetaUserData();
-      clearMetaGuestExternalId();
-    }
   } catch {
     // Privacy preferences remain opt-in when storage is unavailable.
+  }
+  if (!accepted) {
+    clearStoredMetaUserData();
+    clearMetaGuestExternalId();
   }
 }
 
