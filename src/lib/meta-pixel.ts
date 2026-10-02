@@ -14,7 +14,10 @@ type MetaPixelParamValue = string | number | boolean | string[] | Array<Record<s
 type MetaPixelParams = Record<string, MetaPixelParamValue>;
 type MetaPixelTrackOptions = { eventID?: string };
 
-export type MetaPixelEventOptions = { eventId?: string };
+export type MetaPixelEventOptions = {
+  eventId?: string;
+  sendToServer?: boolean;
+};
 
 export type MetaUserData = {
   em?: string[];
@@ -191,31 +194,27 @@ export function trackMetaPixelEvent(
   initMetaPixel();
   const eventId = options.eventId ?? createEventId();
   const sanitizedParams = sanitizeMetaPixelParams(params);
+  const pixelOptions: MetaPixelTrackOptions = { eventID: eventId };
 
   if (event === "PageView") {
-    window.fbq?.("track", event);
+    window.fbq?.("track", event, {}, pixelOptions);
   } else if (sanitizedParams) {
-    window.fbq?.(
-      "track",
-      event,
-      sanitizedParams,
-      options.eventId ? { eventID: options.eventId } : undefined,
-    );
-  } else if (options.eventId) {
-    window.fbq?.("track", event, {}, { eventID: options.eventId });
+    window.fbq?.("track", event, sanitizedParams, pixelOptions);
   } else {
-    window.fbq?.("track", event);
+    window.fbq?.("track", event, {}, pixelOptions);
   }
-  void sendMetaServerEvent({
-    eventName: event,
-    eventId,
-    eventSourceUrl: window.location.href,
-    fbp: readCookie("_fbp"),
-    fbc: readCookie("_fbc"),
-    userAgent: navigator.userAgent,
-    identifiers,
-    customData: sanitizedParams,
-  });
+  if (options.sendToServer !== false) {
+    void sendMetaServerEvent({
+      eventName: event,
+      eventId,
+      eventSourceUrl: window.location.href,
+      fbp: readCookie("_fbp"),
+      fbc: readMetaFbc(),
+      userAgent: navigator.userAgent,
+      identifiers,
+      customData: sanitizedParams,
+    });
+  }
 }
 
 export function getMetaPurchaseEventId(orderReference: string) {
@@ -284,8 +283,29 @@ function sanitizeMetaUserData(userData?: MetaUserData) {
 }
 
 function readCookie(name: string) {
-  const value = document.cookie.split("; ").find((item) => item.startsWith(`${name}=`))?.split("=")[1];
-  return value ? decodeURIComponent(value) : undefined;
+  const item = document.cookie
+    .split(";")
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(`${name}=`));
+  if (!item) return undefined;
+  const value = item.slice(name.length + 1);
+  try {
+    return decodeURIComponent(value) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readMetaFbc() {
+  const stored = readCookie("_fbc");
+  if (stored) return stored;
+
+  const fbclid = new URLSearchParams(window.location.search).get("fbclid")?.trim();
+  if (!fbclid || fbclid.length > 512 || /\s/.test(fbclid)) return undefined;
+
+  const fbc = `fb.1.${Date.now()}.${fbclid}`;
+  document.cookie = `_fbc=${encodeURIComponent(fbc)}; Max-Age=7776000; Path=/; SameSite=Lax`;
+  return fbc;
 }
 
 async function sendMetaServerEvent(event: MetaServerEvent & { identifiers?: MetaUserIdentifiers }) {
