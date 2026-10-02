@@ -72,7 +72,7 @@ function OrderConfirmationPage() {
     }, {
       consent: Boolean(hashedUserData),
       hashedUserData,
-    }, { eventId: getMetaPurchaseEventId(order.number) });
+    }, { eventId: getMetaPurchaseEventId(order.number), sendToServer: false });
     clearStoredMetaUserData();
   }, [order]);
 
