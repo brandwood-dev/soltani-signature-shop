@@ -6,7 +6,7 @@ const criticalRoutes = [
   "/promotions",
   "/nouvelles-arrivees",
   "/meilleures-ventes",
-  "/category/idees-cadeaux",
+  "/homme",
 ];
 
 async function expectHealthyPage(page: Page, path: string) {
