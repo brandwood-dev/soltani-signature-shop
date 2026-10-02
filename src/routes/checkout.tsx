@@ -281,19 +281,18 @@ function CheckoutPage() {
     setError(null);
 
     try {
-      const persistMetaIdentifiers = async () => {
+      const prepareMetaUserData = async () => {
         if (!metaEnhancedMatchingConsent) {
           clearStoredMetaUserData();
-          return;
+          return undefined;
         }
-        const userData = await hashMetaIdentifiers({
+        return hashMetaIdentifiers({
           email: form.email,
           phone: form.phone,
           externalId: customerProfile?.user.authUserId,
         });
-        if (userData) storeMetaUserData(userData);
-        else clearStoredMetaUserData();
       };
+      const metaUserData = await prepareMetaUserData();
       const orderDetails = {
         customerEmail: form.email.trim() || undefined,
         shippingAddress: {
@@ -339,6 +338,7 @@ function CheckoutPage() {
         }
         const orderInput: CreateClickToPayOrderInput = {
           ...orderDetails,
+          metaUserData,
           customerEmail: form.email.trim(),
           paymentMethod: "CLICK_TO_PAY",
         };
@@ -348,7 +348,8 @@ function CheckoutPage() {
         if (!order.payment?.checkoutUrl) {
           throw new Error("La session de paiement ClicToPay SMT est indisponible.");
         }
-        await persistMetaIdentifiers();
+        if (metaUserData) storeMetaUserData(metaUserData);
+        else clearStoredMetaUserData();
         orderIdempotencyRef.current = null;
         window.location.assign(order.payment.checkoutUrl);
         return;
@@ -356,12 +357,14 @@ function CheckoutPage() {
 
       const orderInput: CreateCodOrderInput = {
         ...orderDetails,
+        metaUserData,
         paymentMethod: "CASH_ON_DELIVERY",
       };
       const order = customerProfile
         ? await createCustomerCodOrder(orderInput, { idempotencyKey })
         : await createCodOrder(orderInput, { idempotencyKey });
-      await persistMetaIdentifiers();
+      if (metaUserData) storeMetaUserData(metaUserData);
+      else clearStoredMetaUserData();
       orderIdempotencyRef.current = null;
 
       localStorage.setItem(

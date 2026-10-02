@@ -90,8 +90,15 @@ type ApiCatalogProductsPage = {
   };
 };
 
+export type MetaOrderUserData = {
+  em?: string[];
+  ph?: string[];
+  external_id?: string[];
+};
+
 export type CreateCodOrderInput = {
   customerEmail?: string;
+  metaUserData?: MetaOrderUserData;
   shippingAddress: {
     fullName: string;
     phone: string;
