@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  clearMetaGuestExternalId,
+  getMetaExternalId,
   getMetaPurchaseEventId,
+  normalizeMetaExternalId,
   normalizeMetaEmail,
   normalizeMetaPhone,
   sanitizeMetaPixelParams,
@@ -20,6 +23,43 @@ describe("Meta enhanced matching normalization", () => {
 
   test("keeps Purchase event IDs stable for the same order", () => {
     expect(getMetaPurchaseEventId("SOL-20260913-00001")).toBe("purchase:SOL-20260913-00001");
+  });
+
+  test("accepts stable authenticated and guest external IDs without control characters", () => {
+    expect(normalizeMetaExternalId(" user-123 ")).toBe("user-123");
+    expect(normalizeMetaExternalId("guest:123456")).toBe("guest:123456");
+    expect(normalizeMetaExternalId("guest\n123456")).toBeUndefined();
+    expect(normalizeMetaExternalId("x".repeat(129))).toBeUndefined();
+  });
+
+  test("persists a consented guest external ID and clears it when requested", () => {
+    const previousWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
+    const previousDocument = (globalThis as typeof globalThis & { document?: unknown }).document;
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    };
+
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { localStorage: storage },
+    });
+    Object.defineProperty(globalThis, "document", { configurable: true, value: {} });
+
+    try {
+      const first = getMetaExternalId(undefined, true);
+      expect(first).toMatch(/^guest:/);
+      expect(getMetaExternalId(undefined, true)).toBe(first);
+      clearMetaGuestExternalId();
+      expect(getMetaExternalId(undefined, true)).not.toBe(first);
+    } finally {
+      if (previousWindow === undefined) delete (globalThis as typeof globalThis & { window?: unknown }).window;
+      else Object.defineProperty(globalThis, "window", { configurable: true, value: previousWindow });
+      if (previousDocument === undefined) delete (globalThis as typeof globalThis & { document?: unknown }).document;
+      else Object.defineProperty(globalThis, "document", { configurable: true, value: previousDocument });
+    }
   });
 
   test("keeps only valid TND currency values", () => {

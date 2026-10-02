@@ -23,6 +23,7 @@ import {
 } from "@/lib/settings-api";
 import {
   clearStoredMetaUserData,
+  getMetaExternalId,
   getMetaEventContext,
   hashMetaIdentifiers,
   readMetaEnhancedMatchingConsent,
@@ -290,7 +291,7 @@ function CheckoutPage() {
         return hashMetaIdentifiers({
           email: form.email,
           phone: form.phone,
-          externalId: customerProfile?.user.authUserId,
+          externalId: getMetaExternalId(customerProfile?.user.authUserId, true),
         });
       };
       const metaUserData = await prepareMetaUserData();
@@ -505,8 +506,8 @@ function CheckoutPage() {
                     className="accent-gold mt-1"
                   />
                   <span className="text-muted-foreground">
-                    J’accepte que mon email et mon téléphone soient utilisés sous forme hachée pour
-                    améliorer la mesure des campagnes publicitaires.
+                    J’accepte que mon email, mon téléphone et un identifiant technique soient utilisés
+                    sous forme hachée pour améliorer la mesure des campagnes publicitaires.
                   </span>
                 </label>
               </div>

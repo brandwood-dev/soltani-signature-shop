@@ -78,6 +78,8 @@ const META_PARAM_BUILDER_SOURCES = [
 ];
 const META_ENHANCED_MATCHING_CONSENT_KEY = "soltani-meta-enhanced-matching-consent";
 const META_USER_DATA_KEY = "soltani-meta-user-data";
+const META_GUEST_EXTERNAL_ID_KEY = "soltani-meta-guest-external-id";
+const META_EXTERNAL_ID_MAX_LENGTH = 128;
 let metaParamBuilderPromise: Promise<MetaClientParamBuilder | undefined> | undefined;
 let metaParameterCollectionPromise: Promise<MetaEventContext> | undefined;
 
@@ -141,8 +143,51 @@ export function setMetaEnhancedMatchingConsent(accepted: boolean) {
   if (!isBrowser()) return;
   try {
     window.localStorage.setItem(META_ENHANCED_MATCHING_CONSENT_KEY, accepted ? "accepted" : "refused");
+    if (!accepted) {
+      clearStoredMetaUserData();
+      clearMetaGuestExternalId();
+    }
   } catch {
     // Privacy preferences remain opt-in when storage is unavailable.
+  }
+}
+
+export function normalizeMetaExternalId(value?: string) {
+  const normalized = value?.trim();
+  const hasControlCharacter = normalized?.split("").some((character) => {
+    const code = character.charCodeAt(0);
+    return code < 0x20 || code === 0x7f;
+  });
+  if (!normalized || normalized.length > META_EXTERNAL_ID_MAX_LENGTH || hasControlCharacter) {
+    return undefined;
+  }
+  return normalized;
+}
+
+export function getMetaExternalId(authenticatedId?: string, consent = readMetaEnhancedMatchingConsent()) {
+  if (!consent || !isBrowser()) return undefined;
+
+  const normalizedAuthenticatedId = normalizeMetaExternalId(authenticatedId);
+  if (normalizedAuthenticatedId) return normalizedAuthenticatedId;
+
+  try {
+    const stored = normalizeMetaExternalId(window.localStorage.getItem(META_GUEST_EXTERNAL_ID_KEY) ?? undefined);
+    if (stored) return stored;
+
+    const generated = `guest:${createEventId()}`;
+    window.localStorage.setItem(META_GUEST_EXTERNAL_ID_KEY, generated);
+    return generated;
+  } catch {
+    return undefined;
+  }
+}
+
+export function clearMetaGuestExternalId() {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.removeItem(META_GUEST_EXTERNAL_ID_KEY);
+  } catch {
+    // The identifier is optional and must never block checkout.
   }
 }
 
@@ -228,12 +273,20 @@ export function trackMetaPixelEvent(
     window.fbq?.("track", event, {}, pixelOptions);
   }
   if (options.sendToServer !== false) {
+    const consent = identifiers?.consent ?? readMetaEnhancedMatchingConsent();
+    const serverIdentifiers = consent
+      ? {
+          ...identifiers,
+          consent: true,
+          externalId: getMetaExternalId(identifiers?.externalId, true),
+        }
+      : identifiers;
     void sendMetaServerEvent({
       eventName: event,
       eventId,
       eventSourceUrl: window.location.href,
       userAgent: navigator.userAgent,
-      identifiers,
+      identifiers: serverIdentifiers,
       customData: sanitizedParams,
     });
   }
