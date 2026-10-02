@@ -42,6 +42,7 @@ import {
   getAdminOrders,
   getAdminOrdersStatusSummary,
   updateAdminOrderStatus,
+  type AdminOrderExportFormat,
   type AdminOrderExportPeriod,
   type AdminOrderListItem,
   type AdminOrderStatus,
@@ -83,7 +84,13 @@ const EXPORT_PERIODS: Array<{ value: AdminOrderExportPeriod; label: string }> = 
   { value: "this_week", label: "Cette semaine" },
   { value: "this_month", label: "Ce mois-ci" },
   { value: "this_year", label: "Cette année" },
+  { value: "custom", label: "Période personnalisée" },
   { value: "all", label: "Toutes" },
+];
+
+const EXPORT_FORMATS: Array<{ value: AdminOrderExportFormat; label: string }> = [
+  { value: "pdf", label: "PDF charté" },
+  { value: "xls", label: "Tableau XLS" },
 ];
 
 function AdminOrders() {
@@ -102,6 +109,9 @@ function AdminOrders() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportPeriod, setExportPeriod] = useState<AdminOrderExportPeriod>("today");
   const [exportStatus, setExportStatus] = useState<"all" | AdminOrderStatus>("all");
+  const [exportFormat, setExportFormat] = useState<AdminOrderExportFormat>("pdf");
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState("");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
 
@@ -173,10 +183,26 @@ function AdminOrders() {
   };
 
   const exportOrders = async () => {
+    if (exportPeriod === "custom") {
+      if (!exportFrom || !exportTo) {
+        setExportError("Sélectionnez une date de début et une date de fin.");
+        return;
+      }
+      if (exportFrom > exportTo) {
+        setExportError("La date de début doit précéder la date de fin.");
+        return;
+      }
+    }
+
     try {
       setExporting(true);
       setExportError("");
-      const file = await downloadAdminOrdersExport({ period: exportPeriod, status: exportStatus });
+      const file = await downloadAdminOrdersExport({
+        period: exportPeriod,
+        status: exportStatus,
+        format: exportFormat,
+        ...(exportPeriod === "custom" ? { from: exportFrom, to: exportTo } : {}),
+      });
       downloadBlob(file.blob, file.filename);
       setExportOpen(false);
     } catch (err) {
@@ -424,6 +450,30 @@ function AdminOrders() {
                 </SelectContent>
               </Select>
             </div>
+            {exportPeriod === "custom" && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor="export-from" className="text-sm font-medium">Du</label>
+                  <Input
+                    id="export-from"
+                    type="date"
+                    value={exportFrom}
+                    onChange={(event) => setExportFrom(event.target.value)}
+                    max={exportTo || undefined}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="export-to" className="text-sm font-medium">Au</label>
+                  <Input
+                    id="export-to"
+                    type="date"
+                    value={exportTo}
+                    onChange={(event) => setExportTo(event.target.value)}
+                    min={exportFrom || undefined}
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Statut</label>
               <Select value={exportStatus} onValueChange={(value) => setExportStatus(value as "all" | AdminOrderStatus)}>
@@ -439,6 +489,24 @@ function AdminOrders() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Format</label>
+              <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as AdminOrderExportFormat)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPORT_FORMATS.map((format) => (
+                    <SelectItem key={format.value} value={format.value}>
+                      {format.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              La date de fin est incluse. L’export est limité à 366 jours pour préserver les performances.
+            </p>
             {exportError && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {exportError}

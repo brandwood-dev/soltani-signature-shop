@@ -70,11 +70,17 @@ export type AdminOrderExportPeriod =
   | "this_week"
   | "this_month"
   | "this_year"
+  | "custom"
   | "all";
+
+export type AdminOrderExportFormat = "pdf" | "xls";
 
 export type AdminOrdersExportQuery = {
   period: AdminOrderExportPeriod;
   status: "all" | AdminOrderStatus;
+  format: AdminOrderExportFormat;
+  from?: string;
+  to?: string;
 };
 
 export function getAdminOrders(query: AdminOrdersQuery) {
@@ -138,6 +144,9 @@ export function downloadAdminOrdersExport(query: AdminOrdersExportQuery) {
   const params = new URLSearchParams();
   params.set("period", query.period);
   params.set("status", query.status);
+  params.set("format", query.format);
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
   return apiDownload(`/orders/admin/export?${params.toString()}`);
 }
 

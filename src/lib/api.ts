@@ -304,7 +304,7 @@ async function apiFetchInternal<T>(path: string, init: RequestInit = {}, include
 
 export async function apiDownload(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
-  headers.set("Accept", "application/pdf");
+  headers.set("Accept", "application/pdf, application/vnd.ms-excel");
   const csrfToken = typeof window !== "undefined" ? getCsrfToken() : null;
   if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
 
@@ -436,6 +436,9 @@ function getAdminCacheTtl(path: string, method: string) {
 
 export function apiRetryPolicy(path: string, method: string, isBrowser: boolean) {
   if (method !== "GET") return { attempts: 1, timeoutMs: 15_000 };
+  if (path.startsWith("/orders/admin/export")) {
+    return { attempts: 1, timeoutMs: 60_000 };
+  }
   if (isAdminPath(path)) return { attempts: 2, timeoutMs: 10_000 };
   if (!isBrowser) return { attempts: 1, timeoutMs: 8_000 };
   return { attempts: 2, timeoutMs: 20_000 };
