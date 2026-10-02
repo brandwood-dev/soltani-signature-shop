@@ -1,5 +1,4 @@
 import { publicEnv } from "@/lib/env";
-import type { MetaClientParamBuilder } from "meta-capi-param-builder-clientjs";
 
 type MetaPixelEvent =
   | "PageView"
@@ -14,6 +13,15 @@ type MetaPixelEvent =
 type MetaPixelParamValue = string | number | boolean | string[] | Array<Record<string, string | number>> | undefined;
 type MetaPixelParams = Record<string, MetaPixelParamValue>;
 type MetaPixelTrackOptions = { eventID?: string };
+type MetaClientParamBuilder = {
+  processAndCollectAllParams(url?: string | null): Promise<{
+    _fbp?: string;
+    _fbc?: string;
+    _fbi?: string;
+  }>;
+  getFbc(): string;
+  getFbp(): string;
+};
 
 export type MetaPixelEventOptions = {
   eventId?: string;
@@ -58,11 +66,16 @@ declare global {
     _fbq?: Window["fbq"];
     __soltaniMetaPixelLoaded?: boolean;
     __soltaniLastPageView?: string;
+    clientParamBuilder?: MetaClientParamBuilder;
   }
 }
 
 const PIXEL_SCRIPT_ID = "meta-pixel-script";
 const PIXEL_SCRIPT_SRC = "https://connect.facebook.net/en_US/fbevents.js";
+const META_PARAM_BUILDER_SOURCES = [
+  "https://cdn.jsdelivr.net/npm/meta-capi-param-builder-clientjs@1.3.2/dist/clientParamBuilder.bundle.js",
+  "https://unpkg.com/meta-capi-param-builder-clientjs@1.3.2/dist/clientParamBuilder.bundle.js",
+];
 const META_ENHANCED_MATCHING_CONSENT_KEY = "soltani-meta-enhanced-matching-consent";
 const META_USER_DATA_KEY = "soltani-meta-user-data";
 let metaParamBuilderPromise: Promise<MetaClientParamBuilder | undefined> | undefined;
@@ -368,10 +381,30 @@ async function collectMetaParameters(): Promise<MetaEventContext> {
 
 async function loadMetaParamBuilder() {
   if (!isBrowser()) return undefined;
+  if (window.clientParamBuilder) return window.clientParamBuilder;
   if (!metaParamBuilderPromise) {
-    metaParamBuilderPromise = import("meta-capi-param-builder-clientjs")
-      .then((module) => (module.default ?? module) as unknown as MetaClientParamBuilder)
-      .catch(() => undefined);
+    metaParamBuilderPromise = new Promise((resolve) => {
+      let sourceIndex = 0;
+      const loadNextSource = () => {
+        if (window.clientParamBuilder) {
+          resolve(window.clientParamBuilder);
+          return;
+        }
+        const source = META_PARAM_BUILDER_SOURCES[sourceIndex++];
+        if (!source) {
+          resolve(undefined);
+          return;
+        }
+        const script = document.createElement("script");
+        script.async = true;
+        script.src = source;
+        script.dataset.soltaniMetaParamBuilder = "true";
+        script.onload = () => resolve(window.clientParamBuilder);
+        script.onerror = loadNextSource;
+        document.head.appendChild(script);
+      };
+      loadNextSource();
+    });
   }
   return metaParamBuilderPromise;
 }
