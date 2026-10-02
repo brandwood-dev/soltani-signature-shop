@@ -335,10 +335,20 @@ export async function apiDownload(path: string, init: RequestInit = {}) {
 
   const disposition = response.headers.get("Content-Disposition") ?? "";
   const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+  const fallbackExtension = getDownloadExtension(path);
   return {
     blob: await response.blob(),
-    filename: filenameMatch?.[1] ?? "document.pdf",
+    filename: filenameMatch?.[1] ?? `document.${fallbackExtension}`,
   };
+}
+
+function getDownloadExtension(path: string) {
+  try {
+    const format = new URL(path, "http://localhost").searchParams.get("format");
+    return format?.toLowerCase() === "xls" ? "xls" : "pdf";
+  } catch {
+    return "pdf";
+  }
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
