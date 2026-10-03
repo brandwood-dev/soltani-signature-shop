@@ -6,6 +6,7 @@ import {
   normalizeMetaExternalId,
   normalizeMetaEmail,
   normalizeMetaPhone,
+  readMetaEnhancedMatchingConsentState,
   sanitizeMetaPixelParams,
 } from "./meta-pixel";
 
@@ -63,6 +64,38 @@ describe("Meta enhanced matching normalization", () => {
         Object.defineProperty(globalThis, "document", { configurable: true, value: undefined });
       }
       else Object.defineProperty(globalThis, "document", { configurable: true, value: previousDocument });
+    }
+  });
+
+  test("distinguishes an undecided consent from an explicit refusal", () => {
+    const previousWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
+    const previousDocument = (globalThis as typeof globalThis & { document?: unknown }).document;
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    };
+
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { localStorage: storage },
+    });
+    Object.defineProperty(globalThis, "document", { configurable: true, value: {} });
+
+    try {
+      expect(readMetaEnhancedMatchingConsentState()).toBe("unset");
+      values.set("soltani-meta-enhanced-matching-consent", "refused");
+      expect(readMetaEnhancedMatchingConsentState()).toBe("refused");
+      values.set("soltani-meta-enhanced-matching-consent", "accepted");
+      expect(readMetaEnhancedMatchingConsentState()).toBe("accepted");
+    } finally {
+      if (previousWindow === undefined) {
+        Object.defineProperty(globalThis, "window", { configurable: true, value: undefined });
+      } else Object.defineProperty(globalThis, "window", { configurable: true, value: previousWindow });
+      if (previousDocument === undefined) {
+        Object.defineProperty(globalThis, "document", { configurable: true, value: undefined });
+      } else Object.defineProperty(globalThis, "document", { configurable: true, value: previousDocument });
     }
   });
 

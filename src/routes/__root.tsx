@@ -13,6 +13,7 @@ import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { MetaMatchingConsentBanner } from "@/components/site/MetaMatchingConsentBanner";
 import { publicEnv } from "@/lib/env";
 import { trackPageView } from "@/lib/meta-pixel";
 import { faviconLinks, jsonLdScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
@@ -144,6 +145,7 @@ function RootComponent() {
   const location = useRouterState({ select: (s) => s.location });
   const pathname = location.pathname;
   const isAdmin = pathname.startsWith("/admin");
+  const isCheckout = pathname === "/checkout";
 
   useEffect(() => {
     trackPageView(`${location.pathname}${location.searchStr}`);
@@ -160,6 +162,7 @@ function RootComponent() {
           <MobileBottomNav />
         </Suspense>
       )}
+      {!isAdmin && !isCheckout && <MetaMatchingConsentBanner />}
     </QueryClientProvider>
   );
 }
