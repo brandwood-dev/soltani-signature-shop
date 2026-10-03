@@ -32,12 +32,24 @@ export type MetaUserData = {
   em?: string[];
   ph?: string[];
   external_id?: string[];
+  fn?: string[];
+  ln?: string[];
+  ct?: string[];
+  st?: string[];
+  zp?: string[];
+  country?: string[];
 };
 
 export type MetaUserIdentifiers = {
   email?: string;
   phone?: string;
   externalId?: string;
+  firstName?: string;
+  lastName?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
   consent?: boolean;
   hashedUserData?: MetaUserData;
 };
@@ -220,6 +232,12 @@ export async function hashMetaIdentifiers(identifiers: MetaUserIdentifiers) {
     ["em", normalizeMetaEmail(identifiers.email)],
     ["ph", normalizeMetaPhone(identifiers.phone)],
     ["external_id", identifiers.externalId?.trim() || undefined],
+    ["fn", normalizeMetaText(identifiers.firstName)],
+    ["ln", normalizeMetaText(identifiers.lastName)],
+    ["ct", normalizeMetaText(identifiers.city)],
+    ["st", normalizeMetaText(identifiers.state)],
+    ["zp", normalizeMetaText(identifiers.postalCode)],
+    ["country", normalizeMetaText(identifiers.country)],
   ];
   const hashedEntries = await Promise.all(
     values.flatMap(([key, value]) =>
@@ -340,6 +358,11 @@ function hasValidNumericValues(value: MetaPixelParamValue) {
   });
 }
 
+function normalizeMetaText(value?: string) {
+  const normalized = value?.trim().toLowerCase().replace(/\s+/g, " ");
+  return normalized || undefined;
+}
+
 function createEventId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
@@ -353,7 +376,7 @@ async function hashMetaValue(value: string) {
 function sanitizeMetaUserData(userData?: MetaUserData) {
   if (!userData) return undefined;
   const sanitized: MetaUserData = {};
-  for (const key of ["em", "ph", "external_id"] as const) {
+  for (const key of ["em", "ph", "external_id", "fn", "ln", "ct", "st", "zp", "country"] as const) {
     const values = userData[key];
     if (!values?.length) continue;
     const validValues = values.filter((value) => /^[a-f0-9]{64}$/.test(value)).slice(0, 3);
@@ -472,8 +495,10 @@ async function loadMetaParamBuilder() {
 }
 
 async function buildMetaUserData(identifiers?: MetaUserIdentifiers) {
-  if (identifiers?.consent !== true) return undefined;
-  return identifiers.hashedUserData
+  const consent = identifiers?.consent ?? readMetaEnhancedMatchingConsent();
+  if (!consent) return undefined;
+  const storedUserData = readStoredMetaUserData();
+  return identifiers?.hashedUserData
     ? sanitizeMetaUserData(identifiers.hashedUserData)
-    : hashMetaIdentifiers(identifiers);
+    : storedUserData ?? (identifiers ? hashMetaIdentifiers(identifiers) : undefined);
 }
