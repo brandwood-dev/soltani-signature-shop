@@ -83,6 +83,8 @@ const META_EXTERNAL_ID_MAX_LENGTH = 128;
 let metaParamBuilderPromise: Promise<MetaClientParamBuilder | undefined> | undefined;
 let metaParameterCollectionPromise: Promise<MetaEventContext> | undefined;
 
+export type MetaEnhancedMatchingConsentState = "accepted" | "refused" | "unset";
+
 export type MetaEventContext = {
   fbp?: string;
   fbc?: string;
@@ -131,12 +133,19 @@ export function initMetaPixel() {
 }
 
 export function readMetaEnhancedMatchingConsent() {
-  if (!isBrowser()) return false;
+  return readMetaEnhancedMatchingConsentState() === "accepted";
+}
+
+export function readMetaEnhancedMatchingConsentState(): MetaEnhancedMatchingConsentState {
+  if (!isBrowser()) return "unset";
   try {
-    return window.localStorage.getItem(META_ENHANCED_MATCHING_CONSENT_KEY) === "accepted";
+    const value = window.localStorage.getItem(META_ENHANCED_MATCHING_CONSENT_KEY);
+    if (value === "accepted") return "accepted";
+    if (value === "refused") return "refused";
   } catch {
-    return false;
+    return "unset";
   }
+  return "unset";
 }
 
 export function setMetaEnhancedMatchingConsent(accepted: boolean) {
