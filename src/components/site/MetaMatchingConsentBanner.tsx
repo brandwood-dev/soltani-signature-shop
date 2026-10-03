@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   readMetaEnhancedMatchingConsentState,
@@ -7,9 +7,11 @@ import {
 } from "@/lib/meta-pixel";
 
 export function MetaMatchingConsentBanner() {
-  const [consentState, setConsentState] = useState<MetaEnhancedMatchingConsentState>(() =>
-    readMetaEnhancedMatchingConsentState(),
-  );
+  const [consentState, setConsentState] = useState<MetaEnhancedMatchingConsentState>("unset");
+
+  useEffect(() => {
+    setConsentState(readMetaEnhancedMatchingConsentState());
+  }, []);
 
   if (consentState !== "unset") return null;
 
