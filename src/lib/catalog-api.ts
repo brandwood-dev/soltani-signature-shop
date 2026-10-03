@@ -94,6 +94,12 @@ export type MetaOrderUserData = {
   em?: string[];
   ph?: string[];
   external_id?: string[];
+  fn?: string[];
+  ln?: string[];
+  ct?: string[];
+  st?: string[];
+  zp?: string[];
+  country?: string[];
 };
 
 export type CreateCodOrderInput = {

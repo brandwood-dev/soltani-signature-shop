@@ -175,9 +175,28 @@ function CheckoutPage() {
       email: form.email,
       phone: form.phone,
       externalId: customerProfile?.user.authUserId,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      city: form.city,
+      state: form.governorate,
+      postalCode: form.postalCode,
+      country: "tn",
       consent: metaEnhancedMatchingConsent,
     });
-  }, [customerProfile?.user.authUserId, form.email, form.phone, lines, metaEnhancedMatchingConsent, step, subtotal]);
+  }, [
+    customerProfile?.user.authUserId,
+    form.city,
+    form.email,
+    form.firstName,
+    form.governorate,
+    form.lastName,
+    form.phone,
+    form.postalCode,
+    lines,
+    metaEnhancedMatchingConsent,
+    step,
+    subtotal,
+  ]);
 
   useEffect(() => {
     if (step !== 3 || addedPaymentInfoRef.current || !lines.length) return;
@@ -195,9 +214,29 @@ function CheckoutPage() {
       email: form.email,
       phone: form.phone,
       externalId: customerProfile?.user.authUserId,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      city: form.city,
+      state: form.governorate,
+      postalCode: form.postalCode,
+      country: "tn",
       consent: metaEnhancedMatchingConsent,
     });
-  }, [customerProfile?.user.authUserId, form.email, form.phone, lines, metaEnhancedMatchingConsent, paymentMethod, step, subtotal]);
+  }, [
+    customerProfile?.user.authUserId,
+    form.city,
+    form.email,
+    form.firstName,
+    form.governorate,
+    form.lastName,
+    form.phone,
+    form.postalCode,
+    lines,
+    metaEnhancedMatchingConsent,
+    paymentMethod,
+    step,
+    subtotal,
+  ]);
 
   const updateField = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -292,9 +331,17 @@ function CheckoutPage() {
           email: form.email,
           phone: form.phone,
           externalId: getMetaExternalId(customerProfile?.user.authUserId, true),
+          firstName: form.firstName,
+          lastName: form.lastName,
+          city: form.city,
+          state: form.governorate,
+          postalCode: form.postalCode,
+          country: "tn",
         });
       };
       const metaUserData = await prepareMetaUserData();
+      if (metaUserData) storeMetaUserData(metaUserData);
+      else clearStoredMetaUserData();
       const metaEventContext = await getMetaEventContext();
       const orderDetails = {
         customerEmail: form.email.trim() || undefined,
@@ -354,8 +401,6 @@ function CheckoutPage() {
         if (!order.payment?.checkoutUrl) {
           throw new Error("La session de paiement ClicToPay SMT est indisponible.");
         }
-        if (metaUserData) storeMetaUserData(metaUserData);
-        else clearStoredMetaUserData();
         orderIdempotencyRef.current = null;
         window.location.assign(order.payment.checkoutUrl);
         return;
@@ -372,8 +417,6 @@ function CheckoutPage() {
       const order = customerProfile
         ? await createCustomerCodOrder(orderInput, { idempotencyKey })
         : await createCodOrder(orderInput, { idempotencyKey });
-      if (metaUserData) storeMetaUserData(metaUserData);
-      else clearStoredMetaUserData();
       orderIdempotencyRef.current = null;
 
       localStorage.setItem(
