@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   clearMetaGuestExternalId,
+  isMetaTrackingAllowed,
   getMetaExternalId,
   getMetaPurchaseEventId,
   normalizeMetaExternalId,
@@ -24,6 +25,13 @@ describe("Meta enhanced matching normalization", () => {
 
   test("keeps Purchase event IDs stable for the same order", () => {
     expect(getMetaPurchaseEventId("SOL-20260913-00001")).toBe("purchase:SOL-20260913-00001");
+  });
+
+  test("excludes admin routes from Meta tracking", () => {
+    expect(isMetaTrackingAllowed("/admin")).toBe(false);
+    expect(isMetaTrackingAllowed("/admin/orders")).toBe(false);
+    expect(isMetaTrackingAllowed("/")).toBe(true);
+    expect(isMetaTrackingAllowed("/product/parfum")).toBe(true);
   });
 
   test("accepts stable authenticated and guest external IDs without control characters", () => {

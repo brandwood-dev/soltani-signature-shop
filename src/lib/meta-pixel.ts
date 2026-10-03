@@ -108,7 +108,7 @@ function isBrowser() {
 }
 
 export function initMetaPixel() {
-  if (!isBrowser()) return;
+  if (!isBrowser() || !isMetaTrackingAllowed(window.location.pathname)) return;
 
   void collectMetaParameters();
 
@@ -286,7 +286,7 @@ export function trackMetaPixelEvent(
   identifiers?: MetaUserIdentifiers,
   options: MetaPixelEventOptions = {},
 ) {
-  if (!isBrowser()) return;
+  if (!isBrowser() || !isMetaTrackingAllowed(window.location.pathname)) return;
   initMetaPixel();
   const eventId = options.eventId ?? createEventId();
   const sanitizedParams = sanitizeMetaPixelParams(params);
@@ -324,11 +324,28 @@ export function getMetaPurchaseEventId(orderReference: string) {
 }
 
 export function trackPageView(path: string) {
-  if (!isBrowser()) return;
+  if (!isBrowser() || !isMetaTrackingAllowed(window.location.pathname)) return;
   const pageKey = path || window.location.href;
   if (window.__soltaniLastPageView === pageKey) return;
   window.__soltaniLastPageView = pageKey;
   trackMetaPixelEvent("PageView");
+}
+
+export function isMetaTrackingAllowed(pathname: string) {
+  return pathname !== "/admin" && !pathname.startsWith("/admin/");
+}
+
+export function disableMetaPixelTracking() {
+  if (!isBrowser()) return;
+
+  document.getElementById(PIXEL_SCRIPT_ID)?.remove();
+  document.querySelectorAll(`script[src="${PIXEL_SCRIPT_SRC}"]`).forEach((script) => script.remove());
+  delete window.fbq;
+  delete window._fbq;
+  window.__soltaniMetaPixelLoaded = false;
+  window.__soltaniLastPageView = undefined;
+  metaParamBuilderPromise = undefined;
+  metaParameterCollectionPromise = undefined;
 }
 
 export function sanitizeMetaPixelParams(params?: MetaPixelParams) {
