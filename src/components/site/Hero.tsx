@@ -26,16 +26,6 @@ export function Hero({ initialSlides = [] }: { initialSlides?: HeroSlideContent[
     return () => clearInterval(timer);
   }, [slides.length, inView, reducedMotion]);
 
-  // Preload the next slide's image so the swap is instant without loading them all upfront.
-  useEffect(() => {
-    if (slides.length <= 1 || typeof Image === "undefined") return;
-    const next = slides[(index + 1) % slides.length];
-    if (next?.image) {
-      const img = new Image();
-      img.src = next.image;
-    }
-  }, [index, slides]);
-
   const slide = slides[index] ?? slides[0];
 
   if (!slide) {

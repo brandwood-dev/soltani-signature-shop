@@ -1,4 +1,5 @@
 import type { Product } from "@/components/site/ProductCard";
+import type { ProductImageSources } from "@/lib/product-images";
 import { apiFetch, publicApiFetch } from "@/lib/api";
 
 type ApiProduct = {
@@ -16,7 +17,11 @@ type ApiProduct = {
   tags?: string[];
   brand: { name: string; slug: string };
   category: { name: string; slug: string };
-  images: Array<{ url: string; alt?: string | null }>;
+  images: Array<{
+    url: string;
+    alt?: string | null;
+    variants?: ProductImageSources | null;
+  }>;
   variantAxes?: Array<{
     id: string;
     key: string;
@@ -287,6 +292,7 @@ export function mapApiProduct(product: ApiProduct): Product {
       cheapestVariant?.compareAtPrice ??
       (product.compareAtPrice ? numberValue(product.compareAtPrice) : undefined),
     image: product.images[0]?.url ?? "/placeholder.svg",
+    imageSources: product.images[0]?.variants ?? undefined,
     badge: isBestSeller ? "Best Seller" : isPromotion ? "Promo" : undefined,
     isPromotion,
     discountPercentage:
@@ -316,6 +322,8 @@ export async function getCatalogProducts(
     category?: string;
     query?: string;
     section?: string;
+    brand?: string;
+    slugs?: string[];
     limit?: number;
     summary?: boolean;
     featured?: boolean;
@@ -327,6 +335,8 @@ export async function getCatalogProducts(
   if (params.category) search.set("category", params.category);
   if (params.query) search.set("q", params.query);
   if (params.section) search.set("section", params.section);
+  if (params.brand) search.set("brand", params.brand);
+  if (params.slugs?.length) search.set("slugs", params.slugs.join(","));
   if (params.limit) search.set("limit", String(params.limit));
   if (params.summary) search.set("summary", "1");
   if (params.featured) search.set("featured", "1");
@@ -399,6 +409,21 @@ export async function getCatalogProductsPage(
       brands: response.facets.brands,
     },
   };
+}
+
+export async function getAllCatalogProducts() {
+  const products: Product[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages) {
+    const result = await getCatalogProductsPage({ page, pageSize: 48 });
+    products.push(...result.products);
+    totalPages = result.pagination.totalPages;
+    page += 1;
+  }
+
+  return products;
 }
 
 export async function getCatalogProduct(slug: string) {

@@ -67,7 +67,13 @@ export function CartDrawer() {
               {lines.map((l) => (
                 <li key={l.id} className="py-4 grid grid-cols-[72px_1fr_auto] gap-3">
                   <div className="aspect-square overflow-hidden rounded-sm bg-card">
-                    <img src={l.image} alt={l.name} className="h-full w-full object-cover" />
+                    <img
+                      src={l.image}
+                      alt={l.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-widest text-gold">{l.brand}</p>

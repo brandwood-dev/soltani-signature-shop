@@ -6,6 +6,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
 import { getCatalogProducts } from "@/lib/catalog-api";
 import type { Product } from "@/components/site/ProductCard";
+import { responsiveImageSrcSet } from "@/lib/product-images";
 import { canonicalLink, seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/wishlist")({
@@ -56,7 +57,12 @@ function WishlistPage() {
   };
 
   useEffect(() => {
-    getCatalogProducts()
+    if (!slugs.length) {
+      setProducts([]);
+      reconcile([]);
+      return;
+    }
+    getCatalogProducts({ slugs, summary: true })
       .then((items) => {
         setProducts(items);
         reconcile(items.map((p) => p.slug));
@@ -64,7 +70,7 @@ function WishlistPage() {
       .catch(() => {
         setProducts([]);
       });
-  }, [reconcile]);
+  }, [reconcile, slugs]);
 
   return (
     <SiteLayout>
@@ -112,7 +118,13 @@ function WishlistPage() {
                   >
                     <img
                       src={p.image}
+                      srcSet={responsiveImageSrcSet(p.imageSources)}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                       alt={p.name}
+                      width={640}
+                      height={640}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                     <button
