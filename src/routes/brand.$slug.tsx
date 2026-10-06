@@ -10,8 +10,9 @@ import { breadcrumbJsonLd, canonicalLink, jsonLdScript, seoMeta } from "@/lib/se
 
 export const Route = createFileRoute("/brand/$slug")({
   loader: async ({ params }): Promise<{ brand: string; products: Product[] }> => {
-    const products = await getCatalogProducts().catch((): Product[] => []);
-    const brandProducts = products.filter((product) => product.brandSlug === params.slug);
+    const brandProducts = await getCatalogProducts({ brand: params.slug, summary: true }).catch(
+      (): Product[] => [],
+    );
     const brand = brandProducts[0]?.brand ?? params.slug.replace(/-/g, " ");
     return { brand, products: brandProducts };
   },

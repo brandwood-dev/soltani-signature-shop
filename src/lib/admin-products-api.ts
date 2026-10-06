@@ -6,6 +6,27 @@ export type AdminProductStockStatus = "all" | "out" | "available";
 export type AdminProductBooleanFilter = "all" | "yes" | "no";
 export type AdminProductVariantMode = "simple" | "color" | "options";
 export type AdminVariantDisplayType = "swatch" | "button" | "select";
+export type ProductImageVariants = {
+  w320?: string;
+  w640?: string;
+  w1024?: string;
+};
+
+export type AdminProductImage = {
+  id?: string;
+  url: string;
+  variants?: ProductImageVariants;
+  alt?: string | null;
+};
+
+export type UploadedProductImage = {
+  url: string;
+  variants?: ProductImageVariants;
+  format: "webp";
+  width: number;
+  height: number;
+  bytes: number;
+};
 
 export type AdminProductVariantOptionValue = {
   id?: string;
@@ -85,7 +106,7 @@ export type AdminProduct = {
   tags: string[];
   seoTitle: string | null;
   seoDescription: string | null;
-  images: Array<{ id?: string; url: string; alt?: string | null }>;
+  images: AdminProductImage[];
   attributes: Array<{ key: string; value: string }>;
   createdAt: string;
   updatedAt: string;
@@ -121,7 +142,7 @@ export type UpsertAdminProductInput = {
   subcategory?: string;
   brand: string;
   tags?: string[];
-  images?: Array<{ url: string; alt?: string }>;
+  images?: Array<{ url: string; variants?: ProductImageVariants; alt?: string }>;
   attributes?: Array<{ key: string; value: string }>;
   seoTitle?: string;
   seoDescription?: string;
@@ -224,7 +245,7 @@ export async function deleteAdminProduct(id: string) {
   );
 }
 
-export async function uploadAdminProductImage(file: File) {
+export async function uploadAdminProductImageAsset(file: File): Promise<UploadedProductImage> {
   if (file.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
     throw new Error(
       `L'image "${file.name}" dépasse la taille maximale autorisée de ${MAX_PRODUCT_IMAGE_SIZE_MB} Mo.`,
@@ -238,13 +259,7 @@ export async function uploadAdminProductImage(file: File) {
     reader.readAsDataURL(file);
   });
 
-  const response = await apiFetch<{
-    url: string;
-    format: "webp";
-    width: number;
-    height: number;
-    bytes: number;
-  }>("/products/admin/images", {
+  return apiFetch<UploadedProductImage>("/products/admin/images", {
     method: "POST",
     body: JSON.stringify({
       fileName: file.name,
@@ -252,19 +267,21 @@ export async function uploadAdminProductImage(file: File) {
       base64,
     }),
   });
-  return response.url;
 }
 
-export async function importAdminProductImageUrl(sourceUrl: string) {
-  const response = await apiFetch<{
-    url: string;
-    format: "webp";
-    width: number;
-    height: number;
-    bytes: number;
-  }>("/products/admin/images", {
+export async function uploadAdminProductImage(file: File) {
+  return (await uploadAdminProductImageAsset(file)).url;
+}
+
+export async function importAdminProductImageAsset(
+  sourceUrl: string,
+): Promise<UploadedProductImage> {
+  return apiFetch<UploadedProductImage>("/products/admin/images", {
     method: "POST",
     body: JSON.stringify({ sourceUrl }),
   });
-  return response.url;
+}
+
+export async function importAdminProductImageUrl(sourceUrl: string) {
+  return (await importAdminProductImageAsset(sourceUrl)).url;
 }

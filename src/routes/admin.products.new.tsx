@@ -19,9 +19,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   createAdminProduct,
-  importAdminProductImageUrl,
+  importAdminProductImageAsset,
   MAX_PRODUCT_IMAGE_SIZE_MB,
-  uploadAdminProductImage,
+  uploadAdminProductImageAsset,
+  type AdminProductImage,
 } from "@/lib/admin-products-api";
 import { fallbackCategoryTree, loadCategoryTree, type CategoryTree } from "@/lib/categories-api";
 import { getAdminFeaturedBrands } from "@/lib/featured-brands-api";
@@ -100,7 +101,7 @@ function AdminNewProduct() {
   const [brandOptions, setBrandOptions] = useState<string[]>(FALLBACK_BRANDS);
   const [categoryTree, setCategoryTree] = useState<CategoryTree[]>(fallbackCategoryTree());
   const [trackInventory, setTrackInventory] = useState(true);
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<AdminProductImage[]>([]);
   const [newImage, setNewImage] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -192,8 +193,8 @@ function AdminNewProduct() {
       imageUploadInProgress.current = true;
       setUploading(true);
       setError("");
-      const uploadedUrl = await importAdminProductImageUrl(sourceUrl);
-      setImages((current) => [...current, uploadedUrl]);
+      const uploaded = await importAdminProductImageAsset(sourceUrl);
+      setImages((current) => [...current, { url: uploaded.url, variants: uploaded.variants }]);
       setNewImage((current) => (current.trim() === sourceUrl ? "" : current));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import image impossible.");
@@ -210,9 +211,12 @@ function AdminNewProduct() {
       setUploading(true);
       setError("");
       const uploaded = await Promise.all(
-        Array.from(files).map((file) => uploadAdminProductImage(file)),
+        Array.from(files).map((file) => uploadAdminProductImageAsset(file)),
       );
-      setImages((current) => [...current, ...uploaded]);
+      setImages((current) => [
+        ...current,
+        ...uploaded.map((image) => ({ url: image.url, variants: image.variants })),
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload image impossible.");
     } finally {
@@ -278,7 +282,7 @@ function AdminNewProduct() {
         subcategory: subcategory || undefined,
         brand,
         tags,
-        images: images.map((url) => ({ url, alt: name })),
+        images: images.map((image) => ({ ...image, alt: name })),
         attributes: serializeConfiguredProductAttributes(attributes, categoryAttributes),
         seoTitle: seoTitle || name,
         seoDescription,
@@ -439,13 +443,13 @@ function AdminNewProduct() {
                 </div>
                 {images.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {images.map((src, i) => (
+                    {images.map((image, i) => (
                       <div
                         key={i}
                         className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
                       >
                         <img
-                          src={src}
+                          src={image.url}
                           alt=""
                           onError={(event) => {
                             event.currentTarget.src = "/placeholder.svg";

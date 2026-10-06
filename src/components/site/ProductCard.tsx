@@ -3,6 +3,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
 import { trackMetaPixelEvent } from "@/lib/meta-pixel";
+import type { ProductImageSources } from "@/lib/product-images";
+import { responsiveImageSrcSet } from "@/lib/product-images";
 
 export type Product = {
   id?: string;
@@ -18,6 +20,7 @@ export type Product = {
   priceMax?: number;
   oldPrice?: number;
   image: string;
+  imageSources?: ProductImageSources;
   badge?: "Best Seller" | "Nouveau" | "Promo";
   isPromotion?: boolean;
   discountPercentage?: number;
@@ -151,10 +154,15 @@ export function ProductCard({ p }: { p: Product }) {
         <div className="relative aspect-square overflow-hidden bg-card shadow-sm rounded-sm">
           <img
             src={p.image}
+            srcSet={responsiveImageSrcSet(p.imageSources)}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             alt={p.name}
+            width={640}
+            height={640}
             loading="lazy"
             decoding="async"
             onError={(event) => {
+              event.currentTarget.removeAttribute("srcset");
               event.currentTarget.src = "/placeholder.svg";
             }}
             className="h-full w-full object-contain object-center p-3 transition-transform duration-[900ms] ease-out group-hover:scale-105"
