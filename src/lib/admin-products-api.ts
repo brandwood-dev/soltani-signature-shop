@@ -2,6 +2,8 @@ import { apiFetch } from "@/lib/api";
 
 export type AdminProductStatus = "draft" | "active" | "archived";
 export type AdminProductSection = "homme" | "femme" | "enfant" | "maison" | "bien-etre";
+export type AdminProductStockStatus = "all" | "out" | "available";
+export type AdminProductBooleanFilter = "all" | "yes" | "no";
 export type AdminProductVariantMode = "simple" | "color" | "options";
 export type AdminVariantDisplayType = "swatch" | "button" | "select";
 
@@ -94,6 +96,10 @@ export type AdminProductsQuery = {
   status?: "all" | AdminProductStatus;
   category?: string;
   section?: AdminProductSection;
+  brand?: string;
+  stockStatus?: AdminProductStockStatus;
+  promotion?: AdminProductBooleanFilter;
+  featured?: AdminProductBooleanFilter;
   page?: number;
   pageSize?: number;
 };
@@ -158,6 +164,10 @@ export function getAdminProducts(query: AdminProductsQuery) {
   if (query.status) params.set("status", query.status);
   if (query.category) params.set("category", query.category);
   if (query.section) params.set("section", query.section);
+  if (query.brand) params.set("brand", query.brand);
+  if (query.stockStatus) params.set("stockStatus", query.stockStatus);
+  if (query.promotion) params.set("promotion", query.promotion);
+  if (query.featured) params.set("featured", query.featured);
   if (query.page) params.set("page", String(query.page));
   if (query.pageSize) params.set("pageSize", String(query.pageSize));
 

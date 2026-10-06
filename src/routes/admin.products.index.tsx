@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Filter } from "lucide-react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import {
+  Filter,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Trash2,
+} from "lucide-react";
 
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { DataPagination } from "@/components/admin/DataPagination";
@@ -34,8 +43,13 @@ import {
   deleteAdminProduct,
   getAdminProducts,
   type AdminProduct,
+  type AdminProductBooleanFilter,
+  type AdminProductSection,
   type AdminProductStatus,
+  type AdminProductStockStatus,
 } from "@/lib/admin-products-api";
+import { flattenAdminCategoryOptions } from "@/lib/admin-product-filters";
+import { getAdminCategories, type ApiCategory } from "@/lib/categories-api";
 import { formatTND } from "@/lib/admin/mock-data";
 
 export const Route = createFileRoute("/admin/products/")({
@@ -47,6 +61,13 @@ function AdminProducts() {
   const deferredQuery = useDeferredValue(query);
   const [status, setStatus] = useState<string>("all");
   const [category, setCategory] = useState<string>("all");
+  const [section, setSection] = useState<"all" | AdminProductSection>("all");
+  const [brand, setBrand] = useState("");
+  const deferredBrand = useDeferredValue(brand);
+  const [stockStatus, setStockStatus] = useState<AdminProductStockStatus>("all");
+  const [promotion, setPromotion] = useState<AdminProductBooleanFilter>("all");
+  const [featured, setFeatured] = useState<AdminProductBooleanFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -54,11 +75,24 @@ function AdminProducts() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [categoryError, setCategoryError] = useState("");
+  const [adminCategories, setAdminCategories] = useState<ApiCategory[]>([]);
 
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((p) => p.categoryName))).sort(),
-    [products],
+  const categoryOptions = useMemo(
+    () => flattenAdminCategoryOptions(adminCategories),
+    [adminCategories],
   );
+
+  const loadCategories = useCallback(async () => {
+    try {
+      setCategoryError("");
+      setAdminCategories(await getAdminCategories());
+    } catch (err) {
+      setCategoryError(
+        err instanceof Error ? err.message : "Impossible de charger les catégories.",
+      );
+    }
+  }, []);
 
   const refresh = async () => {
     try {
@@ -68,6 +102,11 @@ function AdminProducts() {
         query: deferredQuery,
         status: status as "all" | AdminProductStatus,
         category,
+        section: section === "all" ? undefined : section,
+        brand: deferredBrand,
+        stockStatus,
+        promotion,
+        featured,
         page,
         pageSize,
       });
@@ -84,11 +123,37 @@ function AdminProducts() {
 
   useEffect(() => {
     refresh();
-  }, [deferredQuery, status, category, page, pageSize]);
+  }, [deferredQuery, status, category, section, deferredBrand, stockStatus, promotion, featured, page, pageSize]);
+
+  useEffect(() => {
+    void loadCategories();
+    const onWindowFocus = () => void loadCategories();
+    window.addEventListener("focus", onWindowFocus);
+    return () => window.removeEventListener("focus", onWindowFocus);
+  }, [loadCategories]);
 
   const paged = products;
   const allChecked = paged.length > 0 && paged.every((p) => selected.has(p.id));
   const productImage = (product: AdminProduct) => product.images[0]?.url || "/placeholder.svg";
+  const advancedFilterCount = [
+    section !== "all",
+    Boolean(brand.trim()),
+    stockStatus !== "all",
+    promotion !== "all",
+    featured !== "all",
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setQuery("");
+    setStatus("all");
+    setCategory("all");
+    setSection("all");
+    setBrand("");
+    setStockStatus("all");
+    setPromotion("all");
+    setFeatured("all");
+    setPage(1);
+  };
 
   const toggleAll = () => {
     const next = new Set(selected);
@@ -182,19 +247,139 @@ function AdminProducts() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Toutes catégories</SelectItem>
-                    {categories.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
+                    {categoryOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className={!option.isActive ? "text-muted-foreground" : undefined}>
+                          {option.label}
+                          {!option.isActive ? " · inactive" : ""}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" size="sm" className="h-9 hidden lg:flex">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 w-full sm:w-auto"
+                onClick={() => setFiltersOpen((open) => !open)}
+                aria-expanded={filtersOpen}
+              >
                 <Filter className="h-4 w-4" />
-                Plus de filtres
+                Plus de filtres{advancedFilterCount > 0 ? ` (${advancedFilterCount})` : ""}
               </Button>
             </div>
+            {filtersOpen && (
+              <div className="mt-3 space-y-3 rounded-md border bg-muted/20 p-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Section</label>
+                    <Select
+                      value={section}
+                      onValueChange={(value) => {
+                        setSection(value as "all" | AdminProductSection);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Toutes les sections" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes les sections</SelectItem>
+                        <SelectItem value="homme">Homme</SelectItem>
+                        <SelectItem value="femme">Femme</SelectItem>
+                        <SelectItem value="enfant">Enfant</SelectItem>
+                        <SelectItem value="maison">Maison</SelectItem>
+                        <SelectItem value="bien-etre">Bien-être</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Stock</label>
+                    <Select
+                      value={stockStatus}
+                      onValueChange={(value) => {
+                        setStockStatus(value as AdminProductStockStatus);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Tous les stocks" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les stocks</SelectItem>
+                        <SelectItem value="available">En stock</SelectItem>
+                        <SelectItem value="out">En rupture</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Promotion</label>
+                    <Select
+                      value={promotion}
+                      onValueChange={(value) => {
+                        setPromotion(value as AdminProductBooleanFilter);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Toutes les promotions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes les promotions</SelectItem>
+                        <SelectItem value="yes">En promotion</SelectItem>
+                        <SelectItem value="no">Sans promotion</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Mise en avant</label>
+                    <Select
+                      value={featured}
+                      onValueChange={(value) => {
+                        setFeatured(value as AdminProductBooleanFilter);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Tous les produits" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les produits</SelectItem>
+                        <SelectItem value="yes">Mis en avant</SelectItem>
+                        <SelectItem value="no">Non mis en avant</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <label htmlFor="admin-product-brand" className="text-xs font-medium text-muted-foreground">
+                      Marque
+                    </label>
+                    <Input
+                      id="admin-product-brand"
+                      value={brand}
+                      onChange={(event) => {
+                        setBrand(event.target.value);
+                        setPage(1);
+                      }}
+                      placeholder="Filtrer par marque…"
+                      className="h-9"
+                    />
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="h-9" onClick={resetFilters}>
+                    <RotateCcw className="h-4 w-4" />
+                    Réinitialiser
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-9" onClick={() => void loadCategories()}>
+                    <RefreshCw className="h-4 w-4" />
+                    Actualiser les catégories
+                  </Button>
+                </div>
+                {categoryError && <p className="text-xs text-destructive">{categoryError}</p>}
+              </div>
+            )}
             {selected.size > 0 && (
               <div className="mt-3 flex items-center justify-between rounded-md border border-border bg-muted/50 px-3 py-2 text-xs">
                 <span>{selected.size} sélectionné(s)</span>
