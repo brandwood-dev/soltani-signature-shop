@@ -1,4 +1,7 @@
 import { apiFetch } from "@/lib/api";
+import { serializeAdminProductInput } from "./admin-product-payload";
+
+export { serializeAdminProductInput } from "./admin-product-payload";
 
 export type AdminProductStatus = "draft" | "active" | "archived";
 export type AdminProductSection = "homme" | "femme" | "enfant" | "maison" | "bien-etre";
@@ -201,18 +204,6 @@ export function getAdminProducts(query: AdminProductsQuery) {
 export async function getAdminProduct(id: string) {
   const response = await apiFetch<{ product: AdminProduct }>(`/products/admin/${id}`);
   return response.product;
-}
-
-export function serializeAdminProductInput(
-  input: UpsertAdminProductInput,
-): AdminProductMutationPayload {
-  return {
-    ...input,
-    variants: input.variants?.map((variant) => ({
-      ...variant,
-      selections: variant.selections?.map(({ axisKey, value }) => ({ axisKey, value })),
-    })),
-  };
 }
 
 export async function createAdminProduct(input: UpsertAdminProductInput) {
