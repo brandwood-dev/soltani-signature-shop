@@ -69,6 +69,7 @@ export type AdminProductVariant = {
   colorHex: string | null;
   imageUrl: string | null;
   price: number;
+  purchaseCost: number | null;
   compareAtPrice: number | null;
   stockQuantity: number;
   lowStockThreshold: number;
@@ -85,6 +86,7 @@ export type AdminProduct = {
   shortDescription: string | null;
   description: string | null;
   price: number;
+  purchaseCost: number | null;
   compareAtPrice: number | null;
   stockQuantity: number;
   sku: string;
@@ -131,6 +133,7 @@ export type UpsertAdminProductInput = {
   shortDescription?: string;
   description?: string;
   price: number;
+  purchaseCost?: number | null;
   compareAtPrice?: number | null;
   stockQuantity: number;
   sku?: string;

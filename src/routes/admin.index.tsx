@@ -6,6 +6,9 @@ import {
   ShoppingBag,
   Users,
   Package,
+  CircleDollarSign,
+  Percent,
+  AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
@@ -38,6 +41,14 @@ import {
   getAdminDashboardStockSummary,
   getAdminDashboardTopProducts,
 } from "@/lib/admin-dashboard-api";
+
+function formatNullableTND(value: number | null | undefined) {
+  return value === null || value === undefined ? "Non renseigné" : formatTND(value);
+}
+
+function formatNullablePercent(value: number | null | undefined) {
+  return value === null || value === undefined ? "Non renseigné" : `${value.toFixed(2)} %`;
+}
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -185,7 +196,30 @@ function AdminDashboard() {
       delta: kpis?.averageBasketDelta ?? 0,
       icon: Package,
     },
-
+    {
+      label: "Coût marchandises",
+      value: kpisLoading ? "..." : formatNullableTND(kpis?.costOfGoods),
+      delta: kpis?.costOfGoodsDelta,
+      icon: CircleDollarSign,
+    },
+    {
+      label: "Marge brute",
+      value: kpisLoading ? "..." : formatNullableTND(kpis?.grossMargin),
+      delta: kpis?.grossMarginDelta,
+      icon: TrendingUp,
+    },
+    {
+      label: "Taux de marge",
+      value: kpisLoading ? "..." : formatNullablePercent(kpis?.marginRate),
+      delta: kpis?.marginRateDelta,
+      icon: Percent,
+    },
+    {
+      label: "Coûts manquants",
+      value: kpisLoading ? "..." : String(kpis?.missingCostOrders ?? 0),
+      delta: undefined,
+      icon: AlertTriangle,
+    },
   ];
 
   return (
@@ -210,7 +244,8 @@ function AdminDashboard() {
         {/* KPIs */}
         <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {cards.map((k) => {
-            const up = k.delta >= 0;
+            const hasDelta = k.delta !== undefined;
+            const up = (k.delta ?? 0) >= 0;
             return (
               <Card key={k.label} className="overflow-hidden">
                 <CardContent className="p-4 sm:p-5">
@@ -225,25 +260,42 @@ function AdminDashboard() {
                   <div className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
                     {k.value}
                   </div>
-                  <div
-                    className={`mt-1 flex items-center gap-1 text-xs ${
-                      up ? "text-emerald-600" : "text-rose-600"
-                    }`}
-                  >
-                    {up ? (
-                      <ArrowUpRight className="h-3 w-3" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3" />
-                    )}
-                    {up ? "+" : ""}
-                    {k.delta}%
-                    <span className="text-muted-foreground">vs periode precedente</span>
-                  </div>
+                  {hasDelta ? (
+                    <div
+                      className={`mt-1 flex items-center gap-1 text-xs ${
+                        up ? "text-emerald-600" : "text-rose-600"
+                      }`}
+                    >
+                      {up ? (
+                        <ArrowUpRight className="h-3 w-3" />
+                      ) : (
+                        <ArrowDownRight className="h-3 w-3" />
+                      )}
+                      {up ? "+" : ""}
+                      {k.delta}%
+                      <span className="text-muted-foreground">vs periode precedente</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Commandes concernées par la période
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
           })}
         </section>
+
+        {!kpisLoading && (kpis?.missingCostOrders ?? 0) > 0 ? (
+          <div className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-900 dark:text-amber-100">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              La marge est indisponible pour {kpis?.missingCostOrders} commande(s) livrée(s), car
+              le coût d’achat manque sur {kpis?.missingCostItems} ligne(s). Renseignez les coûts
+              produit avant de comparer la rentabilité.
+            </p>
+          </div>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Revenue chart */}

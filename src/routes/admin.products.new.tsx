@@ -267,6 +267,8 @@ function AdminNewProduct() {
         description,
         price:
           variantMode !== "simple" && variantPricing.count ? variantPricing.min : Number(price),
+        purchaseCost:
+          variantMode === "simple" && cost.trim() ? Number(cost) : null,
         compareAtPrice:
           variantMode !== "simple"
             ? variantPricing.compareAtPrice
@@ -532,7 +534,7 @@ function AdminNewProduct() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="cost">Coût (DT)</Label>
+                        <Label htmlFor="cost">Coût d’achat (DT)</Label>
                         <Input
                           id="cost"
                           type="number"

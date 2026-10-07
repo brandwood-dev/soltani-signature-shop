@@ -819,6 +819,23 @@ export function ProductVariantsEditor({
                   />
                 </div>
                 <div className="space-y-1.5">
+                  <Label htmlFor={`variant-cost-${index}`}>Coût d’achat (DT)</Label>
+                  <Input
+                    id={`variant-cost-${index}`}
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    inputMode="decimal"
+                    value={variant.purchaseCost ?? ""}
+                    onChange={(event) =>
+                      updateVariant(index, {
+                        purchaseCost: event.target.value ? Number(event.target.value) : null,
+                      })
+                    }
+                    placeholder="Facultatif"
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <Label htmlFor={`variant-compare-${index}`}>Prix barré</Label>
                   <Input
                     id={`variant-compare-${index}`}

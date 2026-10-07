@@ -176,6 +176,7 @@ function AdminEditProduct() {
         setDescription(loaded.description ?? "");
         setShortDescription(loaded.shortDescription ?? "");
         setPrice(String(loaded.price));
+        setCost(loaded.purchaseCost == null ? "" : String(loaded.purchaseCost));
         setComparePrice(loaded.compareAtPrice ? String(loaded.compareAtPrice) : "");
         setStock(String(loaded.stockQuantity));
         setLowStockAlert(String(loaded.lowStockThreshold ?? 5));
@@ -388,6 +389,8 @@ function AdminEditProduct() {
       shortDescription,
       description,
       price: variantMode !== "simple" && variantPricing.count ? variantPricing.min : Number(price),
+      purchaseCost:
+        variantMode === "simple" && cost.trim() ? Number(cost) : null,
       compareAtPrice:
         variantMode !== "simple"
           ? variantPricing.compareAtPrice
@@ -717,7 +720,7 @@ function AdminEditProduct() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="cost">Coût (DT)</Label>
+                          <Label htmlFor="cost">Coût d’achat (DT)</Label>
                           <Input
                             id="cost"
                             type="number"
