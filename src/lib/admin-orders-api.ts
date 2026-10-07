@@ -53,6 +53,19 @@ export type AdminOrdersResponse = {
   statusCounts?: Record<"all" | AdminOrderStatus, number>;
 };
 
+export type BulkAdminOrderStatusResponse = {
+  requested: number;
+  updated: number;
+  failed: number;
+  results: Array<{
+    id: string;
+    reference?: string;
+    status?: string;
+    updated: boolean;
+    error?: string;
+  }>;
+};
+
 export type AdminOrdersQuery = {
   query?: string;
   status?: "all" | AdminOrderStatus;
@@ -94,7 +107,9 @@ export function getAdminOrders(query: AdminOrdersQuery) {
   return apiFetch<AdminOrdersResponse>(`/orders/admin?${params.toString()}`);
 }
 
-export function getAdminOrdersStatusSummary(query: Pick<AdminOrdersQuery, "query" | "payment"> = {}) {
+export function getAdminOrdersStatusSummary(
+  query: Pick<AdminOrdersQuery, "query" | "payment"> = {},
+) {
   const params = new URLSearchParams();
   if (query.query) params.set("query", query.query);
   if (query.payment) params.set("payment", query.payment);
@@ -115,6 +130,13 @@ export async function updateAdminOrderStatus(id: string, status: AdminOrderStatu
     body: JSON.stringify({ status }),
   });
   return response.order;
+}
+
+export function bulkUpdateAdminOrderStatus(ids: string[], status: AdminOrderStatus) {
+  return apiFetch<BulkAdminOrderStatusResponse>("/orders/admin/status/bulk", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, status }),
+  });
 }
 
 export async function correctAdminOrderStatus(
