@@ -16,6 +16,15 @@ export type AdminDashboardResponse = {
     customersDelta: number;
     averageBasket: number;
     averageBasketDelta: number;
+    netProductRevenue: number;
+    costOfGoods: number | null;
+    costOfGoodsDelta: number | null;
+    grossMargin: number | null;
+    grossMarginDelta: number | null;
+    marginRate: number | null;
+    marginRateDelta: number | null;
+    missingCostOrders: number;
+    missingCostItems: number;
     products: number;
     lowStock: number;
   };
